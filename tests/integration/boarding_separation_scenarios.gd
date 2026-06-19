@@ -67,12 +67,14 @@ func _test_enemy_defender_blocking(
 	crew: CrewManager,
 	roles: CrewRoleManager
 ) -> void:
+	for crew_member: Defender in crew.get_living_defenders():
+		crew_member.melee.configure(1, 10.0, 1.0)
+
 	roles.request_assignment(0, CrewRole.Id.FREE_FIGHTER)
 	await _wait_until_assignment_active(roles, 0)
 
 	var defender: Defender = crew.get_defender(0)
-	defender.melee.configure(1, 10.0, 1.0)
-	var enemy: BoardingEnemy = spawn.spawn_debug_on_platform(140.0)
+	var enemy: BoardingEnemy = spawn.spawn_debug_on_platform(80.0)
 	enemy.melee.configure(1, 10.0, 1.0)
 	await _wait_physics_frames(90)
 
