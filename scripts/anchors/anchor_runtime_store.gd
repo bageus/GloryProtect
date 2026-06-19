@@ -8,8 +8,10 @@ var _anchors: Array[AnchorRuntime] = []
 
 func initialize() -> void:
 	_anchors.clear()
-	for anchor_id in range(4):
-		var side := AnchorRuntime.Side.LEFT if anchor_id < 2 else AnchorRuntime.Side.RIGHT
+	for anchor_id: int in range(4):
+		var side: int = AnchorRuntime.Side.RIGHT
+		if anchor_id < 2:
+			side = AnchorRuntime.Side.LEFT
 		_anchors.append(AnchorRuntime.new(anchor_id, side))
 
 
@@ -31,7 +33,7 @@ func set_install_target(
 	orb_id: int,
 	ground_point: Vector2
 ) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.target_orb_id = orb_id
 	anchor.target_ground_point = ground_point
 
@@ -41,19 +43,19 @@ func set_queued(anchor_id: int) -> void:
 
 
 func begin_install(anchor_id: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	_set_state(anchor_id, AnchorRuntime.State.INSTALLING)
 
 
 func advance_operation(anchor_id: int, delta: float) -> float:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.operation_progress += delta
 	return anchor.operation_progress
 
 
 func attach(anchor_id: int, platform_x: float) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
 	anchor.attached_platform_x = platform_x
@@ -63,19 +65,19 @@ func attach(anchor_id: int, platform_x: float) -> void:
 
 
 func begin_overload(anchor_id: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.overload_progress = 0.0
 	_set_state(anchor_id, AnchorRuntime.State.OVERLOADED)
 
 
 func advance_overload(anchor_id: int, delta: float) -> float:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.overload_progress += delta
 	return anchor.overload_progress
 
 
 func cancel_overload(anchor_id: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	if anchor.state != AnchorRuntime.State.OVERLOADED:
 		return
 	anchor.overload_progress = 0.0
@@ -83,7 +85,7 @@ func cancel_overload(anchor_id: int) -> void:
 
 
 func begin_return(anchor_id: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
 	if not anchor.has_attachment() and anchor.has_target():
@@ -93,7 +95,7 @@ func begin_return(anchor_id: int) -> void:
 
 
 func set_stowed(anchor_id: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
 	anchor.clear_ground_binding()
@@ -102,7 +104,7 @@ func set_stowed(anchor_id: int) -> void:
 
 func get_holding_on_side(side: int) -> Array[AnchorRuntime]:
 	var result: Array[AnchorRuntime] = []
-	for anchor in _anchors:
+	for anchor: AnchorRuntime in _anchors:
 		if anchor.side == side and anchor.is_holding():
 			result.append(anchor)
 	return result
@@ -114,16 +116,19 @@ func count_holding_on_side(side: int) -> int:
 
 func get_state_summary() -> String:
 	var parts := PackedStringArray()
-	for anchor in _anchors:
-		var orb_suffix := ""
+	for anchor: AnchorRuntime in _anchors:
+		var orb_suffix: String = ""
 		if anchor.has_attachment():
 			orb_suffix = "@O%d" % (anchor.attached_orb_id + 1)
 		elif anchor.has_target():
 			orb_suffix = "@O%d" % (anchor.target_orb_id + 1)
+		var state_name: String = String(
+			AnchorRuntime.State.keys()[anchor.state]
+		)
 		parts.append(
 			"%d:%s%s" % [
 				anchor.anchor_id + 1,
-				AnchorRuntime.State.keys()[anchor.state],
+				state_name,
 				orb_suffix,
 			]
 		)
@@ -131,7 +136,7 @@ func get_state_summary() -> String:
 
 
 func _set_state(anchor_id: int, new_state: int) -> void:
-	var anchor := get_anchor(anchor_id)
+	var anchor: AnchorRuntime = get_anchor(anchor_id)
 	if anchor.state == new_state:
 		return
 	anchor.state = new_state
