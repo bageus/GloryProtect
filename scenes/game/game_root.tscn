@@ -160,6 +160,7 @@ script = ExtResource("10_platform_visual")
 platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
 balance = ExtResource("7_platform_balance")
+crew_balance = ExtResource("14_crew_balance")
 
 [node name="CrewManager" type="Node2D" parent="World/Platform"]
 script = ExtResource("11_crew_manager")
