@@ -5,6 +5,7 @@ var _configured: bool = false
 var _defender: Defender
 var _balance: BoardingBalance
 var _game_flow: GameFlowController
+var _platform: PlatformController
 var _roles: CrewRoleManager
 var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
@@ -14,6 +15,7 @@ func configure(
 	defender: Defender,
 	balance: BoardingBalance,
 	game_flow: GameFlowController,
+	platform: PlatformController,
 	roles: CrewRoleManager,
 	enemies: BoardingEnemyRegistry,
 	melee: MeleeAttackComponent
@@ -21,6 +23,7 @@ func configure(
 	_defender = defender
 	_balance = balance
 	_game_flow = game_flow
+	_platform = platform
 	_roles = roles
 	_enemies = enemies
 	_melee = melee
@@ -36,13 +39,16 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_melee.tick(delta)
-	if _melee.is_attacking() or _defender.is_moving():
+	if _melee.is_attacking():
+		_defender.movement.stop()
 		return
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
 		_defender.defender_id
 	)
 	if assignment == null:
+		return
+	if assignment.state == CrewAssignmentRuntime.State.MOVING:
 		return
 	if (
 		assignment.state != CrewAssignmentRuntime.State.ACTIVE
@@ -58,13 +64,25 @@ func _physics_process(delta: float) -> void:
 		max_target_distance
 	)
 	if target == null:
+		_stop_free_fighter_without_target(assignment)
 		return
 
 	var distance: float = absf(
 		target.global_position.x - _defender.global_position.x
 	)
 	if distance <= _balance.defender_attack_range:
+		_defender.movement.stop()
 		_melee.try_start(target.health)
+		return
+
+	if (
+		assignment.state == CrewAssignmentRuntime.State.ACTIVE
+		and assignment.current_role == CrewRole.Id.FREE_FIGHTER
+	):
+		var target_local_x: float = (
+			target.global_position.x - _platform.global_position.x
+		)
+		_defender.movement.move_to(target_local_x)
 
 
 func is_action_active() -> bool:
@@ -98,6 +116,16 @@ func _get_target_search_distance(
 	if assignment.current_role == CrewRole.Id.FREE_FIGHTER:
 		return INF
 	return _balance.post_combat_radius
+
+
+func _stop_free_fighter_without_target(
+	assignment: CrewAssignmentRuntime
+) -> void:
+	if (
+		assignment.state == CrewAssignmentRuntime.State.ACTIVE
+		and assignment.current_role == CrewRole.Id.FREE_FIGHTER
+	):
+		_defender.movement.stop()
 
 
 func _can_role_use_melee(role_id: int) -> bool:
