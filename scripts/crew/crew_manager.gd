@@ -8,7 +8,7 @@ signal defender_died(defender_id: int)
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
 
-var _defenders: Dictionary = {}
+var _defenders: Dictionary[int, Defender] = {}
 
 
 func _ready() -> void:
@@ -19,33 +19,48 @@ func _ready() -> void:
 
 
 func get_defender(defender_id: int) -> Defender:
-	return _defenders.get(defender_id) as Defender
+	return _defenders.get(defender_id)
 
 
 func get_all_defenders() -> Array[Defender]:
 	var result: Array[Defender] = []
-	var ids := _defenders.keys()
+	var ids: Array[int] = _defenders.keys()
 	ids.sort()
-	for defender_id in ids:
-		result.append(_defenders[defender_id] as Defender)
+	for defender_id: int in ids:
+		result.append(_defenders[defender_id])
+	return result
+
+
+func get_living_defenders() -> Array[Defender]:
+	var result: Array[Defender] = []
+	for defender: Defender in get_all_defenders():
+		if defender.health.is_alive():
+			result.append(defender)
 	return result
 
 
 func get_living_count() -> int:
-	var count := 0
-	for defender in get_all_defenders():
-		if defender.health.is_alive():
-			count += 1
-	return count
+	return get_living_defenders().size()
+
+
+func get_nearest_living_defender(world_position: Vector2) -> Defender:
+	var nearest: Defender = null
+	var nearest_distance: float = INF
+	for defender: Defender in get_living_defenders():
+		var distance: float = world_position.distance_squared_to(defender.global_position)
+		if distance < nearest_distance:
+			nearest = defender
+			nearest_distance = distance
+	return nearest
 
 
 func _spawn_starting_crew() -> void:
-	for defender_id in range(balance.starting_defender_count):
+	for defender_id: int in range(balance.starting_defender_count):
 		_spawn_defender(defender_id)
 
 
 func _spawn_defender(defender_id: int) -> Defender:
-	var defender := defender_scene.instantiate() as Defender
+	var defender: Defender = defender_scene.instantiate() as Defender
 	assert(defender != null, "Defender scene root must use Defender script")
 	defender.configure(defender_id, balance, _get_defender_color(defender_id))
 	defender.name = "Defender%d" % (defender_id + 1)
@@ -57,7 +72,7 @@ func _spawn_defender(defender_id: int) -> Defender:
 
 
 func _get_defender_color(defender_id: int) -> Color:
-	var colors := [
+	var colors: Array[Color] = [
 		Color(0.35, 0.84, 1.0),
 		Color(1.0, 0.68, 0.32),
 		Color(0.58, 0.92, 0.48),
