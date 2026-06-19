@@ -32,7 +32,8 @@ func configure(
 	platform: PlatformController,
 	paths: AnchorPathRegistry,
 	crew: CrewManager,
-	orbs: GroundOrbRegistry
+	orbs: GroundOrbRegistry,
+	movement_resolver: BoardingMovementResolver
 ) -> void:
 	health.configure(balance.enemy_max_health)
 	melee.configure(
@@ -49,6 +50,7 @@ func configure(
 		paths,
 		crew,
 		orbs,
+		movement_resolver,
 		melee
 	)
 
