@@ -4,6 +4,7 @@ extends Node2D
 signal crew_initialized
 signal defender_spawned(defender_id: int, defender: Defender)
 signal defender_died(defender_id: int)
+signal defender_replaced(defender_id: int, defender: Defender)
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
@@ -14,6 +15,10 @@ var _defenders: Dictionary[int, Defender] = {}
 func _ready() -> void:
 	assert(defender_scene != null, "CrewManager requires defender scene")
 	assert(balance != null, "CrewManager requires CrewBalance")
+	assert(
+		balance.starting_defender_count <= balance.maximum_defender_count,
+		"Starting crew cannot exceed maximum crew size"
+	)
 	_spawn_starting_crew()
 	call_deferred("_emit_crew_initialized")
 
@@ -47,24 +52,45 @@ func get_nearest_living_defender(world_position: Vector2) -> Defender:
 	var nearest: Defender = null
 	var nearest_distance: float = INF
 	for defender: Defender in get_living_defenders():
-		var distance: float = world_position.distance_squared_to(defender.global_position)
+		var distance: float = world_position.distance_squared_to(
+			defender.global_position
+		)
 		if distance < nearest_distance:
 			nearest = defender
 			nearest_distance = distance
 	return nearest
 
 
+func replace_defender(defender_id: int, spawn_local_x: float) -> Defender:
+	if defender_id < 0 or defender_id >= balance.maximum_defender_count:
+		return null
+
+	var previous: Defender = _defenders.get(defender_id)
+	if previous != null:
+		_defenders.erase(defender_id)
+		if is_instance_valid(previous):
+			previous.name = "RetiredDefender%d" % (defender_id + 1)
+			if previous.get_parent() == self:
+				remove_child(previous)
+			previous.queue_free()
+
+	var replacement: Defender = _spawn_defender(defender_id, spawn_local_x)
+	defender_replaced.emit(defender_id, replacement)
+	return replacement
+
+
 func _spawn_starting_crew() -> void:
 	for defender_id: int in range(balance.starting_defender_count):
-		_spawn_defender(defender_id)
+		_spawn_defender(defender_id, balance.replacement_door_local_x)
 
 
-func _spawn_defender(defender_id: int) -> Defender:
+func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	var defender: Defender = defender_scene.instantiate() as Defender
 	assert(defender != null, "Defender scene root must use Defender script")
 	defender.configure(defender_id, balance, _get_defender_color(defender_id))
 	defender.name = "Defender%d" % (defender_id + 1)
 	add_child(defender)
+	defender.teleport_to(spawn_local_x)
 	defender.died.connect(_on_defender_died)
 	_defenders[defender_id] = defender
 	defender_spawned.emit(defender_id, defender)
