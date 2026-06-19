@@ -1,0 +1,140 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
+[ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
+[ext_resource type="Script" path="res://scripts/game/prototype_world.gd" id="3_world"]
+[ext_resource type="Script" path="res://scripts/platform/platform_controller.gd" id="4_platform"]
+[ext_resource type="Script" path="res://scripts/shield/prototype_shield_system.gd" id="5_shield"]
+[ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="6_hud"]
+
+[node name="GameRoot" type="Node2D"]
+
+[node name="GameFlowController" type="Node" parent="."]
+script = ExtResource("1_flow")
+start_delay_seconds = 3.0
+
+[node name="WindSystem" type="Node" parent="."]
+script = ExtResource("2_wind")
+
+[node name="World" type="Node2D" parent="."]
+script = ExtResource("3_world")
+platform_path = NodePath("Platform")
+ground_y = 510.0
+orb_x = 0.0
+contact_half_width = 72.0
+world_min_x = -2600.0
+world_max_x = 2600.0
+
+[node name="Platform" type="Node2D" parent="World"]
+position = Vector2(0, 300)
+script = ExtResource("4_platform")
+game_flow_path = NodePath("../../GameFlowController")
+wind_system_path = NodePath("../../WindSystem")
+cell_count = 18
+world_min_x = -2400.0
+world_max_x = 2400.0
+
+[node name="Camera2D" type="Camera2D" parent="World/Platform"]
+position = Vector2(0, 48)
+position_smoothing_enabled = true
+position_smoothing_speed = 5.0
+
+[node name="PrototypeShieldSystem" type="Node" parent="."]
+script = ExtResource("5_shield")
+game_flow_path = NodePath("../GameFlowController")
+world_path = NodePath("../World")
+max_health = 100.0
+recharge_per_second = 8.0
+debug_damage_amount = 10.0
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="PrototypeHUD" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_hud")
+game_flow_path = NodePath("../../GameFlowController")
+wind_system_path = NodePath("../../WindSystem")
+platform_path = NodePath("../../World/Platform")
+world_path = NodePath("../../World")
+shield_system_path = NodePath("../../PrototypeShieldSystem")
+
+[node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 500.0
+offset_bottom = 236.0
+
+[node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "GloryProtect — Prototype 0.1"
+
+[node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Состояние"
+
+[node name="WindLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Ветер"
+
+[node name="PlatformLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Платформа"
+
+[node name="ContactLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Контакт"
+
+[node name="ShieldLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Щит"
+
+[node name="HelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
+text = "←/→ — рулевое усилие   Space — тестовый урон   Esc — пауза"
+
+[node name="PauseLabel" type="Label" parent="CanvasLayer/PrototypeHUD"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -185.0
+offset_top = -42.0
+offset_right = 185.0
+offset_bottom = 42.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.42, 1)
+theme_override_colors/font_outline_color = Color(0.02, 0.03, 0.05, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 42
+text = "ПАУЗА"
+horizontal_alignment = 1
+vertical_alignment = 1
