@@ -36,7 +36,7 @@ func _physics_process(delta: float) -> void:
 	if not _paths.has_available_paths():
 		_spawn_remaining = balance.spawn_interval
 		return
-	if _registry.get_active_count() >= balance.max_active_enemies:
+	if _registry.get_ground_count() >= balance.max_ground_enemies:
 		return
 
 	_spawn_remaining -= delta
@@ -50,7 +50,9 @@ func _physics_process(delta: float) -> void:
 func spawn_now() -> BoardingEnemy:
 	if not _paths.has_available_paths():
 		return null
-	var side: int = -1 if _rng.randf() < 0.5 else 1
+	var side: int = 1
+	if _rng.randf() < 0.5:
+		side = -1
 	return _spawn_enemy(side)
 
 
