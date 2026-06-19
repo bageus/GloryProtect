@@ -6,28 +6,24 @@ signal telemetry_changed(position_x: float, velocity_x: float, steering_axis: fl
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
+@export_node_path("SteeringInputProvider") var steering_input_path: NodePath
 @export var anchor_system_path: NodePath
-
-@export_range(8, 32, 1) var cell_count: int = 18
-@export_range(16.0, 64.0, 1.0) var cell_width: float = 40.0
-@export_range(24.0, 100.0, 1.0) var platform_height: float = 58.0
-@export_range(0.0, 500.0, 1.0) var steering_force: float = 178.0
-@export_range(0.0, 300.0, 1.0) var linear_drag: float = 36.0
-@export_range(20.0, 1000.0, 1.0) var max_horizontal_speed: float = 310.0
-@export var world_min_x: float = -2400.0
-@export var world_max_x: float = 2400.0
-@export var driver_assigned: bool = true
+@export var balance: PlatformBalance
 
 var horizontal_velocity: float = 0.0
 var steering_axis: float = 0.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind_system: WindSystem = get_node(wind_system_path)
+@onready var _steering_input: SteeringInputProvider = get_node(steering_input_path)
 @onready var _anchor_system = get_node_or_null(anchor_system_path)
 
 
 func _ready() -> void:
-	queue_redraw()
+	assert(balance != null, "PlatformController requires PlatformBalance")
+	_steering_input.driver_availability_changed.connect(
+		_on_driver_availability_changed
+	)
 
 
 func _physics_process(delta: float) -> void:
@@ -35,17 +31,20 @@ func _physics_process(delta: float) -> void:
 		steering_axis = 0.0
 		return
 
-	steering_axis = Input.get_axis(&"ui_left", &"ui_right") if driver_assigned else 0.0
-
-	var steering_acceleration := steering_axis * steering_force
+	steering_axis = _steering_input.get_steering_axis()
+	var steering_acceleration := steering_axis * balance.steering_force
 	var total_acceleration := steering_acceleration + _wind_system.get_current_force()
 
 	horizontal_velocity += total_acceleration * delta
-	horizontal_velocity = move_toward(horizontal_velocity, 0.0, linear_drag * delta)
+	horizontal_velocity = move_toward(
+		horizontal_velocity,
+		0.0,
+		balance.linear_drag * delta
+	)
 	horizontal_velocity = clampf(
 		horizontal_velocity,
-		-max_horizontal_speed,
-		max_horizontal_speed
+		-balance.max_horizontal_speed,
+		balance.max_horizontal_speed
 	)
 
 	var next_x := position.x + horizontal_velocity * delta
@@ -58,22 +57,28 @@ func _physics_process(delta: float) -> void:
 
 
 func set_driver_assigned(value: bool) -> void:
-	if driver_assigned == value:
-		return
-	driver_assigned = value
-	if not driver_assigned:
-		steering_axis = 0.0
-	driver_assignment_changed.emit(driver_assigned)
-	queue_redraw()
+	_steering_input.set_driver_available(value)
+
+
+func is_driver_assigned() -> bool:
+	return _steering_input.driver_available
+
+
+func is_driver_control_active() -> bool:
+	return _steering_input.is_control_input_active()
 
 
 func get_platform_width() -> float:
-	return float(cell_count) * cell_width
+	return float(balance.cell_count) * balance.cell_width
+
+
+func get_platform_height() -> float:
+	return balance.platform_height
 
 
 func _apply_world_and_anchor_constraints(next_x: float) -> float:
-	var minimum_x := world_min_x
-	var maximum_x := world_max_x
+	var minimum_x := balance.world_min_x
+	var maximum_x := balance.world_max_x
 
 	if _anchor_system == null:
 		return clampf(next_x, minimum_x, maximum_x)
@@ -95,39 +100,7 @@ func _apply_world_and_anchor_constraints(next_x: float) -> float:
 	return clampf(next_x, minimum_x, maximum_x)
 
 
-func _draw() -> void:
-	var platform_width := get_platform_width()
-	var platform_rect := Rect2(
-		Vector2(-platform_width * 0.5, -platform_height * 0.5),
-		Vector2(platform_width, platform_height)
-	)
-
-	# Placeholder visuals: no external assets are required for the first run.
-	draw_rect(platform_rect, Color(0.16, 0.22, 0.31), true)
-	draw_rect(platform_rect, Color(0.55, 0.69, 0.82), false, 3.0)
-
-	for index in range(1, cell_count):
-		var x := -platform_width * 0.5 + float(index) * cell_width
-		draw_line(
-			Vector2(x, -platform_height * 0.5),
-			Vector2(x, platform_height * 0.5),
-			Color(0.28, 0.36, 0.46),
-			1.0
-		)
-
-	var center_post_rect := Rect2(Vector2(-18.0, -72.0), Vector2(36.0, 72.0))
-	draw_rect(center_post_rect, Color(0.26, 0.56, 0.75), true)
-	draw_rect(center_post_rect, Color(0.75, 0.91, 1.0), false, 2.0)
-
-	var anchor_post_offset := platform_width * 0.5 - cell_width * 1.5
-	for side in [-1.0, 1.0]:
-		var post_rect := Rect2(
-			Vector2(side * anchor_post_offset - 14.0, -58.0),
-			Vector2(28.0, 58.0)
-		)
-		draw_rect(post_rect, Color(0.55, 0.42, 0.22), true)
-		draw_rect(post_rect, Color(0.92, 0.72, 0.35), false, 2.0)
-
-	var orb_color := Color(0.35, 0.9, 1.0) if driver_assigned else Color(0.35, 0.4, 0.45)
-	draw_circle(Vector2.ZERO, 17.0, orb_color)
-	draw_arc(Vector2.ZERO, 25.0, 0.0, TAU, 48, Color(0.65, 0.96, 1.0), 2.0)
+func _on_driver_availability_changed(is_available: bool) -> void:
+	if not is_available:
+		steering_axis = 0.0
+	driver_assignment_changed.emit(is_available)
