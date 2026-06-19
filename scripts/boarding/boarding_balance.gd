@@ -19,6 +19,13 @@ extends Resource
 @export_range(4.0, 120.0, 1.0) var climb_enemy_spacing: float = 30.0
 @export_range(4.0, 120.0, 1.0) var platform_enemy_spacing: float = 28.0
 
+@export_group("Enemy Jump")
+@export_range(0.1, 2.0, 0.05) var jump_duration: float = 0.45
+@export_range(4.0, 160.0, 1.0) var jump_height: float = 44.0
+@export_range(0.0, 40.0, 1.0) var jump_landing_clearance: float = 2.0
+@export_range(0.0, 40.0, 1.0) var jump_trigger_tolerance: float = 4.0
+@export_range(20.0, 240.0, 1.0) var jump_max_horizontal_distance: float = 120.0
+
 @export_group("Enemy Combat")
 @export_range(1, 20, 1) var enemy_attack_damage: int = 1
 @export_range(0.05, 5.0, 0.05) var enemy_attack_windup: float = 0.55
