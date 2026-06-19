@@ -11,7 +11,7 @@ extends Resource
 @export_range(0.0, 100.0, 1.0) var ground_arrival_epsilon: float = 8.0
 @export_range(10.0, 1000.0, 1.0) var spawn_distance_from_platform: float = 720.0
 @export_range(0.1, 30.0, 0.1) var spawn_interval: float = 3.0
-@export_range(1, 100, 1) var max_active_enemies: int = 8
+@export_range(1, 100, 1) var max_ground_enemies: int = 8
 @export_range(0.0, 200.0, 1.0) var path_tie_epsilon: float = 24.0
 
 @export_range(1, 20, 1) var enemy_attack_damage: int = 1
