@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="WindBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/platform/wind_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+level_forces = PackedFloat32Array(42, 78, 126)
+change_interval_min = 5.0
+change_interval_max = 9.0
+fluctuation_force = 8.0
+fluctuation_speed = 0.85
