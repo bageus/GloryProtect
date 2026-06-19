@@ -44,15 +44,15 @@ func _physics_process(delta: float) -> void:
 	)
 	if assignment == null:
 		return
-	if assignment.state != CrewAssignmentRuntime.State.ACTIVE:
+	if (
+		assignment.state != CrewAssignmentRuntime.State.ACTIVE
+		and assignment.state != CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	):
 		return
 	if not _can_role_use_melee(assignment.current_role):
 		return
 
-	var max_target_distance: float = INF
-	if assignment.current_role != CrewRole.Id.FREE_FIGHTER:
-		max_target_distance = _balance.post_combat_radius
-
+	var max_target_distance: float = _get_target_search_distance(assignment)
 	var target: BoardingEnemy = _enemies.get_nearest_boarded_enemy(
 		_defender.global_position,
 		max_target_distance
@@ -68,12 +68,36 @@ func _physics_process(delta: float) -> void:
 
 
 func is_action_active() -> bool:
-	return _configured and _melee != null and _melee.is_attacking()
+	if not _configured or _melee == null:
+		return false
+	if _melee.is_attacking():
+		return true
+
+	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
+		_defender.defender_id
+	)
+	if assignment == null or not _can_role_use_melee(assignment.current_role):
+		return false
+
+	return _enemies.get_nearest_boarded_enemy(
+		_defender.global_position,
+		_balance.defender_attack_range
+	) != null
 
 
 func cancel() -> void:
 	if _melee != null:
 		_melee.cancel()
+
+
+func _get_target_search_distance(
+	assignment: CrewAssignmentRuntime
+) -> float:
+	if assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION:
+		return _balance.defender_attack_range
+	if assignment.current_role == CrewRole.Id.FREE_FIGHTER:
+		return INF
+	return _balance.post_combat_radius
 
 
 func _can_role_use_melee(role_id: int) -> bool:
