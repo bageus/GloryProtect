@@ -177,7 +177,7 @@ func can_place_enemy_at(enemy: BoardingEnemy, local_x: float) -> bool:
 		if other == enemy:
 			continue
 		if (
-			absf(other.controller.get_platform_local_x() - local_x)
+			absf(other.controller.get_platform_occupancy_x() - local_x)
 			< boarding_balance.platform_enemy_spacing
 		):
 			return false
@@ -201,7 +201,7 @@ func resolve_enemy_platform_x(
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
-			other.controller.get_platform_local_x(),
+			other.controller.get_platform_occupancy_x(),
 			boarding_balance.platform_enemy_spacing
 		)
 
@@ -227,7 +227,7 @@ func resolve_defender_platform_x(
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
-			enemy.controller.get_platform_local_x(),
+			enemy.controller.get_platform_occupancy_x(),
 			defender_gap
 		)
 	return resolved_x
@@ -254,7 +254,7 @@ func _is_defender_slot_free(local_x: float) -> bool:
 	var minimum_gap: float = _get_enemy_defender_gap()
 	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
 		if (
-			absf(enemy.controller.get_platform_local_x() - local_x)
+			absf(enemy.controller.get_platform_occupancy_x() - local_x)
 			< minimum_gap
 		):
 			return false
