@@ -31,7 +31,7 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 
 ## Текущая реализация
 
-**Prototype 0.8** содержит:
+**Prototype 0.9** содержит:
 
 - состояние забега, стартовую задержку и полную паузу;
 - data-driven платформу и ветер силы 1–3;
@@ -51,6 +51,10 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 - взаимное блокирование защитников и врагов;
 - свободное прохождение защитников сквозь союзников;
 - остановку защитника на бой с последующим продолжением маршрута роли;
+- условный прыжок врага через защитника при пробке впереди;
+- проверку свободной позиции за защитником;
+- резервирование точки приземления на время прыжка;
+- немедленную переоценку ближайшего защитника после приземления;
 - базовый ближний бой с фиксацией цели взмаха;
 - поражение при разрушении секции или полном уничтожении экипажа;
 - диагностический HUD и регрессионные тесты.
@@ -96,6 +100,7 @@ godot --headless --path . --script res://tests/integration/boarding_enemy_scenar
 godot --headless --path . --script res://tests/integration/crew_replacement_scenarios.gd
 godot --headless --path . --script res://tests/integration/free_fighter_pursuit_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_separation_scenarios.gd
+godot --headless --path . --script res://tests/integration/boarding_jump_scenarios.gd
 python tools/check_file_sizes.py
 ```
 
