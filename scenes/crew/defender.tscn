@@ -1,0 +1,26 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/crew/defender.gd" id="1_defender"]
+[ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="2_health"]
+[ext_resource type="Script" path="res://scripts/crew/defender_movement.gd" id="3_movement"]
+[ext_resource type="Script" path="res://scripts/crew/defender_visual.gd" id="4_visual"]
+
+[node name="Defender" type="Node2D"]
+script = ExtResource("1_defender")
+health_path = NodePath("HealthComponent")
+movement_path = NodePath("DefenderMovement")
+visual_path = NodePath("DefenderVisual")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("2_health")
+max_health = 3
+
+[node name="DefenderMovement" type="Node" parent="."]
+script = ExtResource("3_movement")
+move_speed = 180.0
+arrival_epsilon = 1.0
+
+[node name="DefenderVisual" type="Node2D" parent="."]
+script = ExtResource("4_visual")
+health_path = NodePath("../HealthComponent")
+body_radius = 14.0
