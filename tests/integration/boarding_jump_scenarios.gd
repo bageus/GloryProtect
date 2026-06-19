@@ -10,6 +10,7 @@ func _init() -> void:
 func _run_scenarios() -> void:
 	await _test_no_jump_without_enemy_blocker()
 	await _test_jump_over_defender_when_landing_is_free()
+	await _test_retarget_after_original_target_dies()
 	await _test_no_jump_when_landing_is_occupied()
 	print("Boarding jump scenarios passed")
 	quit()
@@ -54,6 +55,39 @@ func _test_jump_over_defender_when_landing_is_free() -> void:
 		absf(
 			jumping_enemy.controller.get_platform_local_x()
 			- target.position.x
+		) <= spawn.balance.enemy_attack_range
+	)
+
+	game.queue_free()
+	await process_frame
+
+
+func _test_retarget_after_original_target_dies() -> void:
+	var game: Node2D = await _create_prepared_game()
+	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var spawn: BoardingSpawnDirector = game.get_node(
+		"World/BoardingSpawnDirector"
+	)
+	var original_target: Defender = crew.get_defender(0)
+	var replacement_target: Defender = crew.get_defender(2)
+	replacement_target.teleport_to(56.0)
+
+	var front_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-28.0)
+	front_enemy.melee.configure(1, 10.0, 1.0)
+	var jumping_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-56.0)
+	jumping_enemy.melee.configure(1, 10.0, 1.0)
+
+	var jumped: bool = await _observe_jump(jumping_enemy, 60)
+	assert(jumped)
+	original_target.health.set_health(0)
+	await _wait_until_jump_finished(jumping_enemy, 90)
+
+	assert(original_target.health.is_alive() == false)
+	assert(jumping_enemy.get_state() == BoardingEnemyController.State.FIGHTING)
+	assert(
+		absf(
+			jumping_enemy.controller.get_platform_local_x()
+			- replacement_target.position.x
 		) <= spawn.balance.enemy_attack_range
 	)
 
