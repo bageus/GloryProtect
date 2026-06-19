@@ -147,6 +147,24 @@ func find_nearest_platform_slot(
 	return preferred_x
 
 
+func find_nearest_defender_slot(preferred_x: float) -> float:
+	if _is_defender_slot_free(preferred_x):
+		return _clamp_defender_to_platform(preferred_x)
+
+	var platform_half_width: float = _platform.get_platform_width() * 0.5
+	var step_size: float = _get_enemy_defender_gap()
+	var max_steps: int = ceili(platform_half_width * 2.0 / step_size)
+	for step_index: int in range(1, max_steps + 1):
+		var offset: float = float(step_index) * step_size
+		var left_candidate: float = preferred_x - offset
+		if _is_defender_slot_free(left_candidate):
+			return _clamp_defender_to_platform(left_candidate)
+		var right_candidate: float = preferred_x + offset
+		if _is_defender_slot_free(right_candidate):
+			return _clamp_defender_to_platform(right_candidate)
+	return _clamp_defender_to_platform(preferred_x)
+
+
 func can_place_enemy_at(enemy: BoardingEnemy, local_x: float) -> bool:
 	var platform_half_width: float = _platform.get_platform_width() * 0.5
 	var enemy_radius: float = boarding_balance.enemy_body_radius
@@ -224,6 +242,20 @@ func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
 		if (
 			absf(other.global_position.x - world_x)
 			< boarding_balance.ground_enemy_spacing
+		):
+			return false
+	return true
+
+
+func _is_defender_slot_free(local_x: float) -> bool:
+	var clamped_x: float = _clamp_defender_to_platform(local_x)
+	if not is_equal_approx(local_x, clamped_x):
+		return false
+	var minimum_gap: float = _get_enemy_defender_gap()
+	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
+		if (
+			absf(enemy.controller.get_platform_local_x() - local_x)
+			< minimum_gap
 		):
 			return false
 	return true
