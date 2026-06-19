@@ -23,6 +23,7 @@ var _platform: PlatformController
 var _paths: AnchorPathRegistry
 var _crew: CrewManager
 var _orbs: GroundOrbRegistry
+var _movement_resolver: BoardingMovementResolver
 var _melee: MeleeAttackComponent
 
 
@@ -34,6 +35,7 @@ func configure(
 	paths: AnchorPathRegistry,
 	crew: CrewManager,
 	orbs: GroundOrbRegistry,
+	movement_resolver: BoardingMovementResolver,
 	melee: MeleeAttackComponent
 ) -> void:
 	_enemy = enemy
@@ -43,6 +45,7 @@ func configure(
 	_paths = paths
 	_crew = crew
 	_orbs = orbs
+	_movement_resolver = movement_resolver
 	_melee = melee
 	_configured = true
 	state = State.WAITING_WITHOUT_PATH
@@ -77,6 +80,18 @@ func get_state() -> int:
 	return state
 
 
+func get_selected_anchor_id() -> int:
+	return selected_anchor_id
+
+
+func get_climb_progress() -> float:
+	return _climb_progress
+
+
+func get_platform_local_x() -> float:
+	return _platform_local_x
+
+
 func is_on_platform() -> bool:
 	return state == State.ON_PLATFORM or state == State.FIGHTING
 
@@ -84,22 +99,32 @@ func is_on_platform() -> bool:
 func force_board_at(local_x: float) -> void:
 	selected_anchor_id = -1
 	_climb_progress = 1.0
-	_platform_local_x = local_x
+	_platform_local_x = _movement_resolver.find_nearest_platform_slot(
+		_enemy,
+		local_x
+	)
 	state = State.ON_PLATFORM
 	_update_world_position_from_platform()
 
 
 func _update_waiting(delta: float) -> void:
-	var path: AnchorPathSnapshot = _paths.choose_nearest_path(_enemy.global_position.x)
+	var path: AnchorPathSnapshot = _paths.choose_nearest_path(
+		_enemy.global_position.x
+	)
 	if path != null:
 		selected_anchor_id = path.anchor_id
 		state = State.RUNNING_TO_ANCHOR
 		return
 
-	_enemy.global_position.x = move_toward(
+	var desired_x: float = move_toward(
 		_enemy.global_position.x,
 		_platform.global_position.x,
 		_balance.ground_move_speed * delta
+	)
+	_enemy.global_position.x = _movement_resolver.resolve_ground_x(
+		_enemy,
+		_enemy.global_position.x,
+		desired_x
 	)
 	_set_ground_height()
 
@@ -116,14 +141,33 @@ func _update_running_to_anchor(delta: float) -> void:
 		state = State.WAITING_WITHOUT_PATH
 		return
 
-	_enemy.global_position.x = move_toward(
+	var desired_x: float = move_toward(
 		_enemy.global_position.x,
 		path.ground_point.x,
 		_balance.ground_move_speed * delta
 	)
+	_enemy.global_position.x = _movement_resolver.resolve_ground_x(
+		_enemy,
+		_enemy.global_position.x,
+		desired_x
+	)
 	_set_ground_height()
 
-	if absf(_enemy.global_position.x - path.ground_point.x) > _balance.ground_arrival_epsilon:
+	if (
+		absf(_enemy.global_position.x - path.ground_point.x)
+		> _balance.ground_arrival_epsilon
+	):
+		return
+
+	var rope_length: float = maxf(
+		1.0,
+		path.ground_point.distance_to(path.platform_point)
+	)
+	if not _movement_resolver.can_enter_climb(
+		_enemy,
+		selected_anchor_id,
+		rope_length
+	):
 		return
 
 	_enemy.global_position = path.ground_point
@@ -145,9 +189,16 @@ func _update_climbing(delta: float) -> void:
 		1.0,
 		path.ground_point.distance_to(path.platform_point)
 	)
-	_climb_progress = minf(
+	var desired_progress: float = minf(
 		1.0,
 		_climb_progress + _balance.climb_move_speed * delta / rope_length
+	)
+	_climb_progress = _movement_resolver.resolve_climb_progress(
+		_enemy,
+		selected_anchor_id,
+		_climb_progress,
+		desired_progress,
+		rope_length
 	)
 	_enemy.global_position = path.ground_point.lerp(
 		path.platform_point,
@@ -157,7 +208,13 @@ func _update_climbing(delta: float) -> void:
 	if _climb_progress < 1.0:
 		return
 
-	_platform_local_x = path.platform_point.x - _platform.global_position.x
+	var entry_local_x: float = (
+		path.platform_point.x - _platform.global_position.x
+	)
+	if not _movement_resolver.can_exit_to_platform(_enemy, entry_local_x):
+		return
+
+	_platform_local_x = entry_local_x
 	state = State.ON_PLATFORM
 	_update_world_position_from_platform()
 
@@ -168,22 +225,31 @@ func _update_on_platform(delta: float) -> void:
 		state = State.FIGHTING
 		return
 
-	var target: Defender = _crew.get_nearest_living_defender(_enemy.global_position)
+	var target: Defender = _crew.get_nearest_living_defender(
+		_enemy.global_position
+	)
 	if target == null:
 		state = State.ON_PLATFORM
 		return
 
-	var target_local_x: float = target.global_position.x - _platform.global_position.x
+	var target_local_x: float = (
+		target.global_position.x - _platform.global_position.x
+	)
 	var distance: float = absf(target_local_x - _platform_local_x)
 	if distance <= _balance.enemy_attack_range:
 		if _melee.try_start(target.health):
 			state = State.FIGHTING
 		return
 
-	_platform_local_x = move_toward(
+	var desired_x: float = move_toward(
 		_platform_local_x,
 		target_local_x,
 		_balance.platform_move_speed * delta
+	)
+	_platform_local_x = _movement_resolver.resolve_enemy_platform_x(
+		_enemy,
+		_platform_local_x,
+		desired_x
 	)
 	state = State.ON_PLATFORM
 	_update_world_position_from_platform()
