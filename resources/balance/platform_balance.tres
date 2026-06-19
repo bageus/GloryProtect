@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="PlatformBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/platform/platform_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+cell_count = 18
+cell_width = 40.0
+platform_height = 58.0
+steering_force = 178.0
+linear_drag = 36.0
+max_horizontal_speed = 310.0
+world_min_x = -2400.0
+world_max_x = 2400.0
+driver_post_width = 36.0
+driver_post_height = 72.0
+anchor_post_width = 28.0
+anchor_post_height = 58.0
+anchor_post_cell_inset = 1.5
