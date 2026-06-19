@@ -7,6 +7,7 @@ enum State {
 	CLIMBING,
 	ON_PLATFORM,
 	FIGHTING,
+	JUMPING,
 	DEAD,
 }
 
@@ -16,6 +17,8 @@ var selected_anchor_id: int = -1
 var _configured: bool = false
 var _climb_progress: float = 0.0
 var _platform_local_x: float = 0.0
+var _jump_elapsed: float = 0.0
+var _jump_plan: BoardingJumpPlan = null
 var _enemy: BoardingEnemy
 var _balance: BoardingBalance
 var _game_flow: GameFlowController
@@ -24,6 +27,7 @@ var _paths: AnchorPathRegistry
 var _crew: CrewManager
 var _orbs: GroundOrbRegistry
 var _movement_resolver: BoardingMovementResolver
+var _jump_planner: BoardingJumpPlanner
 var _melee: MeleeAttackComponent
 
 
@@ -36,6 +40,7 @@ func configure(
 	crew: CrewManager,
 	orbs: GroundOrbRegistry,
 	movement_resolver: BoardingMovementResolver,
+	jump_planner: BoardingJumpPlanner,
 	melee: MeleeAttackComponent
 ) -> void:
 	_enemy = enemy
@@ -46,6 +51,7 @@ func configure(
 	_crew = crew
 	_orbs = orbs
 	_movement_resolver = movement_resolver
+	_jump_planner = jump_planner
 	_melee = melee
 	_configured = true
 	state = State.WAITING_WITHOUT_PATH
@@ -68,11 +74,14 @@ func _physics_process(delta: float) -> void:
 			_update_climbing(delta)
 		State.ON_PLATFORM, State.FIGHTING:
 			_update_on_platform(delta)
+		State.JUMPING:
+			_update_jumping(delta)
 
 
 func stop() -> void:
 	state = State.DEAD
 	selected_anchor_id = -1
+	_jump_plan = null
 	_configured = false
 
 
@@ -92,13 +101,24 @@ func get_platform_local_x() -> float:
 	return _platform_local_x
 
 
+func get_platform_occupancy_x() -> float:
+	if state == State.JUMPING and _jump_plan != null:
+		return _jump_plan.landing_x
+	return _platform_local_x
+
+
 func is_on_platform() -> bool:
-	return state == State.ON_PLATFORM or state == State.FIGHTING
+	return (
+		state == State.ON_PLATFORM
+		or state == State.FIGHTING
+		or state == State.JUMPING
+	)
 
 
 func force_board_at(local_x: float) -> void:
 	selected_anchor_id = -1
 	_climb_progress = 1.0
+	_jump_plan = null
 	_platform_local_x = _movement_resolver.find_nearest_platform_slot(
 		_enemy,
 		local_x
@@ -246,13 +266,59 @@ func _update_on_platform(delta: float) -> void:
 		target_local_x,
 		_balance.platform_move_speed * delta
 	)
-	_platform_local_x = _movement_resolver.resolve_enemy_platform_x(
+	var resolved_x: float = _movement_resolver.resolve_enemy_platform_x(
 		_enemy,
 		_platform_local_x,
 		desired_x
 	)
+	if (
+		absf(resolved_x - _platform_local_x) <= 0.01
+		and absf(desired_x - _platform_local_x) > 0.01
+	):
+		var plan: BoardingJumpPlan = _jump_planner.create_plan(_enemy, target)
+		if plan != null:
+			_begin_jump(plan)
+			return
+
+	_platform_local_x = resolved_x
 	state = State.ON_PLATFORM
 	_update_world_position_from_platform()
+
+
+func _begin_jump(plan: BoardingJumpPlan) -> void:
+	_jump_plan = plan
+	_jump_elapsed = 0.0
+	state = State.JUMPING
+	_update_world_position_from_platform()
+
+
+func _update_jumping(delta: float) -> void:
+	if _jump_plan == null:
+		state = State.ON_PLATFORM
+		_update_world_position_from_platform()
+		return
+
+	_jump_elapsed = minf(
+		_jump_plan.duration,
+		_jump_elapsed + delta
+	)
+	var progress: float = _jump_elapsed / _jump_plan.duration
+	_platform_local_x = lerpf(
+		_jump_plan.start_x,
+		_jump_plan.landing_x,
+		progress
+	)
+	var vertical_offset: float = -sin(progress * PI) * _jump_plan.height
+	_update_world_position_from_platform(vertical_offset)
+
+	if progress < 1.0:
+		return
+
+	_platform_local_x = _jump_plan.landing_x
+	_jump_plan = null
+	state = State.ON_PLATFORM
+	_update_world_position_from_platform()
+	_update_on_platform(0.0)
 
 
 func _set_ground_height() -> void:
@@ -261,8 +327,10 @@ func _set_ground_height() -> void:
 	)
 
 
-func _update_world_position_from_platform() -> void:
+func _update_world_position_from_platform(
+	vertical_offset: float = 0.0
+) -> void:
 	_enemy.global_position = _platform.global_position + Vector2(
 		_platform_local_x,
-		_balance.platform_local_y
+		_balance.platform_local_y + vertical_offset
 	)
