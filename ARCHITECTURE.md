@@ -2,7 +2,7 @@
 
 Этот файл является **единственным источником правды для архитектуры проекта**.
 
-Обязательные ограничения находятся в [`PROJECT_RULES.md`](PROJECT_RULES.md). Изменение владельцев состояния, границ систем или направления зависимостей должно обновлять этот файл в том же коммите.
+Обязательные ограничения находятся в [`PROJECT_RULES.md`](PROJECT_RULES.md). Изменение владельцев состояния, границ систем или направления зависимостей должно обновлять этот файл в том же наборе изменений.
 
 ---
 
@@ -42,19 +42,17 @@ UI / Visual / Audio
 ```text
 GameRoot
 ├── GameFlowDomain
-├── DifficultyDomain
 ├── InputAdapters
+├── ShieldDomain
 ├── World
+│   ├── OrbDomain
 │   ├── PlatformDomain
 │   ├── AnchorDomain
-│   ├── OrbDomain
 │   ├── CrewDomain
 │   ├── CombatDomain
 │   ├── BoardingDomain
 │   └── BuildableDomain
 ├── StrategicSimulation
-│   ├── ShieldDomain
-│   └── StrategicWaveDomain
 ├── EconomyDomain
 └── PresentationDomain
 ```
@@ -79,8 +77,9 @@ GameRoot
 | Занятость рабочих постов | `RoleStationRegistry` |
 | Реестр защитников | `CrewManager` |
 | Здоровье сущности | её `HealthComponent` |
-| Контакт энергетических шаров | `OrbContactSystem` |
+| Активный энергетический контакт | `OrbContactSystem` |
 | Прочность пяти секций | `ShieldSystem` |
+| Каталог пяти шаров | `GroundOrbCatalog` через `GroundOrbRegistry` |
 | Физический враг | его state machine |
 | Стратегические группы | `StrategicWaveSystem` |
 | Занятость клеток объектами | `BuildableGrid` |
@@ -107,6 +106,14 @@ GAME_OVER
 ```
 
 Отвечает за начало забега, полную паузу, экран карточек, завершение и причину поражения. Не отвечает за движение, роли, урон или визуал.
+
+### ShieldFailureController
+
+Слушает `ShieldSystem.section_destroyed` и завершает забег с причиной `shield_section_destroyed`.
+
+### CrewFailureController
+
+Слушает смерти защитников через `CrewManager`. При нуле живых защитников завершает забег с причиной `all_defenders_dead`.
 
 ### RunClock
 
@@ -161,7 +168,112 @@ GameRoot
 
 ---
 
-## 7. AnchorDomain
+## 7. OrbDomain и ShieldDomain
+
+Текущая композиция:
+
+```text
+GroundOrbCatalog
+GroundOrbRegistry
+OrbContactSystem
+GroundOrbVisualController
+
+ShieldBalance
+ShieldSystem
+ShieldRechargeController
+ShieldFailureController
+ShieldDebugInput
+```
+
+### GroundOrbCatalog
+
+Типизированный ресурс и единственный источник данных для:
+
+- пяти горизонтальных позиций;
+- высоты земли;
+- ширины контактной зоны;
+- визуальных размеров шаров;
+- глубины земли.
+
+Идентификатор шара совпадает с идентификатором связанной секции.
+
+### GroundOrbRegistry
+
+Предоставляет публичные запросы:
+
+```text
+get_world_x(orb_id)
+get_orb_world_position(orb_id)
+get_contact_orb_at(platform_x)
+get_installation_orb_at(platform_x, half_width)
+get_anchor_ground_point(orb_id, anchor_id, offsets)
+```
+
+Реестр не хранит активный контакт и не изменяет щит.
+
+### OrbContactSystem
+
+Единственный владелец `active_orb_id`.
+
+- Проверяет горизонтальное положение платформы.
+- Выбирает ближайший шар внутри контактной зоны.
+- Немедленно завершает контакт после выхода из зоны.
+- Публикует `contact_started`, `contact_ended` и `contact_changed`.
+- Не восстанавливает щит напрямую.
+
+### ShieldSystem
+
+Единственный владелец прочности пяти секций.
+
+Публичный интерфейс:
+
+```text
+apply_damage(section_id, amount)
+restore(section_id, amount)
+set_health(section_id, value)
+get_health(section_id)
+get_health_percent(section_id)
+is_critical(section_id)
+needs_direction_indicator(section_id)
+```
+
+Публикует:
+
+```text
+section_changed
+section_entered_critical
+section_left_critical
+section_destroyed
+```
+
+Все секции создаются со 100% прочности.
+
+### ShieldRechargeController
+
+На каждом активном физическом кадре:
+
+1. читает связанную секцию из `OrbContactSystem`;
+2. отправляет команду `restore` в `ShieldSystem`;
+3. использует скорость из `ShieldBalance`.
+
+Контакт и восстановление остаются отдельными системами.
+
+### GroundOrbVisualController
+
+Рисует землю, пять шаров, кольца прочности и энергетический луч. Читает публичное состояние, но не изменяет его.
+
+### ShieldDebugInput
+
+Временный адаптер прототипа. F1–F5 выбирают секцию, `Space` отправляет команду урона. Не владеет прочностью.
+
+### Ресурсы
+
+- `ShieldBalance` — число секций, максимальная прочность, скорость зарядки, пороги и цвета.
+- `GroundOrbCatalog` — фиксированная геометрия пяти шаров.
+
+---
+
+## 8. AnchorDomain
 
 ```text
 AnchorSystem
@@ -184,11 +296,13 @@ AnchorSystem
 - `AnchorVisualController` — силуэты, тросы, предупреждения и возврат.
 - `AnchorBalance` — единственный источник настраиваемых параметров якорей.
 
-Начатая установка завершается после потери оператора. Ещё не начатые команды отменяются. Каждый трос имеет конечную длину в обоих направлениях.
+Каждая команда установки фиксирует конкретный `orb_id` и конкретную наземную точку. Установленный трос не меняет шар при движении платформы. Очередь сохраняет исходный шар и отменяется, если платформа покинула его зону до начала операции.
+
+Начатая установка завершается после потери оператора. Каждый трос имеет конечную длину в обоих направлениях.
 
 ---
 
-## 8. CrewDomain
+## 9. CrewDomain
 
 ```text
 CrewManager
@@ -230,44 +344,23 @@ DEAD
 
 ### RoleStationRegistry
 
-Владеет занятостью и резервированием постов. Предоставляет:
-
-```text
-reserve(role_id, defender_id)
-release(role_id, defender_id)
-get_owner(role_id)
-get_target_x(role_id, defender_id)
-```
-
-Геометрия постов читается из `PlatformBalance`, а не дублируется в `CrewBalance`.
+Владеет занятостью и резервированием постов. Геометрия постов читается из `PlatformBalance`, а не дублируется в `CrewBalance`.
 
 ### Defender
 
 Тонкий корень композиции. Делегирует здоровье, движение и визуал компонентам.
 
-### DefenderMovement
-
-Владеет целью движения конкретного защитника и сообщает о прибытии.
-
 ### HealthComponent
 
 Единственный владелец здоровья сущности.
-
-### DefenderVisual
-
-Рисует временный корпус и сегменты здоровья. Не меняет роль или здоровье.
 
 ### CrewDebugInput
 
 Временный адаптер прототипа. Отправляет команды `CrewRoleManager` и не хранит назначения.
 
-### CrewBalance
-
-Содержит стартовое количество, здоровье, скорость движения и временные визуальные размеры.
-
 ---
 
-## 9. CombatDomain
+## 10. CombatDomain
 
 Текущая реализация содержит `HealthComponent`.
 
@@ -289,27 +382,9 @@ DeathComponent
 
 ---
 
-## 10. OrbDomain и ShieldDomain
+## 11. BoardingDomain
 
 Целевая композиция:
-
-```text
-GroundOrbRegistry
-OrbContactSystem
-ShieldSystem
-ShieldRechargeController
-```
-
-- `GroundOrbRegistry` хранит пять шаров, секции, зоны и крепления.
-- `OrbContactSystem` владеет текущим контактом и публикует начало/конец.
-- `ShieldSystem` владеет пятью секциями и принимает `apply_damage`/`restore`.
-- `ShieldRechargeController` преобразует контакт в команды восстановления.
-
-`PrototypeWorld` и `PrototypeShieldSystem` являются временными компонентами и должны быть заменены этим доменом.
-
----
-
-## 11. BoardingDomain
 
 ```text
 BoardingSpawnDirector
@@ -322,19 +397,6 @@ BoardingEnemy
 `BoardingSpawnDirector` владеет интервалом, общим наземным лимитом и стороной появления. Без якорей новых врагов не создаёт.
 
 `AnchorPathRegistry` предоставляет маршруты. Враг фиксирует путь до его недоступности.
-
-Состояния врага:
-
-```text
-SPAWNING_OFFSCREEN
-RUNNING_TO_ANCHOR
-WAITING_WITHOUT_PATH
-CLIMBING
-ENTERING_PLATFORM
-FIGHTING
-JUMPING
-DEAD
-```
 
 ---
 
@@ -395,6 +457,7 @@ resources/balance/
 └── difficulty_curve.tres
 
 resources/definitions/
+├── ground_orb_catalog.tres
 ├── enemies/
 ├── upgrades/
 ├── roles/
@@ -403,76 +466,44 @@ resources/definitions/
 
 ---
 
-## 17. Структура каталогов
+## 17. Обязательные тестовые границы
 
-```text
-res://
-├── scenes/
-│   ├── game/
-│   ├── platform/
-│   ├── crew/
-│   ├── enemies/
-│   ├── orbs/
-│   ├── buildables/
-│   └── ui/
-├── scripts/
-│   ├── game_flow/
-│   ├── difficulty/
-│   ├── platform/
-│   ├── anchors/
-│   ├── shield/
-│   ├── orbs/
-│   ├── crew/
-│   ├── combat/
-│   ├── boarding/
-│   ├── strategic/
-│   ├── buildables/
-│   ├── economy/
-│   └── ui/
-├── resources/
-├── tests/
-├── tools/
-└── docs/
-```
-
----
-
-## 18. Обязательные тестовые границы
-
-- конечная длина троса в обоих направлениях;
-- перегрузка одиночного натянутого якоря;
-- устойчивость пары якорей;
-- параметры платформы и ветра читаются из ресурсов;
-- отсутствие рулевого обнуляет ввод;
-- рулевой не уходит при активной кнопке;
-- управление отключено во время перехода;
-- управление включается после прибытия;
-- якорщик завершает текущую установку;
+- пять секций создаются со 100%;
+- каждый шар связан со своей секцией;
+- контакт выбирает правильный шар;
+- заряжается только активная секция;
+- вне зоны зарядка отсутствует;
+- при 50% появляется указатель;
+- 0% любой секции завершает забег;
+- ноль живых защитников завершает забег;
+- установленный якорь сохраняет исходный `orb_id`;
+- конечная длина троса работает в обоих направлениях;
+- рулевой и якорщик завершают неделимое действие;
 - лимит 600 строк не нарушен.
 
 ---
 
-## 19. Следующая итерация
+## 18. Следующая итерация
 
-1. заменить тестовую секцию полноценным `ShieldSystem`;
-2. добавить `GroundOrbRegistry` и `OrbContactSystem`;
-3. добавить `DefenderActionController`;
-4. реализовать базовый ближний бой;
-5. связать гибель всего экипажа с поражением;
+1. добавить базового физического врага;
+2. реализовать `AnchorPathRegistry`;
+3. добавить выбор ближайшей цели;
+4. добавить `DefenderActionController`;
+5. реализовать меч, кулдаун и неделимый взмах;
 6. добавить независимые таймеры замены;
-7. добавить базового физического врага и его state machine.
+7. начать стратегические волны и миникарту.
 
 ---
 
-## 20. Запрещённые решения
+## 19. Запрещённые решения
 
 - Глобальный объект, управляющий всей игрой.
 - UI как владелец игровых данных.
 - Дублирование роли в `Defender` и `CrewRoleManager`.
+- Дублирование геометрии шаров вне `GroundOrbCatalog`.
+- Дублирование прочности секций вне `ShieldSystem`.
 - Дублирование геометрии постов в ресурсах.
 - Зависимость симуляции от визуала.
 - Один огромный скрипт для ролей, врагов или карточек.
 - Балансные значения, разбросанные по логике.
-- Глубокие пути между независимыми сценами.
-- Физическая сцена на каждого стратегического врага.
 - Изменение архитектуры без обновления этого файла.
