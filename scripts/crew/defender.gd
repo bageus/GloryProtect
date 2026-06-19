@@ -7,6 +7,8 @@ signal died(defender_id: int)
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("DefenderMovement") var movement_path: NodePath
 @export_node_path("DefenderVisual") var visual_path: NodePath
+@export_node_path("MeleeAttackComponent") var melee_path: NodePath
+@export_node_path("DefenderCombatController") var combat_path: NodePath
 
 var defender_id: int = -1
 var _balance: CrewBalance
@@ -15,6 +17,8 @@ var _body_color: Color = Color(0.45, 0.8, 1.0)
 @onready var health: HealthComponent = get_node(health_path)
 @onready var movement: DefenderMovement = get_node(movement_path)
 @onready var visual: DefenderVisual = get_node(visual_path)
+@onready var melee: MeleeAttackComponent = get_node(melee_path)
+@onready var combat: DefenderCombatController = get_node(combat_path)
 
 
 func _ready() -> void:
@@ -48,6 +52,10 @@ func is_moving() -> bool:
 	return movement.is_moving()
 
 
+func is_combat_action_active() -> bool:
+	return combat.is_action_active()
+
+
 func _apply_configuration() -> void:
 	if _balance == null:
 		return
@@ -64,5 +72,6 @@ func _on_destination_reached() -> void:
 
 func _on_depleted() -> void:
 	movement.stop()
+	combat.cancel()
 	visible = false
 	died.emit(defender_id)
