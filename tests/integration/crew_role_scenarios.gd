@@ -22,7 +22,16 @@ func _run_scenarios() -> void:
 	assert(roles.get_assignment(2).current_role == CrewRole.Id.RIGHT_ANCHOR)
 	assert(steering.driver_available)
 
+	Input.action_press(&"ui_left")
 	roles.request_assignment(0, CrewRole.Id.FREE_FIGHTER)
+	await process_frame
+	assert(steering.driver_available)
+	assert(
+		roles.get_assignment(0).state
+		== CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	)
+
+	Input.action_release(&"ui_left")
 	await process_frame
 	assert(not steering.driver_available)
 	assert(
@@ -40,7 +49,7 @@ func _run_scenarios() -> void:
 	await _wait_until_assignment_active(roles, 1)
 	assert(roles.get_assignment(1).current_role == CrewRole.Id.DRIVER)
 	assert(steering.driver_available)
-	assert(crew.get_defender(1).position.x == 0.0)
+	assert(is_equal_approx(crew.get_defender(1).position.x, 0.0))
 
 	print("Crew role scenarios passed")
 	quit()
