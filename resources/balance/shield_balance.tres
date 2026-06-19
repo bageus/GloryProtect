@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="ShieldBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/shield/shield_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+section_count = 5
+max_health = 100.0
+recharge_per_second = 8.0
+indicator_threshold_percent = 50.0
+critical_threshold_percent = 25.0
+debug_damage_amount = 10.0
+section_colors = PackedColorArray(0.3, 0.85, 1, 1, 0.45, 0.95, 0.5, 1, 1, 0.82, 0.28, 1, 1, 0.48, 0.25, 1, 0.88, 0.38, 1, 1)
