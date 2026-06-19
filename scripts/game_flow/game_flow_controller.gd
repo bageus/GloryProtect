@@ -21,6 +21,7 @@ enum RunState {
 var state: RunState = RunState.BOOT
 var start_delay_remaining: float = 0.0
 var game_over_reason: StringName = &""
+var _manual_pause_resume_state: RunState = RunState.RUNNING
 
 
 func _ready() -> void:
@@ -41,6 +42,7 @@ func _process(delta: float) -> void:
 
 
 func start_run() -> void:
+	get_tree().paused = false
 	game_over_reason = &""
 	start_delay_remaining = start_delay_seconds
 	_set_state(RunState.START_DELAY)
@@ -49,12 +51,13 @@ func start_run() -> void:
 func toggle_manual_pause() -> void:
 	match state:
 		RunState.START_DELAY, RunState.RUNNING:
+			_manual_pause_resume_state = state
 			_set_state(RunState.MANUAL_PAUSE)
 			get_tree().paused = true
 			run_paused.emit()
 		RunState.MANUAL_PAUSE:
 			get_tree().paused = false
-			_set_state(RunState.RUNNING)
+			_set_state(_manual_pause_resume_state)
 			run_resumed.emit()
 		_:
 			pass
