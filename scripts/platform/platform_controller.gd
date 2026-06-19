@@ -6,6 +6,7 @@ signal telemetry_changed(position_x: float, velocity_x: float, steering_axis: fl
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
+@export_node_path("AnchorSystem") var anchor_system_path: NodePath
 
 @export_range(8, 32, 1) var cell_count: int = 18
 @export_range(16.0, 64.0, 1.0) var cell_width: float = 40.0
@@ -22,6 +23,7 @@ var steering_axis: float = 0.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind_system: WindSystem = get_node(wind_system_path)
+@onready var _anchor_system: AnchorSystem = get_node_or_null(anchor_system_path) as AnchorSystem
 
 
 func _ready() -> void:
@@ -47,7 +49,7 @@ func _physics_process(delta: float) -> void:
 	)
 
 	var next_x := position.x + horizontal_velocity * delta
-	var clamped_x := clampf(next_x, world_min_x, world_max_x)
+	var clamped_x := _apply_world_and_anchor_constraints(next_x)
 	if not is_equal_approx(next_x, clamped_x):
 		horizontal_velocity = 0.0
 	position.x = clamped_x
@@ -67,6 +69,30 @@ func set_driver_assigned(value: bool) -> void:
 
 func get_platform_width() -> float:
 	return float(cell_count) * cell_width
+
+
+func _apply_world_and_anchor_constraints(next_x: float) -> float:
+	var minimum_x := world_min_x
+	var maximum_x := world_max_x
+
+	if _anchor_system == null:
+		return clampf(next_x, minimum_x, maximum_x)
+
+	if _anchor_system.is_fully_fixed():
+		return clampf(
+			_anchor_system.get_fixed_platform_x(),
+			minimum_x,
+			maximum_x
+		)
+
+	var anchor_minimum := _anchor_system.get_minimum_platform_x()
+	var anchor_maximum := _anchor_system.get_maximum_platform_x()
+	if anchor_minimum != -INF:
+		minimum_x = maxf(minimum_x, anchor_minimum)
+	if anchor_maximum != INF:
+		maximum_x = minf(maximum_x, anchor_maximum)
+
+	return clampf(next_x, minimum_x, maximum_x)
 
 
 func _draw() -> void:
