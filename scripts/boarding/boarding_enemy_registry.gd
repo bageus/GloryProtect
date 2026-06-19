@@ -66,15 +66,19 @@ func get_state_summary() -> String:
 	var climbing_count: int = 0
 	var boarded_count: int = 0
 	for enemy: BoardingEnemy in get_all_enemies():
-		match enemy.get_state():
-			BoardingEnemyController.State.WAITING_WITHOUT_PATH,
-			BoardingEnemyController.State.RUNNING_TO_ANCHOR:
-				ground_count += 1
-			BoardingEnemyController.State.CLIMBING:
-				climbing_count += 1
-			BoardingEnemyController.State.ON_PLATFORM,
-			BoardingEnemyController.State.FIGHTING:
-				boarded_count += 1
+		var enemy_state: int = enemy.get_state()
+		if (
+			enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
+			or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
+		):
+			ground_count += 1
+		elif enemy_state == BoardingEnemyController.State.CLIMBING:
+			climbing_count += 1
+		elif (
+			enemy_state == BoardingEnemyController.State.ON_PLATFORM
+			or enemy_state == BoardingEnemyController.State.FIGHTING
+		):
+			boarded_count += 1
 	return "земля %d | трос %d | борт %d" % [
 		ground_count,
 		climbing_count,
