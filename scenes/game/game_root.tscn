@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -12,6 +12,11 @@
 [ext_resource type="Resource" path="res://resources/balance/wind_balance.tres" id="10_wind_balance"]
 [ext_resource type="Script" path="res://scripts/platform/steering_input_provider.gd" id="11_steering"]
 [ext_resource type="Script" path="res://scripts/platform/platform_visual_controller.gd" id="12_platform_visual"]
+[ext_resource type="Script" path="res://scripts/crew/crew_manager.gd" id="13_crew_manager"]
+[ext_resource type="Script" path="res://scripts/crew/crew_role_manager.gd" id="14_role_manager"]
+[ext_resource type="Script" path="res://scripts/crew/crew_debug_input.gd" id="15_crew_input"]
+[ext_resource type="Resource" path="res://resources/balance/crew_balance.tres" id="16_crew_balance"]
+[ext_resource type="PackedScene" path="res://scenes/crew/defender.tscn" id="17_defender"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -26,6 +31,12 @@ driver_available = true
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("2_wind")
 balance = ExtResource("10_wind_balance")
+
+[node name="CrewDebugInput" type="Node" parent="."]
+script = ExtResource("15_crew_input")
+game_flow_path = NodePath("../GameFlowController")
+crew_manager_path = NodePath("../World/Platform/CrewManager")
+role_manager_path = NodePath("../World/Platform/CrewRoleManager")
 
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("3_world")
@@ -60,6 +71,18 @@ platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
 balance = ExtResource("9_platform_balance")
 
+[node name="CrewManager" type="Node2D" parent="World/Platform"]
+script = ExtResource("13_crew_manager")
+defender_scene = ExtResource("17_defender")
+balance = ExtResource("16_crew_balance")
+
+[node name="CrewRoleManager" type="Node" parent="World/Platform"]
+script = ExtResource("14_role_manager")
+crew_manager_path = NodePath("../CrewManager")
+platform_path = NodePath("..")
+steering_input_path = NodePath("../../../SteeringInputProvider")
+anchor_system_path = NodePath("../../AnchorSystem")
+
 [node name="Camera2D" type="Camera2D" parent="World/Platform"]
 position = Vector2(0, 48)
 enabled = true
@@ -89,14 +112,16 @@ game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../../World/Platform")
 anchor_system_path = NodePath("../../World/AnchorSystem")
+crew_role_manager_path = NodePath("../../World/Platform/CrewRoleManager")
+crew_debug_input_path = NodePath("../../CrewDebugInput")
 world_path = NodePath("../../World")
 shield_system_path = NodePath("../../PrototypeShieldSystem")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 720.0
-offset_bottom = 272.0
+offset_right = 960.0
+offset_bottom = 326.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -134,6 +159,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Якоря"
 
+[node name="CrewLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Экипаж"
+
 [node name="ContactLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -148,6 +178,11 @@ text = "Щит"
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
 text = "←/→ — движение   1–4 — якоря   R — снять все   Space — урон   Esc — пауза"
+
+[node name="CrewHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
+text = "5/6/7 — выбрать защитника   D — рулевой   Z/X — левый/правый якорщик   C — свободный"
 
 [node name="PauseLabel" type="Label" parent="CanvasLayer/PrototypeHUD"]
 unique_name_in_owner = true
