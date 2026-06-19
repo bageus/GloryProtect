@@ -25,6 +25,7 @@ var _initialized: bool = false
 
 
 func _ready() -> void:
+	_crew.defender_spawned.connect(_on_defender_spawned)
 	call_deferred("_initialize_assignments")
 
 
@@ -91,8 +92,7 @@ func _initialize_assignments() -> void:
 	for defender: Defender in _crew.get_all_defenders():
 		var runtime := CrewAssignmentRuntime.new(defender.defender_id)
 		_assignments[defender.defender_id] = runtime
-		defender.destination_reached.connect(_on_defender_destination_reached)
-		defender.died.connect(_on_defender_died)
+		_connect_defender(defender)
 
 	var initial_roles: Array[int] = [
 		CrewRole.Id.DRIVER,
@@ -117,6 +117,22 @@ func _activate_initial_role(defender: Defender, role_id: int) -> void:
 	defender.teleport_to(_stations.get_target_x(role_id, defender.defender_id))
 	_activate_capability(role_id)
 	_emit_assignment(runtime)
+
+
+func _activate_replacement(defender: Defender) -> void:
+	var runtime: CrewAssignmentRuntime = _assignments.get(defender.defender_id)
+	if runtime == null:
+		runtime = CrewAssignmentRuntime.new(defender.defender_id)
+		_assignments[defender.defender_id] = runtime
+	runtime.current_role = CrewRole.Id.FREE_FIGHTER
+	runtime.target_role = CrewRole.Id.FREE_FIGHTER
+	runtime.state = CrewAssignmentRuntime.State.ACTIVE
+	_emit_assignment(runtime)
+
+
+func _connect_defender(defender: Defender) -> void:
+	defender.destination_reached.connect(_on_defender_destination_reached)
+	defender.died.connect(_on_defender_died)
 
 
 func _begin_transition(runtime: CrewAssignmentRuntime) -> void:
@@ -205,6 +221,13 @@ func _emit_assignment(runtime: CrewAssignmentRuntime) -> void:
 		runtime.target_role,
 		runtime.state
 	)
+
+
+func _on_defender_spawned(_defender_id: int, defender: Defender) -> void:
+	if not _initialized:
+		return
+	_connect_defender(defender)
+	_activate_replacement(defender)
 
 
 func _on_defender_destination_reached(defender_id: int) -> void:
