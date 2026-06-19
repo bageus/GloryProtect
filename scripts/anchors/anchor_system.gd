@@ -22,6 +22,7 @@ var _geometry := AnchorGeometry.new()
 var _operations := AnchorOperationQueue.new()
 var _constraints := AnchorConstraintProvider.new()
 var _overload := AnchorOverloadController.new()
+var _commands := AnchorCommandController.new()
 var _visual: AnchorVisualController
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
@@ -74,23 +75,11 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func toggle_anchor(anchor_id: int) -> void:
-	if not _store.is_valid(anchor_id):
-		return
-
-	var anchor := _store.get_anchor(anchor_id)
-	match anchor.state:
-		AnchorRuntime.State.STOWED:
-			_request_install(anchor)
-		AnchorRuntime.State.ATTACHED, AnchorRuntime.State.OVERLOADED:
-			_request_remove(anchor)
-		_:
-			command_rejected.emit(anchor_id, &"anchor_busy")
+	_commands.toggle(anchor_id)
 
 
 func request_remove_all() -> void:
-	for side in [AnchorRuntime.Side.LEFT, AnchorRuntime.Side.RIGHT]:
-		if _operations.request_remove_all(side):
-			_remove_all_on_side(side)
+	_commands.request_remove_all()
 
 
 func is_in_installation_zone() -> bool:
@@ -122,9 +111,7 @@ func set_operator_assigned(side: int, is_assigned: bool) -> void:
 		left_operator_assigned = is_assigned
 	else:
 		right_operator_assigned = is_assigned
-
-	if not is_assigned:
-		_operations.cancel_queued(side)
+	_commands.operator_availability_changed(side, is_assigned)
 
 
 func is_operator_assigned(side: int) -> bool:
@@ -137,6 +124,12 @@ func _configure_components() -> void:
 	_operations.configure(_store, _geometry, balance, _platform)
 	_constraints.configure(_store, _geometry, balance, _platform, _wind)
 	_overload.configure(_store, _constraints, balance, _wind)
+	_commands.configure(
+		_store,
+		_geometry,
+		_operations,
+		Callable(self, "is_operator_assigned")
+	)
 	_constraints.update_full_fix_state()
 
 
@@ -145,6 +138,8 @@ func _connect_component_signals() -> void:
 	_operations.installation_finished.connect(_on_installation_finished)
 	_overload.overload_started.connect(_on_overload_started)
 	_overload.anchor_broken.connect(_on_anchor_broken)
+	_commands.anchor_removed.connect(_on_anchor_removed)
+	_commands.command_rejected.connect(_on_command_rejected)
 
 
 func _create_visual_controller() -> void:
@@ -155,35 +150,9 @@ func _create_visual_controller() -> void:
 		_store,
 		_geometry,
 		balance,
-		is_in_installation_zone,
-		is_operator_assigned
+		Callable(self, "is_in_installation_zone"),
+		Callable(self, "is_operator_assigned")
 	)
-
-
-func _request_install(anchor: AnchorRuntime) -> void:
-	if not is_in_installation_zone():
-		command_rejected.emit(anchor.anchor_id, &"outside_installation_zone")
-		return
-	if not is_operator_assigned(anchor.side):
-		command_rejected.emit(anchor.anchor_id, &"operator_missing")
-		return
-	_operations.request_install(anchor.anchor_id)
-
-
-func _request_remove(anchor: AnchorRuntime) -> void:
-	if not is_operator_assigned(anchor.side):
-		command_rejected.emit(anchor.anchor_id, &"operator_missing")
-		return
-
-	# Timed removal will be added with physical operator animations.
-	_store.set_stowed(anchor.anchor_id)
-	anchor_removed.emit(anchor.anchor_id)
-
-
-func _remove_all_on_side(side: int) -> void:
-	for anchor in _store.get_holding_on_side(side):
-		_store.set_stowed(anchor.anchor_id)
-		anchor_removed.emit(anchor.anchor_id)
 
 
 func _on_anchor_state_changed(anchor_id: int, state: int) -> void:
@@ -198,7 +167,7 @@ func _on_installation_finished(side: int, anchor_id: int, attached: bool) -> voi
 
 	if _operations.consume_remove_all_pending(side):
 		_operations.cancel_queued(side)
-		_remove_all_on_side(side)
+		_commands.remove_all_on_side(side)
 		return
 
 	var can_start_next := is_in_installation_zone() and is_operator_assigned(side)
@@ -211,3 +180,11 @@ func _on_overload_started(anchor_id: int) -> void:
 
 func _on_anchor_broken(anchor_id: int) -> void:
 	anchor_broken.emit(anchor_id)
+
+
+func _on_anchor_removed(anchor_id: int) -> void:
+	anchor_removed.emit(anchor_id)
+
+
+func _on_command_rejected(anchor_id: int, reason: StringName) -> void:
+	command_rejected.emit(anchor_id, reason)
