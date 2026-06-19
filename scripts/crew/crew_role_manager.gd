@@ -15,7 +15,7 @@ signal assignment_rejected(defender_id: int, role_id: int, reason: StringName)
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
 
 var _assignments: Dictionary = {}
-var _station_owners: Dictionary = {}
+var _stations := RoleStationRegistry.new()
 var _initialized: bool = false
 
 @onready var _crew: CrewManager = get_node(crew_manager_path)
@@ -36,7 +36,7 @@ func _process(_delta: float) -> void:
 		var runtime := assignment as CrewAssignmentRuntime
 		if runtime.state != CrewAssignmentRuntime.State.WAITING_FOR_ACTION:
 			continue
-		if _can_leave_current_role(runtime):
+		if not _is_current_action_active(runtime.current_role):
 			_begin_transition(runtime)
 
 
@@ -57,7 +57,7 @@ func request_assignment(defender_id: int, role_id: int) -> void:
 		return
 	if runtime.current_role == role_id:
 		return
-	if not _reserve_station(role_id, defender_id):
+	if not _stations.reserve(role_id, defender_id):
 		assignment_rejected.emit(defender_id, role_id, &"station_occupied")
 		return
 
@@ -79,12 +79,12 @@ func get_summary() -> String:
 	var ids := _assignments.keys()
 	ids.sort()
 	for defender_id in ids:
-		var runtime := _assignments[defender_id] as CrewAssignmentRuntime
-		parts.append(_format_assignment(runtime))
+		parts.append(_format_assignment(_assignments[defender_id]))
 	return "  ".join(parts)
 
 
 func _initialize_assignments() -> void:
+	_stations.configure(_platform)
 	_steering.set_driver_available(false)
 	_anchors.set_operator_assigned(AnchorRuntime.Side.LEFT, false)
 	_anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, false)
@@ -116,21 +116,20 @@ func _activate_initial_role(defender: Defender, role_id: int) -> void:
 	runtime.current_role = role_id
 	runtime.target_role = role_id
 	runtime.state = CrewAssignmentRuntime.State.ACTIVE
-	_reserve_station(role_id, defender.defender_id)
-	defender.teleport_to(_get_role_target_x(role_id, defender.defender_id))
+	_stations.reserve(role_id, defender.defender_id)
+	defender.teleport_to(_stations.get_target_x(role_id, defender.defender_id))
 	_activate_capability(role_id)
 	_emit_assignment(runtime)
 
 
 func _begin_transition(runtime: CrewAssignmentRuntime) -> void:
-	var old_role := runtime.current_role
-	_deactivate_capability(old_role)
-	_release_station(old_role, runtime.defender_id)
+	_deactivate_capability(runtime.current_role)
+	_stations.release(runtime.current_role, runtime.defender_id)
 
 	runtime.current_role = CrewRole.Id.FREE_FIGHTER
 	runtime.state = CrewAssignmentRuntime.State.MOVING
 	var defender := _crew.get_defender(runtime.defender_id)
-	defender.move_to(_get_role_target_x(runtime.target_role, runtime.defender_id))
+	defender.move_to(_stations.get_target_x(runtime.target_role, runtime.defender_id))
 	_emit_assignment(runtime)
 
 
@@ -139,10 +138,6 @@ func _activate_target_role(runtime: CrewAssignmentRuntime) -> void:
 	runtime.state = CrewAssignmentRuntime.State.ACTIVE
 	_activate_capability(runtime.current_role)
 	_emit_assignment(runtime)
-
-
-func _can_leave_current_role(runtime: CrewAssignmentRuntime) -> bool:
-	return not _is_current_action_active(runtime.current_role)
 
 
 func _is_current_action_active(role_id: int) -> bool:
@@ -175,40 +170,6 @@ func _deactivate_capability(role_id: int) -> void:
 			_anchors.set_operator_assigned(AnchorRuntime.Side.LEFT, false)
 		CrewRole.Id.RIGHT_ANCHOR:
 			_anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, false)
-
-
-func _reserve_station(role_id: int, defender_id: int) -> bool:
-	if not CrewRole.is_fixed_station(role_id):
-		return true
-	if _station_owners.has(role_id) and _station_owners[role_id] != defender_id:
-		return false
-	_station_owners[role_id] = defender_id
-	return true
-
-
-func _release_station(role_id: int, defender_id: int) -> void:
-	if not CrewRole.is_fixed_station(role_id):
-		return
-	if _station_owners.get(role_id, -1) == defender_id:
-		_station_owners.erase(role_id)
-
-
-func _get_role_target_x(role_id: int, defender_id: int) -> float:
-	var platform_width := _platform.get_platform_width()
-	var post_offset := (
-		platform_width * 0.5
-		- _platform.balance.cell_width * _platform.balance.anchor_post_cell_inset
-	)
-	match role_id:
-		CrewRole.Id.DRIVER:
-			return 0.0
-		CrewRole.Id.LEFT_ANCHOR:
-			return -post_offset
-		CrewRole.Id.RIGHT_ANCHOR:
-			return post_offset
-		_:
-			var center_offset := float(defender_id - 1) * _platform.balance.cell_width
-			return center_offset
 
 
 func _is_role_available_in_prototype(role_id: int) -> bool:
@@ -255,7 +216,7 @@ func _on_defender_died(defender_id: int) -> void:
 	if runtime == null:
 		return
 	_deactivate_capability(runtime.current_role)
-	_release_station(runtime.current_role, defender_id)
-	_release_station(runtime.target_role, defender_id)
+	_stations.release(runtime.current_role, defender_id)
+	_stations.release(runtime.target_role, defender_id)
 	runtime.state = CrewAssignmentRuntime.State.DEAD
 	_emit_assignment(runtime)
