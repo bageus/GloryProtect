@@ -25,8 +25,9 @@ func _physics_process(delta: float) -> void:
 	if _pending.is_empty():
 		return
 
+	var pending_ids: Array[int] = _pending.keys()
 	var completed_ids: Array[int] = []
-	for defender_id: int in _pending.keys():
+	for defender_id: int in pending_ids:
 		var runtime: CrewReplacementRuntime = _pending[defender_id]
 		if runtime.tick(delta):
 			completed_ids.append(defender_id)
@@ -69,7 +70,7 @@ func get_summary() -> String:
 func _on_defender_died(defender_id: int) -> void:
 	if _pending.has(defender_id):
 		return
-	var runtime := CrewReplacementRuntime.new(
+	var runtime: CrewReplacementRuntime = CrewReplacementRuntime.new(
 		defender_id,
 		balance.replacement_delay_seconds
 	)
