@@ -31,7 +31,7 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 
 ## Текущая реализация
 
-**Prototype 0.6** содержит:
+**Prototype 0.7** содержит:
 
 - состояние забега, стартовую задержку и полную паузу;
 - data-driven платформу и ветер силы 1–3;
@@ -42,13 +42,13 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 - непрерывную зарядку связанной секции;
 - три физических защитника и перемещение между ролями;
 - физический спавн врагов только при наличии якоря;
-- выбор ближайшего троса;
-- движение по земле и подъём на платформу;
-- смерть врага на тросе при снятии якоря;
-- сохранение врага, уже поднявшегося на платформу;
-- базовый ближний бой защитников и врагов;
-- фиксацию цели начатого удара;
-- поражение при разрушении секции или гибели экипажа;
+- движение врагов по земле и подъём по тросу;
+- базовый ближний бой с фиксацией цели взмаха;
+- движение свободного бойца к ближайшему врагу;
+- независимые кулдауны замены погибших защитников;
+- появление замены из двери с тем же `defender_id`;
+- роль свободного бойца и полное здоровье после замены;
+- поражение при разрушении секции или полном уничтожении экипажа;
 - диагностический HUD и регрессионные тесты.
 
 ## Запуск
@@ -89,6 +89,8 @@ godot --headless --path . --script res://tests/unit/melee_attack_scenarios.gd
 godot --headless --path . --script res://tests/integration/crew_role_scenarios.gd
 godot --headless --path . --script res://tests/integration/shield_orb_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_enemy_scenarios.gd
+godot --headless --path . --script res://tests/integration/crew_replacement_scenarios.gd
+godot --headless --path . --script res://tests/integration/free_fighter_pursuit_scenarios.gd
 python tools/check_file_sizes.py
 ```
 
