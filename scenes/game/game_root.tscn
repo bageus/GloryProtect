@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://scripts/shield/shield_debug_input.gd" id="22_shield_input"]
 [ext_resource type="Resource" path="res://resources/balance/shield_balance.tres" id="23_shield_balance"]
 [ext_resource type="Resource" path="res://resources/definitions/ground_orb_catalog.tres" id="24_orb_catalog"]
+[ext_resource type="Script" path="res://scripts/crew/crew_failure_controller.gd" id="25_crew_failure"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -59,6 +60,11 @@ script = ExtResource("13_crew_input")
 game_flow_path = NodePath("../GameFlowController")
 crew_manager_path = NodePath("../World/Platform/CrewManager")
 role_manager_path = NodePath("../World/Platform/CrewRoleManager")
+
+[node name="CrewFailureController" type="Node" parent="."]
+script = ExtResource("25_crew_failure")
+game_flow_path = NodePath("../GameFlowController")
+crew_manager_path = NodePath("../World/Platform/CrewManager")
 
 [node name="World" type="Node2D" parent="."]
 
