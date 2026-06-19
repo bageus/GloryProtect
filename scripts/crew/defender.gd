@@ -36,7 +36,8 @@ func configure(
 
 
 func move_to(local_x: float) -> void:
-	movement.move_to(local_x)
+	if health.is_alive():
+		movement.move_to(local_x)
 
 
 func teleport_to(local_x: float) -> void:
@@ -54,6 +55,7 @@ func _apply_configuration() -> void:
 	movement.configure(_balance.defender_move_speed)
 	visual.configure(_balance.defender_body_radius, _body_color)
 	position.y = _balance.defender_local_y
+	visible = true
 
 
 func _on_destination_reached() -> void:
@@ -61,4 +63,6 @@ func _on_destination_reached() -> void:
 
 
 func _on_depleted() -> void:
+	movement.stop()
+	visible = false
 	died.emit(defender_id)
