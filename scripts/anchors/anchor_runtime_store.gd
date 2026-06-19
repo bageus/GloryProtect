@@ -26,6 +26,16 @@ func get_all() -> Array[AnchorRuntime]:
 	return _anchors
 
 
+func set_install_target(
+	anchor_id: int,
+	orb_id: int,
+	ground_point: Vector2
+) -> void:
+	var anchor := get_anchor(anchor_id)
+	anchor.target_orb_id = orb_id
+	anchor.target_ground_point = ground_point
+
+
 func set_queued(anchor_id: int) -> void:
 	_set_state(anchor_id, AnchorRuntime.State.QUEUED)
 
@@ -47,6 +57,8 @@ func attach(anchor_id: int, platform_x: float) -> void:
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
 	anchor.attached_platform_x = platform_x
+	anchor.attached_orb_id = anchor.target_orb_id
+	anchor.attached_ground_point = anchor.target_ground_point
 	_set_state(anchor_id, AnchorRuntime.State.ATTACHED)
 
 
@@ -74,6 +86,9 @@ func begin_return(anchor_id: int) -> void:
 	var anchor := get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
+	if not anchor.has_attachment() and anchor.has_target():
+		anchor.attached_orb_id = anchor.target_orb_id
+		anchor.attached_ground_point = anchor.target_ground_point
 	_set_state(anchor_id, AnchorRuntime.State.RETURNING)
 
 
@@ -81,6 +96,7 @@ func set_stowed(anchor_id: int) -> void:
 	var anchor := get_anchor(anchor_id)
 	anchor.operation_progress = 0.0
 	anchor.overload_progress = 0.0
+	anchor.clear_ground_binding()
 	_set_state(anchor_id, AnchorRuntime.State.STOWED)
 
 
@@ -99,10 +115,16 @@ func count_holding_on_side(side: int) -> int:
 func get_state_summary() -> String:
 	var parts := PackedStringArray()
 	for anchor in _anchors:
+		var orb_suffix := ""
+		if anchor.has_attachment():
+			orb_suffix = "@O%d" % (anchor.attached_orb_id + 1)
+		elif anchor.has_target():
+			orb_suffix = "@O%d" % (anchor.target_orb_id + 1)
 		parts.append(
-			"%d:%s" % [
+			"%d:%s%s" % [
 				anchor.anchor_id + 1,
 				AnchorRuntime.State.keys()[anchor.state],
+				orb_suffix,
 			]
 		)
 	return "  ".join(parts)
