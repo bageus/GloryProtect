@@ -9,4 +9,3 @@ defender_max_health = 3
 defender_move_speed = 180.0
 defender_local_y = -48.0
 defender_body_radius = 14.0
-anchor_station_cell_inset = 1.5
