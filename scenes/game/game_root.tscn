@@ -78,6 +78,7 @@ crew_manager_path = NodePath("../World/Platform/CrewManager")
 script = ExtResource("32_replacement")
 game_flow_path = NodePath("../GameFlowController")
 crew_manager_path = NodePath("../World/Platform/CrewManager")
+movement_resolver_path = NodePath("../World/BoardingMovementResolver")
 balance = ExtResource("14_crew_balance")
 
 [node name="World" type="Node2D" parent="."]
