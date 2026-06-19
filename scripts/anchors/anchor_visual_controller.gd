@@ -4,7 +4,6 @@ extends Node2D
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
 var _balance: AnchorBalance
-var _is_zone_active: Callable
 var _is_operator_available: Callable
 
 
@@ -12,13 +11,11 @@ func configure(
 	store: AnchorRuntimeStore,
 	geometry: AnchorGeometry,
 	balance: AnchorBalance,
-	is_zone_active: Callable,
 	is_operator_available: Callable
 ) -> void:
 	_store = store
 	_geometry = geometry
 	_balance = balance
-	_is_zone_active = is_zone_active
 	_is_operator_available = is_operator_available
 
 
@@ -29,28 +26,40 @@ func _process(_delta: float) -> void:
 func _draw() -> void:
 	if _store == null:
 		return
-
-	var zone_active: bool = _is_zone_active.call()
 	for anchor in _store.get_all():
-		_draw_anchor(anchor, zone_active)
+		_draw_anchor(anchor)
 
 
-func _draw_anchor(anchor: AnchorRuntime, zone_active: bool) -> void:
-	var ground_point := _geometry.get_ground_point(anchor.anchor_id)
+func _draw_anchor(anchor: AnchorRuntime) -> void:
 	var platform_point := _geometry.get_platform_attachment_world(anchor.anchor_id)
 
 	if anchor.is_holding():
-		_draw_attached_anchor(anchor, platform_point, ground_point)
+		_draw_attached_anchor(
+			anchor,
+			platform_point,
+			_geometry.get_runtime_ground_point(anchor)
+		)
 		return
 
 	if anchor.state == AnchorRuntime.State.RETURNING:
-		_draw_returning_anchor(anchor, platform_point, ground_point)
+		_draw_returning_anchor(
+			anchor,
+			platform_point,
+			_geometry.get_runtime_ground_point(anchor)
+		)
 		return
 
-	if not zone_active:
+	if anchor.state == AnchorRuntime.State.QUEUED \
+	or anchor.state == AnchorRuntime.State.INSTALLING:
+		_draw_silhouette(anchor, anchor.target_ground_point)
 		return
 
-	_draw_silhouette(anchor, ground_point)
+	if _geometry.get_current_installation_orb_id() < 0:
+		return
+	_draw_silhouette(
+		anchor,
+		_geometry.get_current_silhouette_ground_point(anchor.anchor_id)
+	)
 
 
 func _draw_attached_anchor(
