@@ -14,11 +14,18 @@ extends Resource
 @export_range(1, 100, 1) var max_ground_enemies: int = 8
 @export_range(0.0, 200.0, 1.0) var path_tie_epsilon: float = 24.0
 
+@export_group("Separation")
+@export_range(4.0, 120.0, 1.0) var ground_enemy_spacing: float = 28.0
+@export_range(4.0, 120.0, 1.0) var climb_enemy_spacing: float = 30.0
+@export_range(4.0, 120.0, 1.0) var platform_enemy_spacing: float = 28.0
+
+@export_group("Enemy Combat")
 @export_range(1, 20, 1) var enemy_attack_damage: int = 1
 @export_range(0.05, 5.0, 0.05) var enemy_attack_windup: float = 0.55
 @export_range(0.05, 5.0, 0.05) var enemy_attack_cooldown: float = 0.85
 @export_range(5.0, 200.0, 1.0) var enemy_attack_range: float = 30.0
 
+@export_group("Defender Combat")
 @export_range(1, 20, 1) var defender_attack_damage: int = 1
 @export_range(0.05, 5.0, 0.05) var defender_attack_windup: float = 0.38
 @export_range(0.05, 5.0, 0.05) var defender_attack_cooldown: float = 0.62
