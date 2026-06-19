@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3]
+[gd_scene load_steps=34 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -32,6 +32,7 @@
 [ext_resource type="Script" path="res://scripts/boarding/boarding_spawn_director.gd" id="30_spawn_director"]
 [ext_resource type="Script" path="res://scripts/crew/crew_combat_coordinator.gd" id="31_combat_coordinator"]
 [ext_resource type="Script" path="res://scripts/crew/crew_replacement_controller.gd" id="32_replacement"]
+[ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver.gd" id="33_movement_resolver"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -123,6 +124,14 @@ balance = ExtResource("26_boarding_balance")
 [node name="BoardingEnemyRegistry" type="Node" parent="World"]
 script = ExtResource("29_enemy_registry")
 
+[node name="BoardingMovementResolver" type="Node" parent="World"]
+script = ExtResource("33_movement_resolver")
+platform_path = NodePath("../Platform")
+crew_manager_path = NodePath("../Platform/CrewManager")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+boarding_balance = ExtResource("26_boarding_balance")
+crew_balance = ExtResource("14_crew_balance")
+
 [node name="BoardingEnemyContainer" type="Node2D" parent="World"]
 
 [node name="BoardingSpawnDirector" type="Node" parent="World"]
@@ -131,6 +140,7 @@ game_flow_path = NodePath("../../GameFlowController")
 platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+movement_resolver_path = NodePath("../BoardingMovementResolver")
 crew_manager_path = NodePath("../Platform/CrewManager")
 orb_registry_path = NodePath("../GroundOrbRegistry")
 enemy_container_path = NodePath("../BoardingEnemyContainer")
@@ -144,6 +154,7 @@ platform_path = NodePath("../Platform")
 crew_manager_path = NodePath("../Platform/CrewManager")
 role_manager_path = NodePath("../Platform/CrewRoleManager")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+movement_resolver_path = NodePath("../BoardingMovementResolver")
 balance = ExtResource("26_boarding_balance")
 
 [node name="Platform" type="Node2D" parent="World"]
@@ -224,7 +235,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.7"
+text = "GloryProtect — Prototype 0.8"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
