@@ -46,7 +46,7 @@ func get_platform_attachment_world(anchor_id: int) -> Vector2:
 	return Vector2(
 		_platform.position.x + get_platform_attachment_local_x(anchor_id),
 		_platform.position.y
-			+ _platform.platform_height * _balance.platform_attachment_y_factor
+			+ _platform.get_platform_height() * _balance.platform_attachment_y_factor
 	)
 
 
@@ -88,7 +88,7 @@ func get_directional_max_x(anchor: AnchorRuntime) -> float:
 func get_max_horizontal_rope_distance() -> float:
 	var attachment_y := (
 		_platform.position.y
-		+ _platform.platform_height * _balance.platform_attachment_y_factor
+		+ _platform.get_platform_height() * _balance.platform_attachment_y_factor
 	)
 	var vertical_distance := absf(_ground_y - attachment_y)
 	var squared_horizontal := (
