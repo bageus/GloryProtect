@@ -39,16 +39,18 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_melee.tick(delta)
-	if _melee.is_attacking():
-		_defender.movement.stop()
-		return
-
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
 		_defender.defender_id
 	)
 	if assignment == null:
 		return
+
+	if _melee.is_attacking():
+		_defender.movement.pause()
+		return
+
 	if assignment.state == CrewAssignmentRuntime.State.MOVING:
+		_update_moving_assignment_combat()
 		return
 	if (
 		assignment.state != CrewAssignmentRuntime.State.ACTIVE
@@ -71,7 +73,7 @@ func _physics_process(delta: float) -> void:
 		target.global_position.x - _defender.global_position.x
 	)
 	if distance <= _balance.defender_attack_range:
-		_defender.movement.stop()
+		_defender.movement.pause()
 		_melee.try_start(target.health)
 		return
 
@@ -106,6 +108,19 @@ func is_action_active() -> bool:
 func cancel() -> void:
 	if _melee != null:
 		_melee.cancel()
+
+
+func _update_moving_assignment_combat() -> void:
+	var target: BoardingEnemy = _enemies.get_nearest_boarded_enemy(
+		_defender.global_position,
+		_balance.defender_attack_range
+	)
+	if target == null:
+		_defender.movement.resume()
+		return
+
+	_defender.movement.pause()
+	_melee.try_start(target.health)
 
 
 func _get_target_search_distance(
