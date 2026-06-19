@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/platform/platform_controller.gd" id="4_platform"]
 [ext_resource type="Script" path="res://scripts/shield/prototype_shield_system.gd" id="5_shield"]
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/anchors/anchor_system.gd" id="7_anchor"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -22,14 +23,28 @@ platform_path = NodePath("Platform")
 ground_y = 510.0
 orb_x = 0.0
 contact_half_width = 72.0
-world_min_x = -2600.0
-world_max_x = 2600.0
+world_min_x = -3200.0
+world_max_x = 3200.0
+
+[node name="AnchorSystem" type="Node2D" parent="World"]
+script = ExtResource("7_anchor")
+game_flow_path = NodePath("../../GameFlowController")
+wind_system_path = NodePath("../../WindSystem")
+platform_path = NodePath("../Platform")
+orb_x = 0.0
+ground_y = 510.0
+installation_zone_half_width = 145.0
+install_duration = 1.25
+overload_duration = 2.5
+return_duration = 0.75
+rope_length = 315.0
 
 [node name="Platform" type="Node2D" parent="World"]
 position = Vector2(0, 300)
 script = ExtResource("4_platform")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
+anchor_system_path = NodePath("../AnchorSystem")
 cell_count = 18
 world_min_x = -2400.0
 world_max_x = 2400.0
@@ -62,14 +77,15 @@ script = ExtResource("6_hud")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../../World/Platform")
+anchor_system_path = NodePath("../../World/AnchorSystem")
 world_path = NodePath("../../World")
 shield_system_path = NodePath("../../PrototypeShieldSystem")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 500.0
-offset_bottom = 236.0
+offset_right = 720.0
+offset_bottom = 272.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -85,7 +101,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.1"
+text = "GloryProtect — Prototype 0.2"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -102,6 +118,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Платформа"
 
+[node name="AnchorLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Якоря"
+
 [node name="ContactLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -115,7 +136,7 @@ text = "Щит"
 [node name="HelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "←/→ — рулевое усилие   Space — тестовый урон   Esc — пауза"
+text = "←/→ — движение   1–4 — якоря   R — снять все   Space — урон   Esc — пауза"
 
 [node name="PauseLabel" type="Label" parent="CanvasLayer/PrototypeHUD"]
 unique_name_in_owner = true
