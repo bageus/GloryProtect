@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="GroundOrbCatalog" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/orbs/ground_orb_catalog.gd" id="1_catalog"]
+
+[resource]
+script = ExtResource("1_catalog")
+world_positions = PackedFloat32Array(-2000, -1000, 0, 1000, 2000)
+ground_y = 510.0
+contact_half_width = 72.0
+orb_vertical_offset = 20.0
+orb_core_radius = 25.0
+orb_outer_radius = 43.0
+ground_depth = 260.0

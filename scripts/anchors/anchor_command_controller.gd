@@ -54,13 +54,19 @@ func operator_availability_changed(side: int, is_available: bool) -> void:
 
 
 func _request_install(anchor: AnchorRuntime) -> void:
-	if not _geometry.is_in_installation_zone():
+	var orb_id := _geometry.get_current_installation_orb_id()
+	if orb_id < 0:
 		command_rejected.emit(anchor.anchor_id, &"outside_installation_zone")
 		return
 	if not _operator_available(anchor.side):
 		command_rejected.emit(anchor.anchor_id, &"operator_missing")
 		return
-	_operations.request_install(anchor.anchor_id)
+
+	var ground_point := _geometry.get_ground_point_for_orb(
+		orb_id,
+		anchor.anchor_id
+	)
+	_operations.request_install(anchor.anchor_id, orb_id, ground_point)
 
 
 func _request_remove(anchor: AnchorRuntime) -> void:

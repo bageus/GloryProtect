@@ -13,6 +13,7 @@ func _run_scenarios() -> void:
 	await process_frame
 	await process_frame
 
+	var game_flow := game.get_node("GameFlowController") as GameFlowController
 	var roles := game.get_node("World/Platform/CrewRoleManager") as CrewRoleManager
 	var crew := game.get_node("World/Platform/CrewManager") as CrewManager
 	var steering := game.get_node("SteeringInputProvider") as SteeringInputProvider
@@ -77,6 +78,12 @@ func _run_scenarios() -> void:
 	await _wait_until_assignment_active(roles, 2, 400)
 	assert(roles.get_assignment(2).current_role == CrewRole.Id.FREE_FIGHTER)
 	assert(not anchors.is_operator_assigned(AnchorRuntime.Side.RIGHT))
+
+	for defender in crew.get_all_defenders():
+		defender.health.set_health(0)
+	await process_frame
+	assert(game_flow.state == GameFlowController.RunState.GAME_OVER)
+	assert(game_flow.game_over_reason == &"all_defenders_dead")
 
 	print("Crew role scenarios passed")
 	quit()

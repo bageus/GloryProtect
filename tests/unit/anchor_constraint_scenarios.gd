@@ -5,6 +5,7 @@ func _init() -> void:
 	_test_right_anchor_breaks_when_wind_pulls_right()
 	_test_right_anchor_breaks_when_wind_pulls_left()
 	_test_two_right_anchors_cancel_overload()
+	_test_anchor_keeps_original_orb_binding()
 	print("Anchor constraint scenarios passed")
 	quit()
 
@@ -18,7 +19,7 @@ func _test_right_anchor_breaks_when_wind_pulls_right() -> void:
 	var overload: AnchorOverloadController = context.overload
 	var anchor_balance: AnchorBalance = context.anchor_balance
 
-	store.attach(3, platform.position.x)
+	_attach_anchor(context, 3, 2)
 	var maximum_x := constraints.get_maximum_platform_x()
 	assert(maximum_x < INF, "Right anchor must have a finite right boundary")
 	assert(maximum_x > platform.position.x)
@@ -41,11 +42,10 @@ func _test_right_anchor_breaks_when_wind_pulls_right() -> void:
 func _test_right_anchor_breaks_when_wind_pulls_left() -> void:
 	var context := _create_context()
 	var store: AnchorRuntimeStore = context.store
-	var platform: PlatformController = context.platform
 	var wind: WindSystem = context.wind
 	var overload: AnchorOverloadController = context.overload
 
-	store.attach(3, platform.position.x)
+	_attach_anchor(context, 3, 2)
 	wind.set_debug_state(-1, 3)
 	overload.tick(0.01)
 	assert(
@@ -62,8 +62,8 @@ func _test_two_right_anchors_cancel_overload() -> void:
 	var constraints: AnchorConstraintProvider = context.constraints
 	var overload: AnchorOverloadController = context.overload
 
-	store.attach(2, platform.position.x)
-	store.attach(3, platform.position.x)
+	_attach_anchor(context, 2, 2)
+	_attach_anchor(context, 3, 2)
 	platform.position.x = constraints.get_maximum_platform_x()
 	wind.set_debug_state(1, 3)
 	overload.tick(1.0)
@@ -72,10 +72,38 @@ func _test_two_right_anchors_cancel_overload() -> void:
 	assert(store.get_anchor(3).state == AnchorRuntime.State.ATTACHED)
 
 
+func _test_anchor_keeps_original_orb_binding() -> void:
+	var context := _create_context()
+	var store: AnchorRuntimeStore = context.store
+	var platform: PlatformController = context.platform
+	var geometry: AnchorGeometry = context.geometry
+
+	_attach_anchor(context, 3, 2)
+	var original_point := store.get_anchor(3).attached_ground_point
+	platform.position.x = 1000.0
+	assert(geometry.get_current_installation_orb_id() == 3)
+	assert(store.get_anchor(3).attached_orb_id == 2)
+	assert(store.get_anchor(3).attached_ground_point == original_point)
+
+
+func _attach_anchor(context: Dictionary, anchor_id: int, orb_id: int) -> void:
+	var store: AnchorRuntimeStore = context.store
+	var geometry: AnchorGeometry = context.geometry
+	var platform: PlatformController = context.platform
+	store.set_install_target(
+		anchor_id,
+		orb_id,
+		geometry.get_ground_point_for_orb(orb_id, anchor_id)
+	)
+	store.attach(anchor_id, platform.position.x)
+
+
 func _create_context() -> Dictionary:
 	var platform_balance := PlatformBalance.new()
 	var wind_balance := WindBalance.new()
 	var anchor_balance := AnchorBalance.new()
+	var shield_balance := ShieldBalance.new()
+	var orb_catalog := GroundOrbCatalog.new()
 
 	var platform := PlatformController.new()
 	platform.balance = platform_balance
@@ -84,13 +112,17 @@ func _create_context() -> Dictionary:
 	var wind := WindSystem.new()
 	wind.balance = wind_balance
 
+	var registry := GroundOrbRegistry.new()
+	registry.catalog = orb_catalog
+	registry.shield_balance = shield_balance
+
 	var store := AnchorRuntimeStore.new()
 	var geometry := AnchorGeometry.new()
 	var constraints := AnchorConstraintProvider.new()
 	var overload := AnchorOverloadController.new()
 
 	store.initialize()
-	geometry.configure(platform, anchor_balance, 0.0, 510.0)
+	geometry.configure(platform, anchor_balance, registry)
 	constraints.configure(store, geometry, anchor_balance, platform, wind)
 	overload.configure(store, constraints, anchor_balance, wind)
 

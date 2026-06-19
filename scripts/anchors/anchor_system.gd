@@ -11,9 +11,8 @@ signal command_rejected(anchor_id: int, reason: StringName)
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
+@export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
 @export var balance: AnchorBalance
-@export var orb_x: float = 0.0
-@export var ground_y: float = 510.0
 @export var left_operator_assigned: bool = true
 @export var right_operator_assigned: bool = true
 
@@ -28,6 +27,7 @@ var _visual: AnchorVisualController
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
 @onready var _platform: PlatformController = get_node(platform_path)
+@onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
 
 
 func _ready() -> void:
@@ -86,6 +86,10 @@ func is_in_installation_zone() -> bool:
 	return _geometry.is_in_installation_zone()
 
 
+func get_installation_orb_id() -> int:
+	return _geometry.get_current_installation_orb_id()
+
+
 func is_fully_fixed() -> bool:
 	return _constraints.is_fully_fixed()
 
@@ -124,7 +128,7 @@ func is_operator_busy(side: int) -> bool:
 
 func _configure_components() -> void:
 	_store.initialize()
-	_geometry.configure(_platform, balance, orb_x, ground_y)
+	_geometry.configure(_platform, balance, _orb_registry)
 	_operations.configure(_store, _geometry, balance, _platform)
 	_constraints.configure(_store, _geometry, balance, _platform, _wind)
 	_overload.configure(_store, _constraints, balance, _wind)
@@ -154,7 +158,6 @@ func _create_visual_controller() -> void:
 		_store,
 		_geometry,
 		balance,
-		Callable(self, "is_in_installation_zone"),
 		Callable(self, "is_operator_assigned")
 	)
 
@@ -174,8 +177,7 @@ func _on_installation_finished(side: int, anchor_id: int, attached: bool) -> voi
 		_commands.remove_all_on_side(side)
 		return
 
-	var can_start_next := is_in_installation_zone() and is_operator_assigned(side)
-	_operations.start_next_if_allowed(side, can_start_next)
+	_operations.start_next_if_allowed(side, is_operator_assigned(side))
 
 
 func _on_overload_started(anchor_id: int) -> void:

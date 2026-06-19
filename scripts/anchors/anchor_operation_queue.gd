@@ -24,9 +24,14 @@ func configure(
 	_platform = platform
 
 
-func request_install(anchor_id: int) -> void:
+func request_install(
+	anchor_id: int,
+	orb_id: int,
+	ground_point: Vector2
+) -> void:
 	var anchor := _store.get_anchor(anchor_id)
 	var side := anchor.side
+	_store.set_install_target(anchor_id, orb_id, ground_point)
 	if _active_install_ids[side] >= 0:
 		_store.set_queued(anchor_id)
 		_queues[side].append(anchor_id)
@@ -58,8 +63,8 @@ func has_active_install(side: int) -> bool:
 	return _active_install_ids[side] >= 0
 
 
-func start_next_if_allowed(side: int, allowed: bool) -> bool:
-	if not allowed:
+func start_next_if_allowed(side: int, operator_available: bool) -> bool:
+	if not operator_available:
 		cancel_queued(side)
 		return false
 
@@ -67,6 +72,9 @@ func start_next_if_allowed(side: int, allowed: bool) -> bool:
 		var next_id: int = _queues[side].pop_front()
 		var next_anchor := _store.get_anchor(next_id)
 		if next_anchor.state != AnchorRuntime.State.QUEUED:
+			continue
+		if not _geometry.is_orb_in_installation_zone(next_anchor.target_orb_id):
+			_store.set_stowed(next_id)
 			continue
 		_start_install(next_id)
 		return true
@@ -97,7 +105,8 @@ func _update_installations(delta: float) -> void:
 		if progress < _balance.install_duration:
 			continue
 
-		var attached := _geometry.is_within_rope_length(anchor_id)
+		var anchor := _store.get_anchor(anchor_id)
+		var attached := _geometry.is_within_rope_length(anchor)
 		if attached:
 			_store.attach(anchor_id, _platform.position.x)
 		else:
