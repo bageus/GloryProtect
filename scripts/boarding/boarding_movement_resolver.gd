@@ -33,10 +33,7 @@ func resolve_ground_x(
 		if other == enemy or not other.health.is_alive():
 			continue
 		var other_state: int = other.get_state()
-		if (
-			other_state != BoardingEnemyController.State.WAITING_WITHOUT_PATH
-			and other_state != BoardingEnemyController.State.RUNNING_TO_ANCHOR
-		):
+		if not _is_ground_state(other_state):
 			continue
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
@@ -45,6 +42,26 @@ func resolve_ground_x(
 			boarding_balance.ground_enemy_spacing
 		)
 	return resolved_x
+
+
+func find_ground_spawn_x(
+	enemy: BoardingEnemy,
+	preferred_x: float,
+	spawn_side: int
+) -> float:
+	if _is_ground_slot_free(enemy, preferred_x):
+		return preferred_x
+	var direction: float = 1.0 if spawn_side >= 0 else -1.0
+	for step_index: int in range(1, boarding_balance.max_ground_enemies + 2):
+		var candidate_x: float = (
+			preferred_x
+			+ direction
+			* float(step_index)
+			* boarding_balance.ground_enemy_spacing
+		)
+		if _is_ground_slot_free(enemy, candidate_x):
+			return candidate_x
+	return preferred_x
 
 
 func can_enter_climb(
@@ -182,7 +199,7 @@ func resolve_enemy_platform_x(
 
 
 func resolve_defender_platform_x(
-	defender: Defender,
+	_defender: Defender,
 	current_x: float,
 	desired_x: float
 ) -> float:
@@ -196,6 +213,27 @@ func resolve_defender_platform_x(
 			defender_gap
 		)
 	return resolved_x
+
+
+func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
+	for other: BoardingEnemy in _enemies.get_all_enemies():
+		if other == enemy or not other.health.is_alive():
+			continue
+		if not _is_ground_state(other.get_state()):
+			continue
+		if (
+			absf(other.global_position.x - world_x)
+			< boarding_balance.ground_enemy_spacing
+		):
+			return false
+	return true
+
+
+func _is_ground_state(enemy_state: int) -> bool:
+	return (
+		enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
+		or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
+	)
 
 
 func _clamp_enemy_to_platform(local_x: float) -> float:
