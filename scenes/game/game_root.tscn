@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -25,6 +25,12 @@
 [ext_resource type="Resource" path="res://resources/balance/shield_balance.tres" id="23_shield_balance"]
 [ext_resource type="Resource" path="res://resources/definitions/ground_orb_catalog.tres" id="24_orb_catalog"]
 [ext_resource type="Script" path="res://scripts/crew/crew_failure_controller.gd" id="25_crew_failure"]
+[ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="26_boarding_balance"]
+[ext_resource type="PackedScene" path="res://scenes/boarding/boarding_enemy.tscn" id="27_boarding_enemy"]
+[ext_resource type="Script" path="res://scripts/boarding/anchor_path_registry.gd" id="28_path_registry"]
+[ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_registry.gd" id="29_enemy_registry"]
+[ext_resource type="Script" path="res://scripts/boarding/boarding_spawn_director.gd" id="30_spawn_director"]
+[ext_resource type="Script" path="res://scripts/crew/crew_combat_coordinator.gd" id="31_combat_coordinator"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -102,6 +108,36 @@ platform_path = NodePath("../Platform")
 orb_registry_path = NodePath("../GroundOrbRegistry")
 balance = ExtResource("6_anchor_balance")
 
+[node name="AnchorPathRegistry" type="Node" parent="World"]
+script = ExtResource("28_path_registry")
+anchor_system_path = NodePath("../AnchorSystem")
+balance = ExtResource("26_boarding_balance")
+
+[node name="BoardingEnemyRegistry" type="Node" parent="World"]
+script = ExtResource("29_enemy_registry")
+
+[node name="BoardingEnemyContainer" type="Node2D" parent="World"]
+
+[node name="BoardingSpawnDirector" type="Node" parent="World"]
+script = ExtResource("30_spawn_director")
+game_flow_path = NodePath("../../GameFlowController")
+platform_path = NodePath("../Platform")
+path_registry_path = NodePath("../AnchorPathRegistry")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+crew_manager_path = NodePath("../Platform/CrewManager")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+enemy_container_path = NodePath("../BoardingEnemyContainer")
+enemy_scene = ExtResource("27_boarding_enemy")
+balance = ExtResource("26_boarding_balance")
+
+[node name="CrewCombatCoordinator" type="Node" parent="World"]
+script = ExtResource("31_combat_coordinator")
+game_flow_path = NodePath("../../GameFlowController")
+crew_manager_path = NodePath("../Platform/CrewManager")
+role_manager_path = NodePath("../Platform/CrewRoleManager")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+balance = ExtResource("26_boarding_balance")
+
 [node name="Platform" type="Node2D" parent="World"]
 position = Vector2(0, 300)
 script = ExtResource("3_platform")
@@ -156,12 +192,13 @@ orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
 shield_debug_input_path = NodePath("../../ShieldDebugInput")
+enemy_registry_path = NodePath("../../World/BoardingEnemyRegistry")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 1080.0
-offset_bottom = 372.0
+offset_bottom = 402.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -177,7 +214,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.5"
+text = "GloryProtect — Prototype 0.6"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -203,6 +240,11 @@ text = "Якоря"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Экипаж"
+
+[node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Абордаж"
 
 [node name="ContactLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
