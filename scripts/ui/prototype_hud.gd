@@ -7,6 +7,7 @@ extends Control
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
 @export_node_path("CrewRoleManager") var crew_role_manager_path: NodePath
 @export_node_path("CrewDebugInput") var crew_debug_input_path: NodePath
+@export_node_path("CrewReplacementController") var crew_replacement_path: NodePath
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
@@ -19,6 +20,9 @@ extends Control
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
 @onready var _crew_roles: CrewRoleManager = get_node(crew_role_manager_path)
 @onready var _crew_input: CrewDebugInput = get_node(crew_debug_input_path)
+@onready var _replacements: CrewReplacementController = get_node(
+	crew_replacement_path
+)
 @onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
@@ -30,6 +34,7 @@ extends Control
 @onready var _platform_label: Label = %PlatformLabel
 @onready var _anchor_label: Label = %AnchorLabel
 @onready var _crew_label: Label = %CrewLabel
+@onready var _replacement_label: Label = %ReplacementLabel
 @onready var _boarding_label: Label = %BoardingLabel
 @onready var _contact_label: Label = %ContactLabel
 @onready var _shield_label: Label = %ShieldLabel
@@ -46,7 +51,9 @@ func _process(_delta: float) -> void:
 	_update_wind_and_platform()
 	_update_anchors_crew_and_boarding()
 	_update_contact_and_shield()
-	_pause_label.visible = _game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
+	_pause_label.visible = (
+		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
+	)
 
 
 func _update_run_state() -> void:
@@ -84,6 +91,7 @@ func _update_anchors_crew_and_boarding() -> void:
 		_crew_roles.get_summary(),
 		_crew_input.selected_defender_id + 1,
 	]
+	_replacement_label.text = "Замены: %s" % _replacements.get_summary()
 	_boarding_label.text = "Абордаж: %s | всего %d" % [
 		_enemies.get_state_summary(),
 		_enemies.get_active_count(),
