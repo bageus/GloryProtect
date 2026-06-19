@@ -1,4 +1,4 @@
-[gd_scene load_steps=34 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -33,6 +33,7 @@
 [ext_resource type="Script" path="res://scripts/crew/crew_combat_coordinator.gd" id="31_combat_coordinator"]
 [ext_resource type="Script" path="res://scripts/crew/crew_replacement_controller.gd" id="32_replacement"]
 [ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver.gd" id="33_movement_resolver"]
+[ext_resource type="Script" path="res://scripts/boarding/boarding_jump_planner.gd" id="34_jump_planner"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -133,6 +134,13 @@ enemy_registry_path = NodePath("../BoardingEnemyRegistry")
 boarding_balance = ExtResource("26_boarding_balance")
 crew_balance = ExtResource("14_crew_balance")
 
+[node name="BoardingJumpPlanner" type="Node" parent="World"]
+script = ExtResource("34_jump_planner")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+movement_resolver_path = NodePath("../BoardingMovementResolver")
+boarding_balance = ExtResource("26_boarding_balance")
+crew_balance = ExtResource("14_crew_balance")
+
 [node name="BoardingEnemyContainer" type="Node2D" parent="World"]
 
 [node name="BoardingSpawnDirector" type="Node" parent="World"]
@@ -142,6 +150,7 @@ platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
 movement_resolver_path = NodePath("../BoardingMovementResolver")
+jump_planner_path = NodePath("../BoardingJumpPlanner")
 crew_manager_path = NodePath("../Platform/CrewManager")
 orb_registry_path = NodePath("../GroundOrbRegistry")
 enemy_container_path = NodePath("../BoardingEnemyContainer")
@@ -236,7 +245,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.8"
+text = "GloryProtect — Prototype 0.9"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
