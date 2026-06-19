@@ -2,12 +2,14 @@ class_name CrewCombatCoordinator
 extends Node
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
+@export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export var balance: BoardingBalance
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
+@onready var _platform: PlatformController = get_node(platform_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _roles: CrewRoleManager = get_node(role_manager_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
@@ -34,6 +36,7 @@ func _configure_defender(defender: Defender) -> void:
 		defender,
 		balance,
 		_game_flow,
+		_platform,
 		_roles,
 		_enemies,
 		defender.melee
