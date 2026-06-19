@@ -49,8 +49,10 @@ func _draw_anchor(anchor: AnchorRuntime) -> void:
 		)
 		return
 
-	if anchor.state == AnchorRuntime.State.QUEUED \
-	or anchor.state == AnchorRuntime.State.INSTALLING:
+	if (
+		anchor.state == AnchorRuntime.State.QUEUED
+		or anchor.state == AnchorRuntime.State.INSTALLING
+	):
 		_draw_silhouette(anchor, anchor.target_ground_point)
 		return
 
