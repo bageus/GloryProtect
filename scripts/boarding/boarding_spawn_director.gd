@@ -6,6 +6,7 @@ extends Node
 @export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export_node_path("BoardingMovementResolver") var movement_resolver_path: NodePath
+@export_node_path("BoardingJumpPlanner") var jump_planner_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
 @export var enemy_container_path: NodePath
@@ -22,6 +23,7 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 @onready var _movement_resolver: BoardingMovementResolver = get_node(
 	movement_resolver_path
 )
+@onready var _jump_planner: BoardingJumpPlanner = get_node(jump_planner_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _orbs: GroundOrbRegistry = get_node(orb_registry_path)
 @onready var _container: Node2D = get_node(enemy_container_path)
@@ -78,7 +80,8 @@ func _spawn_enemy(side: int) -> BoardingEnemy:
 		_paths,
 		_crew,
 		_orbs,
-		_movement_resolver
+		_movement_resolver,
+		_jump_planner
 	)
 	var preferred_x: float = (
 		_platform.global_position.x
