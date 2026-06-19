@@ -16,7 +16,7 @@ func _test_right_anchor_breaks_when_wind_pulls_right() -> void:
 	var wind: WindSystem = context.wind
 	var constraints: AnchorConstraintProvider = context.constraints
 	var overload: AnchorOverloadController = context.overload
-	var balance: AnchorBalance = context.balance
+	var anchor_balance: AnchorBalance = context.anchor_balance
 
 	store.attach(3, platform.position.x)
 	var maximum_x := constraints.get_maximum_platform_x()
@@ -31,7 +31,7 @@ func _test_right_anchor_breaks_when_wind_pulls_right() -> void:
 		"Right anchor must overload when strong wind pulls right at rope limit"
 	)
 
-	overload.tick(balance.overload_duration)
+	overload.tick(anchor_balance.overload_duration)
 	assert(
 		store.get_anchor(3).state == AnchorRuntime.State.RETURNING,
 		"Overloaded right anchor must break and start returning"
@@ -73,28 +73,31 @@ func _test_two_right_anchors_cancel_overload() -> void:
 
 
 func _create_context() -> Dictionary:
+	var platform_balance := PlatformBalance.new()
+	var wind_balance := WindBalance.new()
+	var anchor_balance := AnchorBalance.new()
+
 	var platform := PlatformController.new()
+	platform.balance = platform_balance
 	platform.position = Vector2.ZERO
-	platform.cell_count = 18
-	platform.cell_width = 40.0
-	platform.platform_height = 58.0
 
 	var wind := WindSystem.new()
-	var balance := AnchorBalance.new()
+	wind.balance = wind_balance
+
 	var store := AnchorRuntimeStore.new()
 	var geometry := AnchorGeometry.new()
 	var constraints := AnchorConstraintProvider.new()
 	var overload := AnchorOverloadController.new()
 
 	store.initialize()
-	geometry.configure(platform, balance, 0.0, 510.0)
-	constraints.configure(store, geometry, balance, platform, wind)
-	overload.configure(store, constraints, balance, wind)
+	geometry.configure(platform, anchor_balance, 0.0, 510.0)
+	constraints.configure(store, geometry, anchor_balance, platform, wind)
+	overload.configure(store, constraints, anchor_balance, wind)
 
 	return {
 		"platform": platform,
 		"wind": wind,
-		"balance": balance,
+		"anchor_balance": anchor_balance,
 		"store": store,
 		"geometry": geometry,
 		"constraints": constraints,
