@@ -16,12 +16,12 @@ signal command_rejected(anchor_id: int, reason: StringName)
 @export var left_operator_assigned: bool = true
 @export var right_operator_assigned: bool = true
 
-var _store := AnchorRuntimeStore.new()
-var _geometry := AnchorGeometry.new()
-var _operations := AnchorOperationQueue.new()
-var _constraints := AnchorConstraintProvider.new()
-var _overload := AnchorOverloadController.new()
-var _commands := AnchorCommandController.new()
+var _store: AnchorRuntimeStore = AnchorRuntimeStore.new()
+var _geometry: AnchorGeometry = AnchorGeometry.new()
+var _operations: AnchorOperationQueue = AnchorOperationQueue.new()
+var _constraints: AnchorConstraintProvider = AnchorConstraintProvider.new()
+var _overload: AnchorOverloadController = AnchorOverloadController.new()
+var _commands: AnchorCommandController = AnchorCommandController.new()
 var _visual: AnchorVisualController
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
@@ -53,7 +53,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey:
 		return
 
-	var key_event := event as InputEventKey
+	var key_event: InputEventKey = event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
 
@@ -110,6 +110,51 @@ func get_state_summary() -> String:
 	return _store.get_state_summary()
 
 
+func get_active_path_count() -> int:
+	var count: int = 0
+	for anchor: AnchorRuntime in _store.get_all():
+		if anchor.is_holding():
+			count += 1
+	return count
+
+
+func is_path_available(anchor_id: int) -> bool:
+	return (
+		_store.is_valid(anchor_id)
+		and _store.get_anchor(anchor_id).is_holding()
+	)
+
+
+func get_path_snapshot(anchor_id: int) -> AnchorPathSnapshot:
+	if not is_path_available(anchor_id):
+		return null
+	var anchor: AnchorRuntime = _store.get_anchor(anchor_id)
+	return AnchorPathSnapshot.new(
+		anchor.anchor_id,
+		anchor.side,
+		anchor.attached_orb_id,
+		anchor.attached_ground_point,
+		_geometry.get_platform_attachment_world(anchor.anchor_id)
+	)
+
+
+func get_active_path_snapshots() -> Array[AnchorPathSnapshot]:
+	var paths: Array[AnchorPathSnapshot] = []
+	for anchor: AnchorRuntime in _store.get_all():
+		if not anchor.is_holding():
+			continue
+		paths.append(
+			AnchorPathSnapshot.new(
+				anchor.anchor_id,
+				anchor.side,
+				anchor.attached_orb_id,
+				anchor.attached_ground_point,
+				_geometry.get_platform_attachment_world(anchor.anchor_id)
+			)
+		)
+	return paths
+
+
 func set_operator_assigned(side: int, is_assigned: bool) -> void:
 	if side == AnchorRuntime.Side.LEFT:
 		left_operator_assigned = is_assigned
@@ -119,7 +164,9 @@ func set_operator_assigned(side: int, is_assigned: bool) -> void:
 
 
 func is_operator_assigned(side: int) -> bool:
-	return left_operator_assigned if side == AnchorRuntime.Side.LEFT else right_operator_assigned
+	if side == AnchorRuntime.Side.LEFT:
+		return left_operator_assigned
+	return right_operator_assigned
 
 
 func is_operator_busy(side: int) -> bool:
