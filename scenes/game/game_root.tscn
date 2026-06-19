@@ -36,6 +36,7 @@ world_max_x = 2400.0
 
 [node name="Camera2D" type="Camera2D" parent="World/Platform"]
 position = Vector2(0, 48)
+enabled = true
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 
