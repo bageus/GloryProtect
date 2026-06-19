@@ -118,6 +118,10 @@ func is_operator_assigned(side: int) -> bool:
 	return left_operator_assigned if side == AnchorRuntime.Side.LEFT else right_operator_assigned
 
 
+func is_operator_busy(side: int) -> bool:
+	return _operations.has_active_install(side)
+
+
 func _configure_components() -> void:
 	_store.initialize()
 	_geometry.configure(_platform, balance, orb_x, ground_y)
