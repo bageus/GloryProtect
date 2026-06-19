@@ -35,7 +35,7 @@ func _process(_delta: float) -> void:
 	for runtime: CrewAssignmentRuntime in _assignments.values():
 		if runtime.state != CrewAssignmentRuntime.State.WAITING_FOR_ACTION:
 			continue
-		if not _is_current_action_active(runtime.current_role):
+		if not _is_current_action_active(runtime):
 			_begin_transition(runtime)
 
 
@@ -61,7 +61,7 @@ func request_assignment(defender_id: int, role_id: int) -> void:
 		return
 
 	runtime.target_role = role_id
-	if _is_current_action_active(runtime.current_role):
+	if _is_current_action_active(runtime):
 		runtime.state = CrewAssignmentRuntime.State.WAITING_FOR_ACTION
 		_emit_assignment(runtime)
 		return
@@ -137,8 +137,12 @@ func _activate_target_role(runtime: CrewAssignmentRuntime) -> void:
 	_emit_assignment(runtime)
 
 
-func _is_current_action_active(role_id: int) -> bool:
-	match role_id:
+func _is_current_action_active(runtime: CrewAssignmentRuntime) -> bool:
+	var defender: Defender = _crew.get_defender(runtime.defender_id)
+	if defender != null and defender.is_combat_action_active():
+		return true
+
+	match runtime.current_role:
 		CrewRole.Id.DRIVER:
 			return _steering.is_control_input_active()
 		CrewRole.Id.LEFT_ANCHOR:
