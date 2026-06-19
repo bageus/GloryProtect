@@ -1,22 +1,29 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=25 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
-[ext_resource type="Script" path="res://scripts/game/prototype_world.gd" id="3_world"]
-[ext_resource type="Script" path="res://scripts/platform/platform_controller.gd" id="4_platform"]
-[ext_resource type="Script" path="res://scripts/shield/prototype_shield_system.gd" id="5_shield"]
-[ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="6_hud"]
-[ext_resource type="Script" path="res://scripts/anchors/anchor_system.gd" id="7_anchor"]
-[ext_resource type="Resource" path="res://resources/balance/anchor_balance.tres" id="8_anchor_balance"]
-[ext_resource type="Resource" path="res://resources/balance/platform_balance.tres" id="9_platform_balance"]
-[ext_resource type="Resource" path="res://resources/balance/wind_balance.tres" id="10_wind_balance"]
-[ext_resource type="Script" path="res://scripts/platform/steering_input_provider.gd" id="11_steering"]
-[ext_resource type="Script" path="res://scripts/platform/platform_visual_controller.gd" id="12_platform_visual"]
-[ext_resource type="Script" path="res://scripts/crew/crew_manager.gd" id="13_crew_manager"]
-[ext_resource type="Script" path="res://scripts/crew/crew_role_manager.gd" id="14_role_manager"]
-[ext_resource type="Script" path="res://scripts/crew/crew_debug_input.gd" id="15_crew_input"]
-[ext_resource type="Resource" path="res://resources/balance/crew_balance.tres" id="16_crew_balance"]
-[ext_resource type="PackedScene" path="res://scenes/crew/defender.tscn" id="17_defender"]
+[ext_resource type="Script" path="res://scripts/platform/platform_controller.gd" id="3_platform"]
+[ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="4_hud"]
+[ext_resource type="Script" path="res://scripts/anchors/anchor_system.gd" id="5_anchor"]
+[ext_resource type="Resource" path="res://resources/balance/anchor_balance.tres" id="6_anchor_balance"]
+[ext_resource type="Resource" path="res://resources/balance/platform_balance.tres" id="7_platform_balance"]
+[ext_resource type="Resource" path="res://resources/balance/wind_balance.tres" id="8_wind_balance"]
+[ext_resource type="Script" path="res://scripts/platform/steering_input_provider.gd" id="9_steering"]
+[ext_resource type="Script" path="res://scripts/platform/platform_visual_controller.gd" id="10_platform_visual"]
+[ext_resource type="Script" path="res://scripts/crew/crew_manager.gd" id="11_crew_manager"]
+[ext_resource type="Script" path="res://scripts/crew/crew_role_manager.gd" id="12_role_manager"]
+[ext_resource type="Script" path="res://scripts/crew/crew_debug_input.gd" id="13_crew_input"]
+[ext_resource type="Resource" path="res://resources/balance/crew_balance.tres" id="14_crew_balance"]
+[ext_resource type="PackedScene" path="res://scenes/crew/defender.tscn" id="15_defender"]
+[ext_resource type="Script" path="res://scripts/orbs/ground_orb_registry.gd" id="16_orb_registry"]
+[ext_resource type="Script" path="res://scripts/orbs/orb_contact_system.gd" id="17_orb_contact"]
+[ext_resource type="Script" path="res://scripts/orbs/ground_orb_visual_controller.gd" id="18_orb_visual"]
+[ext_resource type="Script" path="res://scripts/shield/shield_system.gd" id="19_shield"]
+[ext_resource type="Script" path="res://scripts/shield/shield_recharge_controller.gd" id="20_recharge"]
+[ext_resource type="Script" path="res://scripts/shield/shield_failure_controller.gd" id="21_failure"]
+[ext_resource type="Script" path="res://scripts/shield/shield_debug_input.gd" id="22_shield_input"]
+[ext_resource type="Resource" path="res://resources/balance/shield_balance.tres" id="23_shield_balance"]
+[ext_resource type="Resource" path="res://resources/definitions/ground_orb_catalog.tres" id="24_orb_catalog"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -25,59 +32,92 @@ script = ExtResource("1_flow")
 start_delay_seconds = 3.0
 
 [node name="SteeringInputProvider" type="Node" parent="."]
-script = ExtResource("11_steering")
+script = ExtResource("9_steering")
 driver_available = true
 
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("2_wind")
-balance = ExtResource("10_wind_balance")
+balance = ExtResource("8_wind_balance")
+
+[node name="ShieldSystem" type="Node" parent="."]
+script = ExtResource("19_shield")
+balance = ExtResource("23_shield_balance")
+
+[node name="ShieldFailureController" type="Node" parent="."]
+script = ExtResource("21_failure")
+game_flow_path = NodePath("../GameFlowController")
+shield_system_path = NodePath("../ShieldSystem")
+
+[node name="ShieldDebugInput" type="Node" parent="."]
+script = ExtResource("22_shield_input")
+game_flow_path = NodePath("../GameFlowController")
+shield_system_path = NodePath("../ShieldSystem")
+balance = ExtResource("23_shield_balance")
 
 [node name="CrewDebugInput" type="Node" parent="."]
-script = ExtResource("15_crew_input")
+script = ExtResource("13_crew_input")
 game_flow_path = NodePath("../GameFlowController")
 crew_manager_path = NodePath("../World/Platform/CrewManager")
 role_manager_path = NodePath("../World/Platform/CrewRoleManager")
 
 [node name="World" type="Node2D" parent="."]
-script = ExtResource("3_world")
-platform_path = NodePath("Platform")
-ground_y = 510.0
-orb_x = 0.0
-contact_half_width = 72.0
-world_min_x = -3200.0
-world_max_x = 3200.0
+
+[node name="GroundOrbRegistry" type="Node" parent="World"]
+script = ExtResource("16_orb_registry")
+catalog = ExtResource("24_orb_catalog")
+shield_balance = ExtResource("23_shield_balance")
+
+[node name="OrbContactSystem" type="Node" parent="World"]
+script = ExtResource("17_orb_contact")
+game_flow_path = NodePath("../../GameFlowController")
+platform_path = NodePath("../Platform")
+registry_path = NodePath("../GroundOrbRegistry")
+
+[node name="ShieldRechargeController" type="Node" parent="World"]
+script = ExtResource("20_recharge")
+game_flow_path = NodePath("../../GameFlowController")
+contact_system_path = NodePath("../OrbContactSystem")
+shield_system_path = NodePath("../../ShieldSystem")
+balance = ExtResource("23_shield_balance")
+
+[node name="GroundOrbVisualController" type="Node2D" parent="World"]
+script = ExtResource("18_orb_visual")
+platform_path = NodePath("../Platform")
+registry_path = NodePath("../GroundOrbRegistry")
+contact_system_path = NodePath("../OrbContactSystem")
+shield_system_path = NodePath("../../ShieldSystem")
+platform_balance = ExtResource("7_platform_balance")
 
 [node name="AnchorSystem" type="Node2D" parent="World"]
-script = ExtResource("7_anchor")
+script = ExtResource("5_anchor")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../Platform")
-balance = ExtResource("8_anchor_balance")
-orb_x = 0.0
-ground_y = 510.0
+orb_registry_path = NodePath("../GroundOrbRegistry")
+balance = ExtResource("6_anchor_balance")
 
 [node name="Platform" type="Node2D" parent="World"]
 position = Vector2(0, 300)
-script = ExtResource("4_platform")
+script = ExtResource("3_platform")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
 steering_input_path = NodePath("../../SteeringInputProvider")
 anchor_system_path = NodePath("../AnchorSystem")
-balance = ExtResource("9_platform_balance")
+balance = ExtResource("7_platform_balance")
 
 [node name="PlatformVisualController" type="Node2D" parent="World/Platform"]
-script = ExtResource("12_platform_visual")
+script = ExtResource("10_platform_visual")
 platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
-balance = ExtResource("9_platform_balance")
+balance = ExtResource("7_platform_balance")
 
 [node name="CrewManager" type="Node2D" parent="World/Platform"]
-script = ExtResource("13_crew_manager")
-defender_scene = ExtResource("17_defender")
-balance = ExtResource("16_crew_balance")
+script = ExtResource("11_crew_manager")
+defender_scene = ExtResource("15_defender")
+balance = ExtResource("14_crew_balance")
 
 [node name="CrewRoleManager" type="Node" parent="World/Platform"]
-script = ExtResource("14_role_manager")
+script = ExtResource("12_role_manager")
 crew_manager_path = NodePath("../CrewManager")
 platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
@@ -89,14 +129,6 @@ enabled = true
 position_smoothing_enabled = true
 position_smoothing_speed = 5.0
 
-[node name="PrototypeShieldSystem" type="Node" parent="."]
-script = ExtResource("5_shield")
-game_flow_path = NodePath("../GameFlowController")
-world_path = NodePath("../World")
-max_health = 100.0
-recharge_per_second = 8.0
-debug_damage_amount = 10.0
-
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="PrototypeHUD" type="Control" parent="CanvasLayer"]
@@ -107,21 +139,23 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-script = ExtResource("6_hud")
+script = ExtResource("4_hud")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../../World/Platform")
 anchor_system_path = NodePath("../../World/AnchorSystem")
 crew_role_manager_path = NodePath("../../World/Platform/CrewRoleManager")
 crew_debug_input_path = NodePath("../../CrewDebugInput")
-world_path = NodePath("../../World")
-shield_system_path = NodePath("../../PrototypeShieldSystem")
+orb_registry_path = NodePath("../../World/GroundOrbRegistry")
+contact_system_path = NodePath("../../World/OrbContactSystem")
+shield_system_path = NodePath("../../ShieldSystem")
+shield_debug_input_path = NodePath("../../ShieldDebugInput")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 960.0
-offset_bottom = 326.0
+offset_right = 1080.0
+offset_bottom = 372.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -137,7 +171,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.4"
+text = "GloryProtect — Prototype 0.5"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -174,15 +208,25 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Щит"
 
+[node name="TargetLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Цели"
+
 [node name="HelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "←/→ — движение   1–4 — якоря   R — снять все   Space — урон   Esc — пауза"
+text = "←/→ — движение   1–4 — якоря   R — снять все   Esc — пауза"
 
 [node name="CrewHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "5/6/7 — выбрать защитника   D — рулевой   Z/X — левый/правый якорщик   C — свободный"
+text = "5/6/7 — защитник   D — рулевой   Z/X — якорщик   C — свободный"
+
+[node name="ShieldHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
+text = "F1–F5 — выбрать секцию   Space — нанести выбранной секции урон"
 
 [node name="PauseLabel" type="Label" parent="CanvasLayer/PrototypeHUD"]
 unique_name_in_owner = true
