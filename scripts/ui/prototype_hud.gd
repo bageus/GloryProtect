@@ -11,6 +11,7 @@ extends Control
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("ShieldDebugInput") var shield_debug_input_path: NodePath
+@export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
@@ -22,12 +23,14 @@ extends Control
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 @onready var _shield_input: ShieldDebugInput = get_node(shield_debug_input_path)
+@onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
 @onready var _state_label: Label = %StateLabel
 @onready var _wind_label: Label = %WindLabel
 @onready var _platform_label: Label = %PlatformLabel
 @onready var _anchor_label: Label = %AnchorLabel
 @onready var _crew_label: Label = %CrewLabel
+@onready var _boarding_label: Label = %BoardingLabel
 @onready var _contact_label: Label = %ContactLabel
 @onready var _shield_label: Label = %ShieldLabel
 @onready var _target_label: Label = %TargetLabel
@@ -41,13 +44,13 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_update_run_state()
 	_update_wind_and_platform()
-	_update_anchors_and_crew()
+	_update_anchors_crew_and_boarding()
 	_update_contact_and_shield()
 	_pause_label.visible = _game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
 
 
 func _update_run_state() -> void:
-	var state_text := _game_flow.get_state_name()
+	var state_text: String = _game_flow.get_state_name()
 	if _game_flow.state == GameFlowController.RunState.START_DELAY:
 		state_text += " (%.1f с)" % _game_flow.start_delay_remaining
 	elif _game_flow.state == GameFlowController.RunState.GAME_OVER:
@@ -68,9 +71,9 @@ func _update_wind_and_platform() -> void:
 	]
 
 
-func _update_anchors_and_crew() -> void:
-	var installation_orb_id := _anchors.get_installation_orb_id()
-	var zone_text := "НЕТ"
+func _update_anchors_crew_and_boarding() -> void:
+	var installation_orb_id: int = _anchors.get_installation_orb_id()
+	var zone_text: String = "НЕТ"
 	if installation_orb_id >= 0:
 		zone_text = "ШАР %d" % (installation_orb_id + 1)
 	_anchor_label.text = "Якоря: %s | зона: %s" % [
@@ -81,10 +84,14 @@ func _update_anchors_and_crew() -> void:
 		_crew_roles.get_summary(),
 		_crew_input.selected_defender_id + 1,
 	]
+	_boarding_label.text = "Абордаж: %s | всего %d" % [
+		_enemies.get_state_summary(),
+		_enemies.get_active_count(),
+	]
 
 
 func _update_contact_and_shield() -> void:
-	var contact_text := "НЕТ"
+	var contact_text: String = "НЕТ"
 	if _contact.is_contact_active():
 		contact_text = "ШАР %d / СЕКЦИЯ %d" % [
 			_contact.get_active_orb_id() + 1,
@@ -101,11 +108,13 @@ func _update_contact_and_shield() -> void:
 
 func _get_direction_targets_text() -> String:
 	var targets := PackedStringArray()
-	for section_id in range(_shield.get_section_count()):
+	for section_id: int in range(_shield.get_section_count()):
 		if not _shield.needs_direction_indicator(section_id):
 			continue
-		var delta_x := _orb_registry.get_world_x(section_id) - _platform.position.x
-		var direction := "ЗДЕСЬ"
+		var delta_x: float = (
+			_orb_registry.get_world_x(section_id) - _platform.position.x
+		)
+		var direction: String = "ЗДЕСЬ"
 		if delta_x < -_orb_registry.catalog.contact_half_width:
 			direction = "←"
 		elif delta_x > _orb_registry.catalog.contact_half_width:
