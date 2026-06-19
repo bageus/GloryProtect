@@ -37,6 +37,30 @@ func get_active_count() -> int:
 	return get_all_enemies().size()
 
 
+func get_ground_count() -> int:
+	var count: int = 0
+	for enemy: BoardingEnemy in get_all_enemies():
+		var enemy_state: int = enemy.get_state()
+		if (
+			enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
+			or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
+		):
+			count += 1
+	return count
+
+
+func get_climbing_count() -> int:
+	var count: int = 0
+	for enemy: BoardingEnemy in get_all_enemies():
+		if enemy.get_state() == BoardingEnemyController.State.CLIMBING:
+			count += 1
+	return count
+
+
+func get_boarded_count() -> int:
+	return get_boarded_enemies().size()
+
+
 func get_boarded_enemies() -> Array[BoardingEnemy]:
 	var result: Array[BoardingEnemy] = []
 	for enemy: BoardingEnemy in get_all_enemies():
@@ -62,27 +86,10 @@ func get_nearest_boarded_enemy(
 
 
 func get_state_summary() -> String:
-	var ground_count: int = 0
-	var climbing_count: int = 0
-	var boarded_count: int = 0
-	for enemy: BoardingEnemy in get_all_enemies():
-		var enemy_state: int = enemy.get_state()
-		if (
-			enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
-			or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
-		):
-			ground_count += 1
-		elif enemy_state == BoardingEnemyController.State.CLIMBING:
-			climbing_count += 1
-		elif (
-			enemy_state == BoardingEnemyController.State.ON_PLATFORM
-			or enemy_state == BoardingEnemyController.State.FIGHTING
-		):
-			boarded_count += 1
 	return "земля %d | трос %d | борт %d" % [
-		ground_count,
-		climbing_count,
-		boarded_count,
+		get_ground_count(),
+		get_climbing_count(),
+		get_boarded_count(),
 	]
 
 
