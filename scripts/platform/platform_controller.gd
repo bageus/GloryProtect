@@ -6,7 +6,7 @@ signal telemetry_changed(position_x: float, velocity_x: float, steering_axis: fl
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
-@export_node_path("AnchorSystem") var anchor_system_path: NodePath
+@export var anchor_system_path: NodePath
 
 @export_range(8, 32, 1) var cell_count: int = 18
 @export_range(16.0, 64.0, 1.0) var cell_width: float = 40.0
@@ -23,7 +23,7 @@ var steering_axis: float = 0.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind_system: WindSystem = get_node(wind_system_path)
-@onready var _anchor_system: AnchorSystem = get_node_or_null(anchor_system_path) as AnchorSystem
+@onready var _anchor_system = get_node_or_null(anchor_system_path)
 
 
 func _ready() -> void:
@@ -85,8 +85,8 @@ func _apply_world_and_anchor_constraints(next_x: float) -> float:
 			maximum_x
 		)
 
-	var anchor_minimum := _anchor_system.get_minimum_platform_x()
-	var anchor_maximum := _anchor_system.get_maximum_platform_x()
+	var anchor_minimum: float = _anchor_system.get_minimum_platform_x()
+	var anchor_maximum: float = _anchor_system.get_maximum_platform_x()
 	if anchor_minimum != -INF:
 		minimum_x = maxf(minimum_x, anchor_minimum)
 	if anchor_maximum != INF:
