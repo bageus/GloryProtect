@@ -27,6 +27,8 @@ func _run_scenarios() -> void:
 
 	var first_old: Defender = crew.get_defender(1)
 	var second_old: Defender = crew.get_defender(2)
+	var first_old_instance_id: int = first_old.get_instance_id()
+	var second_old_instance_id: int = second_old.get_instance_id()
 	first_old.health.set_health(0)
 	await _wait_physics_frames(10)
 	second_old.health.set_health(0)
@@ -37,7 +39,7 @@ func _run_scenarios() -> void:
 
 	await _wait_physics_frames(10)
 	var first_new: Defender = crew.get_defender(1)
-	assert(first_new != first_old)
+	assert(first_new.get_instance_id() != first_old_instance_id)
 	assert(first_new.health.is_alive())
 	assert(
 		is_equal_approx(
@@ -54,7 +56,7 @@ func _run_scenarios() -> void:
 
 	await _wait_physics_frames(10)
 	var second_new: Defender = crew.get_defender(2)
-	assert(second_new != second_old)
+	assert(second_new.get_instance_id() != second_old_instance_id)
 	assert(second_new.health.is_alive())
 	assert(not replacements.is_replacement_pending(2))
 	assert(replacements.get_pending_count() == 0)
