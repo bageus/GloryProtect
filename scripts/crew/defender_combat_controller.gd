@@ -68,11 +68,12 @@ func _physics_process(delta: float) -> void:
 
 
 func is_action_active() -> bool:
-	return _melee.is_attacking()
+	return _configured and _melee != null and _melee.is_attacking()
 
 
 func cancel() -> void:
-	_melee.cancel()
+	if _melee != null:
+		_melee.cancel()
 
 
 func _can_role_use_melee(role_id: int) -> bool:
