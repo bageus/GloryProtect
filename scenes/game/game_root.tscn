@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -8,6 +8,10 @@
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/anchors/anchor_system.gd" id="7_anchor"]
 [ext_resource type="Resource" path="res://resources/balance/anchor_balance.tres" id="8_anchor_balance"]
+[ext_resource type="Resource" path="res://resources/balance/platform_balance.tres" id="9_platform_balance"]
+[ext_resource type="Resource" path="res://resources/balance/wind_balance.tres" id="10_wind_balance"]
+[ext_resource type="Script" path="res://scripts/platform/steering_input_provider.gd" id="11_steering"]
+[ext_resource type="Script" path="res://scripts/platform/platform_visual_controller.gd" id="12_platform_visual"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -15,8 +19,13 @@
 script = ExtResource("1_flow")
 start_delay_seconds = 3.0
 
+[node name="SteeringInputProvider" type="Node" parent="."]
+script = ExtResource("11_steering")
+driver_available = true
+
 [node name="WindSystem" type="Node" parent="."]
 script = ExtResource("2_wind")
+balance = ExtResource("10_wind_balance")
 
 [node name="World" type="Node2D" parent="."]
 script = ExtResource("3_world")
@@ -41,10 +50,15 @@ position = Vector2(0, 300)
 script = ExtResource("4_platform")
 game_flow_path = NodePath("../../GameFlowController")
 wind_system_path = NodePath("../../WindSystem")
+steering_input_path = NodePath("../../SteeringInputProvider")
 anchor_system_path = NodePath("../AnchorSystem")
-cell_count = 18
-world_min_x = -2400.0
-world_max_x = 2400.0
+balance = ExtResource("9_platform_balance")
+
+[node name="PlatformVisualController" type="Node2D" parent="World/Platform"]
+script = ExtResource("12_platform_visual")
+platform_path = NodePath("..")
+steering_input_path = NodePath("../../../SteeringInputProvider")
+balance = ExtResource("9_platform_balance")
 
 [node name="Camera2D" type="Camera2D" parent="World/Platform"]
 position = Vector2(0, 48)
@@ -98,7 +112,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.3"
+text = "GloryProtect — Prototype 0.4"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
