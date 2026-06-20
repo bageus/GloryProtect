@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="RunDifficultyBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/difficulty/run_difficulty_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+seconds_to_max_difficulty = 600.0
+growth_exponent = 1.0
