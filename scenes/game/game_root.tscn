@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3]
+[gd_scene load_steps=41 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -37,6 +37,9 @@
 [ext_resource type="Script" path="res://scripts/economy/run_economy.gd" id="35_run_economy"]
 [ext_resource type="Script" path="res://scripts/economy/boarding_reward_controller.gd" id="36_reward_controller"]
 [ext_resource type="Resource" path="res://resources/balance/economy_balance.tres" id="37_economy_balance"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_system.gd" id="38_upgrade_system"]
+[ext_resource type="Resource" path="res://resources/balance/upgrade_balance.tres" id="39_upgrade_balance"]
+[ext_resource type="PackedScene" path="res://scenes/ui/upgrade_selection_panel.tscn" id="40_upgrade_panel"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -48,6 +51,12 @@ start_delay_seconds = 3.0
 script = ExtResource("35_run_economy")
 game_flow_path = NodePath("../GameFlowController")
 balance = ExtResource("37_economy_balance")
+
+[node name="UpgradeSystem" type="Node" parent="."]
+script = ExtResource("38_upgrade_system")
+game_flow_path = NodePath("../GameFlowController")
+run_economy_path = NodePath("../RunEconomy")
+balance = ExtResource("39_upgrade_balance")
 
 [node name="SteeringInputProvider" type="Node" parent="."]
 script = ExtResource("9_steering")
@@ -260,7 +269,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 1.0"
+text = "GloryProtect — Prototype 1.1"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -354,3 +363,6 @@ theme_override_font_sizes/font_size = 42
 text = "ПАУЗА"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="UpgradeSelectionPanel" parent="CanvasLayer" instance=ExtResource("40_upgrade_panel")]
+upgrade_system_path = NodePath("../../UpgradeSystem")
