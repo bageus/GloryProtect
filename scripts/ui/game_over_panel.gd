@@ -65,7 +65,7 @@ func _get_reason_text(reason: StringName) -> String:
 	match reason:
 		&"shield_section_destroyed":
 			return "СЕКЦИЯ ЩИТА РАЗРУШЕНА"
-		&"crew_destroyed":
+		&"all_defenders_dead":
 			return "ЭКИПАЖ УНИЧТОЖЕН"
 		_:
 			return "ЗАБЕГ ЗАВЕРШЁН"
