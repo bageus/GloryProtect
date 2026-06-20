@@ -55,6 +55,7 @@ extends Control
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 @onready var _spawn: BoardingSpawnDirector = get_node(spawn_director_path)
 
+@onready var _telemetry_panel: PanelContainer = $TelemetryPanel
 @onready var _title_label: Label = $TelemetryPanel/Margin/VBox/Title
 @onready var _state_label: Label = %StateLabel
 @onready var _statistics_label: Label = %StatisticsLabel
@@ -77,7 +78,21 @@ extends Control
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_title_label.text = "GloryProtect — Prototype 1.8"
+	_title_label.text = "GloryProtect — Prototype 1.9"
+	_telemetry_panel.visible = false
+	_create_crew_command_panel()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event is InputEventKey:
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if not key_event.pressed or key_event.echo:
+		return
+	if key_event.keycode != KEY_F10:
+		return
+	_telemetry_panel.visible = not _telemetry_panel.visible
+	get_viewport().set_input_as_handled()
 
 
 func _process(_delta: float) -> void:
@@ -90,6 +105,19 @@ func _process(_delta: float) -> void:
 	_pause_label.visible = (
 		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
 	)
+
+
+func _create_crew_command_panel() -> void:
+	var panel := CrewCommandPanel.new()
+	panel.name = "CrewCommandPanel"
+	panel.configure(
+		_game_flow,
+		_crew_input,
+		_crew_roles,
+		_replacements,
+		_buildable_grid
+	)
+	add_child(panel)
 
 
 func _update_run_state() -> void:
@@ -132,7 +160,7 @@ func _update_anchors_crew_and_boarding() -> void:
 	]
 	_crew_label.text = "Экипаж: %s | выбран: %d" % [
 		_crew_roles.get_summary(),
-		_crew_input.selected_defender_id + 1,
+		_crew_input.get_selected_defender_id() + 1,
 	]
 	_replacement_label.text = "Замены: %s" % _replacements.get_summary()
 	_economy_label.text = "Монеты забега: %d" % _economy.get_coins()
