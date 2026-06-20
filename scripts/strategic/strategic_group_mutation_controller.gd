@@ -51,6 +51,9 @@ func reset_for_run() -> void:
 
 
 func run_mutation_check_now() -> bool:
+	if _game_flow.state != GameFlowController.RunState.RUNNING:
+		mutation_check_completed.emit(false)
+		return false
 	var changed: bool = _try_merge()
 	if not changed:
 		changed = _try_split()
@@ -96,7 +99,10 @@ func _try_merge() -> bool:
 
 
 func _try_split() -> bool:
-	if _rng.randf() > balance.get_split_chance(_difficulty.get_normalized()):
+	var split_chance: float = balance.get_split_chance(
+		_difficulty.get_normalized()
+	)
+	if split_chance <= 0.0 or _rng.randf() >= split_chance:
 		return false
 	var candidates: Array[StrategicGroupSnapshot] = []
 	for snapshot: StrategicGroupSnapshot in _waves.get_group_snapshots():
