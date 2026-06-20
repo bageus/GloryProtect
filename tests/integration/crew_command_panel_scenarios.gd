@@ -102,6 +102,15 @@ func _run_scenarios() -> void:
 	assert(panel.visible)
 	assert(panel.are_commands_enabled())
 
+	game_flow.toggle_manual_pause()
+	await process_frame
+	assert(panel.visible)
+	assert(not panel.are_commands_enabled())
+	game_flow.toggle_manual_pause()
+	await process_frame
+	assert(panel.visible)
+	assert(panel.are_commands_enabled())
+
 	assert(replacements.get_pending_count() == 0)
 	print("Crew command panel scenarios passed")
 	quit()
