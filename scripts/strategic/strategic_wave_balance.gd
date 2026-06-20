@@ -15,6 +15,19 @@ extends Resource
 @export_range(1, 100, 1) var max_active_groups: int = 15
 @export_range(0.0, 1.2, 0.05) var maximum_lane_offset: float = 0.35
 
+@export_group("Group Mutations")
+@export_range(0.1, 30.0, 0.1) var mutation_check_interval: float = 1.0
+@export_range(0.0, 3.14, 0.01) var merge_angle_tolerance: float = 0.16
+@export_range(0.0, 1.0, 0.01) var merge_distance_tolerance: float = 0.08
+@export_range(0.0, 30.0, 0.1) var mutation_cooldown: float = 4.0
+@export_range(2, 1000, 1) var minimum_split_enemy_count: int = 10
+@export_range(2, 5, 1) var maximum_split_parts: int = 3
+@export_range(0.0, 1.0, 0.01) var initial_split_chance: float = 0.04
+@export_range(0.0, 1.0, 0.01) var maximum_split_chance: float = 0.22
+@export_range(0.0, 1.0, 0.01) var split_redirect_chance: float = 0.65
+@export_range(0.0, 1.0, 0.01) var split_min_progress: float = 0.15
+@export_range(0.0, 1.0, 0.01) var split_max_progress: float = 0.75
+
 
 func get_wave_interval(normalized_difficulty: float) -> float:
 	return _lerp_decreasing(
@@ -56,6 +69,12 @@ func get_target_section_count(
 		available_section_count
 	)
 	return roundi(lerpf(float(initial_count), float(maximum_count), progress))
+
+
+func get_split_chance(normalized_difficulty: float) -> float:
+	var progress: float = clampf(normalized_difficulty, 0.0, 1.0)
+	var final_chance: float = maxf(initial_split_chance, maximum_split_chance)
+	return lerpf(initial_split_chance, final_chance, progress)
 
 
 func _lerp_decreasing(start_value: float, end_value: float, progress: float) -> float:
