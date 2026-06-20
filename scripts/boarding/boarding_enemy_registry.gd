@@ -84,7 +84,8 @@ func get_archetype_summary() -> String:
 		var archetype_id: StringName = enemy.get_archetype_id()
 		if archetype_id == &"":
 			continue
-		counts[archetype_id] = counts.get(archetype_id, 0) + 1
+		var previous_count: int = counts.get(archetype_id, 0)
+		counts[archetype_id] = previous_count + 1
 		names[archetype_id] = enemy.get_archetype_name()
 	if counts.is_empty():
 		return "НЕТ"
