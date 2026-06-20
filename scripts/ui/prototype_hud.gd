@@ -2,6 +2,7 @@ class_name PrototypeHUD
 extends Control
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
+@export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
@@ -15,8 +16,10 @@ extends Control
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("ShieldDebugInput") var shield_debug_input_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
+@export_node_path("BoardingSpawnDirector") var spawn_director_path: NodePath
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
+@onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
@@ -32,6 +35,7 @@ extends Control
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 @onready var _shield_input: ShieldDebugInput = get_node(shield_debug_input_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
+@onready var _spawn: BoardingSpawnDirector = get_node(spawn_director_path)
 
 @onready var _state_label: Label = %StateLabel
 @onready var _wind_label: Label = %WindLabel
@@ -103,9 +107,17 @@ func _update_anchors_crew_and_boarding() -> void:
 		_upgrades.get_completed_purchase_count(),
 		_upgrades.get_current_cost(),
 	]
-	_boarding_label.text = "Абордаж: %s | всего %d" % [
+	_boarding_label.text = (
+		"Абордаж: %s | всего %d | земля %d/%d | спавн %.2f с"
+		+ " | сложность %.1f%% | время %.1f с"
+	) % [
 		_enemies.get_state_summary(),
 		_enemies.get_active_count(),
+		_enemies.get_ground_count(),
+		_spawn.get_current_ground_limit(),
+		_spawn.get_current_spawn_interval(),
+		_difficulty.get_percent(),
+		_difficulty.get_elapsed_seconds(),
 	]
 
 
