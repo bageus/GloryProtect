@@ -150,7 +150,10 @@ func _select_first_available() -> void:
 	var ids: Array[int] = _grid.get_buildable_ids_by_type(
 		BuildableType.Id.TURRET
 	)
-	_set_selected_turret(-1 if ids.is_empty() else ids[0])
+	if ids.is_empty():
+		_set_selected_turret(-1)
+		return
+	_set_selected_turret(ids[0])
 
 
 func _set_selected_turret(buildable_id: int) -> void:
