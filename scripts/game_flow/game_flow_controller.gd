@@ -6,6 +6,7 @@ signal run_started
 signal run_paused
 signal run_resumed
 signal run_ended(reason: StringName)
+signal restart_requested
 
 enum RunState {
 	BOOT,
@@ -46,6 +47,14 @@ func start_run() -> void:
 	game_over_reason = &""
 	start_delay_remaining = start_delay_seconds
 	_set_state(RunState.START_DELAY)
+
+
+func restart_run() -> void:
+	if state != RunState.GAME_OVER:
+		return
+	restart_requested.emit()
+	get_tree().paused = false
+	get_tree().reload_current_scene()
 
 
 func toggle_manual_pause() -> void:
