@@ -69,6 +69,33 @@ func get_boarded_enemies() -> Array[BoardingEnemy]:
 	return result
 
 
+func get_archetype_count(archetype_id: StringName) -> int:
+	var count: int = 0
+	for enemy: BoardingEnemy in get_all_enemies():
+		if enemy.get_archetype_id() == archetype_id:
+			count += 1
+	return count
+
+
+func get_archetype_summary() -> String:
+	var counts: Dictionary[StringName, int] = {}
+	var names: Dictionary[StringName, String] = {}
+	for enemy: BoardingEnemy in get_all_enemies():
+		var archetype_id: StringName = enemy.get_archetype_id()
+		if archetype_id == &"":
+			continue
+		counts[archetype_id] = counts.get(archetype_id, 0) + 1
+		names[archetype_id] = enemy.get_archetype_name()
+	if counts.is_empty():
+		return "НЕТ"
+	var ids: Array[StringName] = counts.keys()
+	ids.sort()
+	var parts := PackedStringArray()
+	for archetype_id: StringName in ids:
+		parts.append("%s %d" % [names[archetype_id], counts[archetype_id]])
+	return " | ".join(parts)
+
+
 func get_nearest_boarded_enemy(
 	world_position: Vector2,
 	max_distance: float = INF
@@ -86,10 +113,11 @@ func get_nearest_boarded_enemy(
 
 
 func get_state_summary() -> String:
-	return "земля %d | трос %d | борт %d" % [
+	return "земля %d | трос %d | борт %d | типы: %s" % [
 		get_ground_count(),
 		get_climbing_count(),
 		get_boarded_count(),
+		get_archetype_summary(),
 	]
 
 
