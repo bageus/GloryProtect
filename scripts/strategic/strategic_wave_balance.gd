@@ -19,7 +19,7 @@ extends Resource
 @export_range(0.1, 30.0, 0.1) var mutation_check_interval: float = 1.0
 @export_range(0.0, 3.14, 0.01) var merge_angle_tolerance: float = 0.16
 @export_range(0.0, 1.0, 0.01) var merge_distance_tolerance: float = 0.08
-@export_range(0.0, 30.0, 0.1) var mutation_cooldown: float = 4.0
+@export_range(0.0, 30.0, 0.1) var mutation_cooldown: float = 2.0
 @export_range(2, 1000, 1) var minimum_split_enemy_count: int = 10
 @export_range(2, 5, 1) var maximum_split_parts: int = 3
 @export_range(0.0, 1.0, 0.01) var initial_split_chance: float = 0.04
