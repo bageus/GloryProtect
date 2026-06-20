@@ -37,7 +37,8 @@ func _init() -> void:
 	for _index: int in range(1000):
 		var chosen: BoardingEnemyArchetype = catalog.choose_archetype(rng, 1.0)
 		assert(chosen != null)
-		counts[chosen.archetype_id] += 1
+		var previous_count: int = counts[chosen.archetype_id]
+		counts[chosen.archetype_id] = previous_count + 1
 	assert(counts[&"basic"] > 0)
 	assert(counts[&"runner"] > 0)
 	assert(counts[&"brute"] > 0)
