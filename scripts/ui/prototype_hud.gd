@@ -12,6 +12,10 @@ extends Control
 @export_node_path("CrewReplacementController") var crew_replacement_path: NodePath
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
+@export_node_path("BuildableInventory") var buildable_inventory_path: NodePath
+@export_node_path("BuildableGrid") var buildable_grid_path: NodePath
+@export_node_path("BuildableDebugInput") var buildable_debug_input_path: NodePath
+@export_node_path("MedicalStationSystem") var medical_station_system_path: NodePath
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
@@ -32,6 +36,14 @@ extends Control
 )
 @onready var _economy: RunEconomy = get_node(run_economy_path)
 @onready var _upgrades: UpgradeSystem = get_node(upgrade_system_path)
+@onready var _buildable_inventory: BuildableInventory = get_node(
+	buildable_inventory_path
+)
+@onready var _buildable_grid: BuildableGrid = get_node(buildable_grid_path)
+@onready var _buildable_input: BuildableDebugInput = get_node(
+	buildable_debug_input_path
+)
+@onready var _medical: MedicalStationSystem = get_node(medical_station_system_path)
 @onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
@@ -48,6 +60,8 @@ extends Control
 @onready var _replacement_label: Label = %ReplacementLabel
 @onready var _economy_label: Label = %EconomyLabel
 @onready var _upgrade_label: Label = %UpgradeLabel
+@onready var _buildable_label: Label = %BuildableLabel
+@onready var _medical_label: Label = %MedicalLabel
 @onready var _boarding_label: Label = %BoardingLabel
 @onready var _contact_label: Label = %ContactLabel
 @onready var _shield_label: Label = %ShieldLabel
@@ -64,6 +78,7 @@ func _process(_delta: float) -> void:
 	_update_statistics()
 	_update_wind_and_platform()
 	_update_anchors_crew_and_boarding()
+	_update_buildables_and_medical()
 	_update_contact_and_shield()
 	_pause_label.visible = (
 		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
@@ -130,6 +145,15 @@ func _update_anchors_crew_and_boarding() -> void:
 		_difficulty.get_percent(),
 		_difficulty.get_elapsed_seconds(),
 	]
+
+
+func _update_buildables_and_medical() -> void:
+	_buildable_label.text = "Объекты: %s | %s | %s" % [
+		_buildable_inventory.get_summary(),
+		_buildable_grid.get_summary(),
+		_buildable_input.get_summary(),
+	]
+	_medical_label.text = "Лечение: %s" % _medical.get_summary()
 
 
 func _update_contact_and_shield() -> void:
