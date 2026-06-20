@@ -1,4 +1,4 @@
-[gd_scene load_steps=52 format=3]
+[gd_scene load_steps=58 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -51,6 +51,12 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/game_over_panel.tscn" id="49_game_over"]
 [ext_resource type="Script" path="res://scripts/shield/shield_critical_alert_controller.gd" id="50_critical_alert"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shield_critical_alert_presenter.tscn" id="51_critical_presenter"]
+[ext_resource type="Resource" path="res://resources/balance/buildable_balance.tres" id="52_buildable_balance"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_inventory.gd" id="53_buildable_inventory"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_grid.gd" id="54_buildable_grid"]
+[ext_resource type="Script" path="res://scripts/medical/medical_station_system.gd" id="55_medical"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_debug_input.gd" id="56_buildable_input"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual.gd" id="57_buildable_visual"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -73,6 +79,11 @@ script = ExtResource("38_upgrade_system")
 game_flow_path = NodePath("../GameFlowController")
 run_economy_path = NodePath("../RunEconomy")
 balance = ExtResource("39_upgrade_balance")
+
+[node name="BuildableInventory" type="Node" parent="."]
+script = ExtResource("53_buildable_inventory")
+game_flow_path = NodePath("../GameFlowController")
+balance = ExtResource("52_buildable_balance")
 
 [node name="RunStatistics" type="Node" parent="."]
 script = ExtResource("48_statistics")
@@ -115,6 +126,16 @@ script = ExtResource("13_crew_input")
 game_flow_path = NodePath("../GameFlowController")
 crew_manager_path = NodePath("../World/Platform/CrewManager")
 role_manager_path = NodePath("../World/Platform/CrewRoleManager")
+
+[node name="BuildableDebugInput" type="Node" parent="."]
+script = ExtResource("56_buildable_input")
+game_flow_path = NodePath("../GameFlowController")
+platform_path = NodePath("../World/Platform")
+inventory_path = NodePath("../BuildableInventory")
+grid_path = NodePath("../World/BuildableGrid")
+role_manager_path = NodePath("../World/Platform/CrewRoleManager")
+crew_debug_input_path = NodePath("../CrewDebugInput")
+balance = ExtResource("52_buildable_balance")
 
 [node name="CrewFailureController" type="Node" parent="."]
 script = ExtResource("25_crew_failure")
@@ -200,6 +221,21 @@ enemy_registry_path = NodePath("../BoardingEnemyRegistry")
 run_economy_path = NodePath("../../RunEconomy")
 balance = ExtResource("37_economy_balance")
 
+[node name="BuildableGrid" type="Node" parent="World"]
+script = ExtResource("54_buildable_grid")
+game_flow_path = NodePath("../../GameFlowController")
+platform_path = NodePath("../Platform")
+inventory_path = NodePath("../../BuildableInventory")
+balance = ExtResource("52_buildable_balance")
+
+[node name="MedicalStationSystem" type="Node" parent="World"]
+script = ExtResource("55_medical")
+game_flow_path = NodePath("../../GameFlowController")
+buildable_grid_path = NodePath("../BuildableGrid")
+crew_manager_path = NodePath("../Platform/CrewManager")
+role_manager_path = NodePath("../Platform/CrewRoleManager")
+balance = ExtResource("52_buildable_balance")
+
 [node name="BoardingMovementResolver" type="Node" parent="World"]
 script = ExtResource("33_movement_resolver")
 platform_path = NodePath("../Platform")
@@ -258,6 +294,14 @@ steering_input_path = NodePath("../../../SteeringInputProvider")
 balance = ExtResource("7_platform_balance")
 crew_balance = ExtResource("14_crew_balance")
 
+[node name="BuildableGridVisual" type="Node2D" parent="World/Platform"]
+script = ExtResource("57_buildable_visual")
+platform_path = NodePath("..")
+grid_path = NodePath("../../BuildableGrid")
+inventory_path = NodePath("../../../BuildableInventory")
+debug_input_path = NodePath("../../../BuildableDebugInput")
+balance = ExtResource("52_buildable_balance")
+
 [node name="CrewManager" type="Node2D" parent="World/Platform"]
 script = ExtResource("11_crew_manager")
 defender_scene = ExtResource("15_defender")
@@ -269,6 +313,7 @@ crew_manager_path = NodePath("../CrewManager")
 platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
 anchor_system_path = NodePath("../../AnchorSystem")
+medical_station_system_path = NodePath("../../MedicalStationSystem")
 
 [node name="Camera2D" type="Camera2D" parent="World/Platform"]
 position = Vector2(0, 48)
@@ -298,6 +343,10 @@ crew_debug_input_path = NodePath("../../CrewDebugInput")
 crew_replacement_path = NodePath("../../CrewReplacementController")
 run_economy_path = NodePath("../../RunEconomy")
 upgrade_system_path = NodePath("../../UpgradeSystem")
+buildable_inventory_path = NodePath("../../BuildableInventory")
+buildable_grid_path = NodePath("../../World/BuildableGrid")
+buildable_debug_input_path = NodePath("../../BuildableDebugInput")
+medical_station_system_path = NodePath("../../World/MedicalStationSystem")
 orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
@@ -308,8 +357,8 @@ spawn_director_path = NodePath("../../World/BoardingSpawnDirector")
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 1080.0
-offset_bottom = 510.0
+offset_right = 1180.0
+offset_bottom = 584.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -325,7 +374,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 1.5"
+text = "GloryProtect — Prototype 1.6"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -372,6 +421,16 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Карточки"
 
+[node name="BuildableLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Объекты"
+
+[node name="MedicalLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Лечение"
+
 [node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -400,7 +459,12 @@ text = "←/→ — движение   1–4 — якоря   R — снять �
 [node name="CrewHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "5/6/7 — защитник   D — рулевой   Z/X — якорщик   C — свободный"
+text = "5/6/7 — защитник   D — рулевой   Z/X — якорщик   C — свободный   H — лекарь"
+
+[node name="BuildableHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
+text = ",/. — клетка   B — открыть медпост   M — установить/перенести   Del — снять"
 
 [node name="ShieldHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
