@@ -81,25 +81,14 @@ func _draw_shield(center: Vector2, radius: float) -> void:
 
 
 func _draw_groups(center: Vector2, shield_radius: float, spawn_radius: float) -> void:
-	var section_count: int = _shield.get_section_count()
 	for snapshot: StrategicGroupSnapshot in _waves.get_group_snapshots():
-		if snapshot.section_id < 0 or snapshot.section_id >= section_count:
-			continue
-		var target_angle: float = _get_section_angle(
-			snapshot.section_id,
-			section_count
+		var radius: float = lerpf(
+			shield_radius,
+			spawn_radius,
+			clampf(snapshot.map_distance, 0.0, 1.0)
 		)
-		var start_angle: float = target_angle + snapshot.lane_offset
-		var start_position: Vector2 = (
-			center + Vector2.from_angle(start_angle) * spawn_radius
-		)
-		var target_position: Vector2 = (
-			center + Vector2.from_angle(target_angle) * shield_radius
-		)
-		var position: Vector2 = start_position.lerp(
-			target_position,
-			clampf(snapshot.progress, 0.0, 1.0)
-		)
+		var display_angle: float = snapshot.map_angle - PI * 0.5
+		var position: Vector2 = center + Vector2.from_angle(display_angle) * radius
 		var mass_radius: float = clampf(
 			6.0 + sqrt(float(snapshot.enemy_count)) * 2.2,
 			7.0,
