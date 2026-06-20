@@ -14,6 +14,7 @@ func _ready() -> void:
 	visible = false
 	_upgrades.offer_opened.connect(_on_offer_opened)
 	_upgrades.offer_closed.connect(_on_offer_closed)
+	_upgrades.progress_reset.connect(_on_progress_reset)
 	if _upgrades.is_offer_open():
 		_show_current_offer()
 
@@ -45,6 +46,10 @@ func _on_offer_closed() -> void:
 	visible = false
 
 
+func _on_progress_reset() -> void:
+	visible = false
+
+
 func _show_current_offer() -> void:
 	visible = true
 	_offer_label.text = "ВЫБЕРИТЕ КАРТОЧКУ — ВЫДАЧА %d" % (
@@ -56,6 +61,7 @@ func _show_current_offer() -> void:
 
 func _rebuild_card_buttons() -> void:
 	for child: Node in _cards_container.get_children():
+		_cards_container.remove_child(child)
 		child.queue_free()
 
 	for card_index: int in range(_upgrades.get_card_count()):
