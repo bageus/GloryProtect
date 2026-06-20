@@ -1,9 +1,11 @@
-[gd_resource type="Resource" script_class="BoardingBalance" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BoardingBalance" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/boarding/boarding_balance.gd" id="1_balance"]
+[ext_resource type="Resource" path="res://resources/enemies/boarding_enemy_catalog.tres" id="2_catalog"]
 
 [resource]
 script = ExtResource("1_balance")
+enemy_catalog = ExtResource("2_catalog")
 enemy_max_health = 1
 ground_move_speed = 125.0
 climb_move_speed = 105.0
