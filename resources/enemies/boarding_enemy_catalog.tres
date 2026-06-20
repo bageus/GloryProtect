@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="BoardingEnemyCatalog" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="BoardingEnemyCatalog" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_catalog.gd" id="1_catalog"]
-[ext_resource type="Resource" path="res://resources/enemies/boarding_basic.tres" id="2_basic"]
-[ext_resource type="Resource" path="res://resources/enemies/boarding_runner.tres" id="3_runner"]
-[ext_resource type="Resource" path="res://resources/enemies/boarding_brute.tres" id="4_brute"]
+[ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_archetype.gd" id="2_archetype"]
+[ext_resource type="Resource" path="res://resources/enemies/boarding_basic.tres" id="3_basic"]
+[ext_resource type="Resource" path="res://resources/enemies/boarding_runner.tres" id="4_runner"]
+[ext_resource type="Resource" path="res://resources/enemies/boarding_brute.tres" id="5_brute"]
 
 [resource]
 script = ExtResource("1_catalog")
-archetypes = Array[ExtResource("res://scripts/boarding/boarding_enemy_archetype.gd")]([ExtResource("2_basic"), ExtResource("3_runner"), ExtResource("4_brute")])
+archetypes = Array[ExtResource("2_archetype")]([ExtResource("3_basic"), ExtResource("4_runner"), ExtResource("5_brute")])
