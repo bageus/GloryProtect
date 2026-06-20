@@ -94,8 +94,8 @@ func _update_groups(delta: float) -> void:
 		if runtime.enemy_count <= 0:
 			remove_indices.append(index)
 
-	for reverse_index: int in range(remove_indices.size() - 1, -1, -1):
-		var remove_index: int = remove_indices[reverse_index]
+	remove_indices.reverse()
+	for remove_index: int in remove_indices:
 		var removed: StrategicGroupRuntime = _groups[remove_index]
 		_groups.remove_at(remove_index)
 		group_removed.emit(removed.group_id)
