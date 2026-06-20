@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BuildableBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/buildables/buildable_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+medical_station_max_count = 1
+default_medical_cell = 11
+heal_interval = 5.0
+heal_amount = 1
+heal_range = 18.0
+medical_station_width = 34.0
+medical_station_height = 66.0
+medical_station_bottom_y = -28.0
