@@ -14,6 +14,7 @@ func _run_scenarios() -> void:
 	await process_frame
 
 	var game_flow: GameFlowController = game.get_node("GameFlowController")
+	var economy: RunEconomy = game.get_node("RunEconomy")
 	var platform: PlatformController = game.get_node("World/Platform")
 	var wind: WindSystem = game.get_node("WindSystem")
 	var anchors: AnchorSystem = game.get_node("World/AnchorSystem")
@@ -21,6 +22,7 @@ func _run_scenarios() -> void:
 	var enemies: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var reward: int = economy.balance.boarding_enemy_base_reward
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	wind.balance.level_forces = PackedFloat32Array([0.0, 0.0, 0.0])
@@ -29,6 +31,7 @@ func _run_scenarios() -> void:
 	platform.position.x = 0.0
 	platform.horizontal_velocity = 0.0
 
+	assert(economy.get_coins() == 0)
 	assert(spawn.spawn_now() == null)
 	assert(paths.get_available_count() == 0)
 
@@ -48,6 +51,7 @@ func _run_scenarios() -> void:
 	anchors.toggle_anchor(path.anchor_id)
 	await _wait_physics_frames(2)
 	assert(enemies.get_active_count() == 0)
+	assert(economy.get_coins() == reward)
 
 	anchors.toggle_anchor(2)
 	await _wait_physics_frames(90)
@@ -62,6 +66,7 @@ func _run_scenarios() -> void:
 	assert(boarded_survivor.is_on_platform())
 	boarded_survivor.kill(&"test_cleanup")
 	await _wait_physics_frames(1)
+	assert(economy.get_coins() == reward)
 
 	var driver: Defender = crew.get_defender(0)
 	var driver_health_before: int = driver.health.current_health
@@ -71,6 +76,7 @@ func _run_scenarios() -> void:
 	assert(is_instance_valid(attacking_enemy))
 	attacking_enemy.kill(&"test_cleanup")
 	await _wait_physics_frames(1)
+	assert(economy.get_coins() == reward)
 
 	var left_anchor_defender: Defender = crew.get_defender(1)
 	var defender_local_x: float = left_anchor_defender.position.x
@@ -79,6 +85,7 @@ func _run_scenarios() -> void:
 	)
 	await _wait_physics_frames(35)
 	assert(not is_instance_valid(doomed_enemy) or not doomed_enemy.health.is_alive())
+	assert(economy.get_coins() == reward * 2)
 
 	print("Boarding enemy scenarios passed")
 	quit()
