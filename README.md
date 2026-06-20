@@ -31,7 +31,7 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 
 ## Текущая реализация
 
-**Prototype 1.0** содержит:
+**Prototype 1.1** содержит:
 
 - состояние забега, стартовую задержку и полную паузу;
 - data-driven платформу и ветер силы 1–3;
@@ -49,11 +49,14 @@ GloryProtect — survival roguelike с видом сбоку, в котором 
 - условный прыжок врага через защитника;
 - базовый ближний бой с фиксацией цели взмаха;
 - `RunEconomy` как единственного владельца монет забега;
-- автоматическую награду за физического врага, убитого в бою;
-- автоматическую награду за врага, погибшего на снятом или сорванном якоре;
-- отсутствие монет за технические и стратегические причины;
-- сброс валюты при новом забеге;
-- отображение монет в диагностическом HUD;
+- автоматические награды за физических врагов;
+- `UpgradeSystem` как владельца последовательности выдач;
+- стоимость карточек 5, 10, …, 100, затем 200, 400, 800 и далее;
+- полную паузу во время выбора;
+- автоматическую следующую выдачу при достаточном остатке монет;
+- две одинаковые временные карточки без игрового эффекта;
+- отдельную UI-сцену выбора карточки;
+- отображение монет, числа покупок и следующей стоимости в HUD;
 - поражение при разрушении секции или полном уничтожении экипажа;
 - регрессионные тесты.
 
@@ -78,6 +81,27 @@ anchor_path_closed
 ```
 
 Стратегические враги миникарты не используют `BoardingEnemyRegistry` и не дают монет.
+
+## Временные карточки
+
+Карточки открываются автоматически, когда накоплено достаточно монет для следующей выдачи.
+
+```text
+1-я выдача: 5
+2-я выдача: 10
+...
+20-я выдача: 100
+21-я выдача: 200
+22-я выдача: 400
+23-я выдача: 800
+```
+
+На текущем этапе обе карточки одинаковы и **не применяют улучшение**. Выбор только списывает стоимость и увеличивает номер завершённой покупки.
+
+Управление экраном выбора:
+
+- кнопка мыши;
+- клавиши `1` и `2`.
 
 ## Запуск
 
@@ -114,6 +138,7 @@ anchor_path_closed
 godot --headless --path . --script res://tests/unit/anchor_constraint_scenarios.gd
 godot --headless --path . --script res://tests/unit/platform_resource_scenarios.gd
 godot --headless --path . --script res://tests/unit/melee_attack_scenarios.gd
+godot --headless --path . --script res://tests/unit/upgrade_cost_scenarios.gd
 godot --headless --path . --script res://tests/integration/crew_role_scenarios.gd
 godot --headless --path . --script res://tests/integration/shield_orb_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_enemy_scenarios.gd
@@ -122,6 +147,7 @@ godot --headless --path . --script res://tests/integration/free_fighter_pursuit_
 godot --headless --path . --script res://tests/integration/boarding_separation_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_jump_scenarios.gd
 godot --headless --path . --script res://tests/integration/run_economy_scenarios.gd
+godot --headless --path . --script res://tests/integration/upgrade_selection_scenarios.gd
 python tools/check_file_sizes.py
 ```
 
