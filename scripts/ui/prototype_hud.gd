@@ -16,6 +16,8 @@ extends Control
 @export_node_path("BuildableGrid") var buildable_grid_path: NodePath
 @export_node_path("BuildableDebugInput") var buildable_debug_input_path: NodePath
 @export_node_path("MedicalStationSystem") var medical_station_system_path: NodePath
+@export_node_path("TurretSystem") var turret_system_path: NodePath
+@export_node_path("TurretDebugInput") var turret_debug_input_path: NodePath
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
@@ -44,6 +46,8 @@ extends Control
 	buildable_debug_input_path
 )
 @onready var _medical: MedicalStationSystem = get_node(medical_station_system_path)
+@onready var _turrets: TurretSystem = get_node(turret_system_path)
+@onready var _turret_input: TurretDebugInput = get_node(turret_debug_input_path)
 @onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
@@ -62,6 +66,7 @@ extends Control
 @onready var _upgrade_label: Label = %UpgradeLabel
 @onready var _buildable_label: Label = %BuildableLabel
 @onready var _medical_label: Label = %MedicalLabel
+@onready var _turret_label: Label = %TurretLabel
 @onready var _boarding_label: Label = %BoardingLabel
 @onready var _contact_label: Label = %ContactLabel
 @onready var _shield_label: Label = %ShieldLabel
@@ -78,7 +83,7 @@ func _process(_delta: float) -> void:
 	_update_statistics()
 	_update_wind_and_platform()
 	_update_anchors_crew_and_boarding()
-	_update_buildables_and_medical()
+	_update_buildables_medical_and_turrets()
 	_update_contact_and_shield()
 	_pause_label.visible = (
 		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
@@ -147,13 +152,17 @@ func _update_anchors_crew_and_boarding() -> void:
 	]
 
 
-func _update_buildables_and_medical() -> void:
+func _update_buildables_medical_and_turrets() -> void:
 	_buildable_label.text = "Объекты: %s | %s | %s" % [
 		_buildable_inventory.get_summary(),
 		_buildable_grid.get_summary(),
 		_buildable_input.get_summary(),
 	]
 	_medical_label.text = "Лечение: %s" % _medical.get_summary()
+	_turret_label.text = "Турели: %s | %s" % [
+		_turrets.get_summary(),
+		_turret_input.get_summary(),
+	]
 
 
 func _update_contact_and_shield() -> void:
@@ -164,7 +173,6 @@ func _update_contact_and_shield() -> void:
 			_contact.get_active_section_id() + 1,
 		]
 	_contact_label.text = "Энергетический контакт: %s" % contact_text
-
 	_shield_label.text = "Щит: %s | тестовая секция: %d" % [
 		_shield.get_state_summary(),
 		_shield_input.selected_section_id + 1,
