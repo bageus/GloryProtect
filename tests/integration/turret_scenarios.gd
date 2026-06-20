@@ -90,6 +90,8 @@ func _run_scenarios() -> void:
 	await _wait_for_health(reassignment_enemy, 1, 120)
 	await _wait_for_role(roles, 0, CrewRole.Id.FREE_FIGHTER, -1, 180)
 	assert(enemies.get_enemy(reassignment_enemy_id) != null)
+	reassignment_enemy.kill(&"test_cleanup")
+	await process_frame
 
 	roles.request_assignment(0, CrewRole.Id.TURRET, left_turret)
 	await _wait_for_role(roles, 0, CrewRole.Id.TURRET, left_turret, 300)
