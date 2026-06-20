@@ -151,6 +151,11 @@ func _begin_cycle(medic: Defender, target: Defender) -> void:
 	_target_id = target.defender_id
 	_heal_remaining = balance.heal_interval
 	_cycle_active = true
+	_roles.set_external_role_action_active(
+		_medic_id,
+		CrewRole.Id.MEDIC,
+		true
+	)
 	medic.movement.stop()
 	healing_started.emit(_medic_id, _target_id)
 
@@ -195,18 +200,21 @@ func _move_defender_to(defender: Defender, local_x: float) -> void:
 
 
 func _stop_cycle() -> void:
-	if not _cycle_active:
-		_medic_id = -1
-		_target_id = -1
-		_heal_remaining = 0.0
-		return
 	var previous_medic: int = _medic_id
 	var previous_target: int = _target_id
+	var was_active: bool = _cycle_active
+	if previous_medic >= 0:
+		_roles.set_external_role_action_active(
+			previous_medic,
+			CrewRole.Id.MEDIC,
+			false
+		)
 	_cycle_active = false
 	_medic_id = -1
 	_target_id = -1
 	_heal_remaining = 0.0
-	healing_stopped.emit(previous_medic, previous_target)
+	if was_active:
+		healing_stopped.emit(previous_medic, previous_target)
 
 
 func _sync_station() -> void:
