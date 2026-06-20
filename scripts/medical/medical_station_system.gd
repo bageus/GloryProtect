@@ -167,6 +167,8 @@ func _update_active_cycle(medic: Defender, delta: float) -> void:
 
 	_move_defender_to(medic, target.position.x)
 	if absf(medic.position.x - target.position.x) > balance.heal_range:
+		_heal_remaining = balance.heal_interval
+		healing_progress.emit(_medic_id, _target_id, _heal_remaining)
 		return
 
 	medic.movement.stop()
