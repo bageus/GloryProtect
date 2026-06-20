@@ -5,12 +5,18 @@ extends Node2D
 @export_node_path("BuildableGrid") var grid_path: NodePath
 @export_node_path("BuildableInventory") var inventory_path: NodePath
 @export_node_path("BuildableDebugInput") var debug_input_path: NodePath
+@export_node_path("TurretDebugInput") var turret_input_path: NodePath
+@export_node_path("TurretSystem") var turret_system_path: NodePath = NodePath("../../TurretSystem")
+@export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath = NodePath("../../BoardingEnemyRegistry")
 @export var balance: BuildableBalance
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _grid: BuildableGrid = get_node(grid_path)
 @onready var _inventory: BuildableInventory = get_node(inventory_path)
 @onready var _debug_input: BuildableDebugInput = get_node(debug_input_path)
+@onready var _turret_input: TurretDebugInput = get_node(turret_input_path)
+@onready var _turrets: TurretSystem = get_node(turret_system_path)
+@onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
 
 func _ready() -> void:
@@ -22,6 +28,7 @@ func _ready() -> void:
 	_inventory.buildable_unlocked.connect(_on_inventory_changed)
 	_inventory.inventory_reset.connect(_on_grid_reset)
 	_debug_input.selected_cell_changed.connect(_on_selected_cell_changed)
+	_create_turret_visual()
 	queue_redraw()
 
 
@@ -30,6 +37,20 @@ func _draw() -> void:
 	for snapshot: BuildableSnapshot in _grid.get_snapshots():
 		if snapshot.type_id == BuildableType.Id.MEDICAL_STATION:
 			_draw_medical_station(snapshot.local_x)
+
+
+func _create_turret_visual() -> void:
+	var turret_visual := TurretVisualController.new()
+	turret_visual.name = "TurretVisualController"
+	turret_visual.configure(
+		_platform,
+		_grid,
+		_turrets,
+		_turret_input,
+		_enemies,
+		balance
+	)
+	add_child(turret_visual)
 
 
 func _draw_selected_cell() -> void:
