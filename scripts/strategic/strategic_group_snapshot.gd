@@ -7,7 +7,10 @@ var enemy_count: int
 var initial_enemy_count: int
 var progress: float
 var lane_offset: float
+var map_angle: float
+var map_distance: float
 var is_impacting: bool
+var mutation_ready: bool
 
 
 func _init(runtime: StrategicGroupRuntime) -> void:
@@ -17,4 +20,7 @@ func _init(runtime: StrategicGroupRuntime) -> void:
 	initial_enemy_count = runtime.initial_enemy_count
 	progress = runtime.progress
 	lane_offset = runtime.lane_offset
+	map_angle = runtime.map_angle
+	map_distance = runtime.map_distance
 	is_impacting = runtime.state == StrategicGroupRuntime.State.IMPACTING
+	mutation_ready = runtime.mutation_cooldown_remaining <= 0.0
