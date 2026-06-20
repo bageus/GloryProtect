@@ -3,6 +3,7 @@ extends Control
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
+@export_node_path("RunStatistics") var run_statistics_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
@@ -20,6 +21,7 @@ extends Control
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
+@onready var _statistics: RunStatistics = get_node(run_statistics_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
@@ -38,6 +40,7 @@ extends Control
 @onready var _spawn: BoardingSpawnDirector = get_node(spawn_director_path)
 
 @onready var _state_label: Label = %StateLabel
+@onready var _statistics_label: Label = %StatisticsLabel
 @onready var _wind_label: Label = %WindLabel
 @onready var _platform_label: Label = %PlatformLabel
 @onready var _anchor_label: Label = %AnchorLabel
@@ -58,6 +61,7 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_run_state()
+	_update_statistics()
 	_update_wind_and_platform()
 	_update_anchors_crew_and_boarding()
 	_update_contact_and_shield()
@@ -73,6 +77,13 @@ func _update_run_state() -> void:
 	elif _game_flow.state == GameFlowController.RunState.GAME_OVER:
 		state_text += " | %s" % String(_game_flow.game_over_reason)
 	_state_label.text = "Состояние: %s" % state_text
+
+
+func _update_statistics() -> void:
+	_statistics_label.text = "Результат: %s | физические убийства %d" % [
+		_format_duration(_statistics.get_current_survival_seconds()),
+		_statistics.get_physical_kills(),
+	]
 
 
 func _update_wind_and_platform() -> void:
@@ -160,3 +171,8 @@ func _get_direction_targets_text() -> String:
 	if targets.is_empty():
 		return "НЕТ"
 	return "  ".join(targets)
+
+
+func _format_duration(total_seconds: float) -> String:
+	var rounded_seconds: int = maxi(0, floori(total_seconds))
+	return "%02d:%02d" % [rounded_seconds / 60, rounded_seconds % 60]
