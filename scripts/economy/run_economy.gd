@@ -67,10 +67,7 @@ func reset_for_run() -> void:
 	)
 
 
-func _on_run_state_changed(
-	previous_state: GameFlowController.RunState,
-	new_state: GameFlowController.RunState
-) -> void:
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
 	if new_state != GameFlowController.RunState.START_DELAY:
 		return
 	if (
