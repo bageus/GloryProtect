@@ -11,7 +11,9 @@ extends Resource
 @export_range(0.0, 100.0, 1.0) var ground_arrival_epsilon: float = 8.0
 @export_range(10.0, 1000.0, 1.0) var spawn_distance_from_platform: float = 720.0
 @export_range(0.1, 30.0, 0.1) var spawn_interval: float = 3.0
+@export_range(0.1, 30.0, 0.1) var minimum_spawn_interval: float = 0.8
 @export_range(1, 100, 1) var max_ground_enemies: int = 8
+@export_range(1, 200, 1) var maximum_ground_enemies: int = 20
 @export_range(0.0, 200.0, 1.0) var path_tie_epsilon: float = 24.0
 
 @export_group("Separation")
@@ -38,3 +40,15 @@ extends Resource
 @export_range(0.05, 5.0, 0.05) var defender_attack_cooldown: float = 0.62
 @export_range(5.0, 200.0, 1.0) var defender_attack_range: float = 34.0
 @export_range(10.0, 500.0, 1.0) var post_combat_radius: float = 150.0
+
+
+func get_spawn_interval_for_difficulty(normalized_difficulty: float) -> float:
+	var progress: float = clampf(normalized_difficulty, 0.0, 1.0)
+	var final_interval: float = minf(spawn_interval, minimum_spawn_interval)
+	return lerpf(spawn_interval, final_interval, progress)
+
+
+func get_ground_limit_for_difficulty(normalized_difficulty: float) -> int:
+	var progress: float = clampf(normalized_difficulty, 0.0, 1.0)
+	var final_limit: int = maxi(max_ground_enemies, maximum_ground_enemies)
+	return roundi(lerpf(float(max_ground_enemies), float(final_limit), progress))
