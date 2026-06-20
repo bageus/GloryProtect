@@ -34,4 +34,5 @@ static func is_fixed_station(role_id: int) -> bool:
 		role_id == Id.DRIVER
 		or role_id == Id.LEFT_ANCHOR
 		or role_id == Id.RIGHT_ANCHOR
+		or role_id == Id.MEDIC
 	)
