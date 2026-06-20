@@ -313,7 +313,6 @@ crew_manager_path = NodePath("../CrewManager")
 platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
 anchor_system_path = NodePath("../../AnchorSystem")
-medical_station_system_path = NodePath("../../MedicalStationSystem")
 
 [node name="Camera2D" type="Camera2D" parent="World/Platform"]
 position = Vector2(0, 48)
