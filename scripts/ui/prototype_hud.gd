@@ -55,6 +55,7 @@ extends Control
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 @onready var _spawn: BoardingSpawnDirector = get_node(spawn_director_path)
 
+@onready var _title_label: Label = $TelemetryPanel/Margin/VBox/Title
 @onready var _state_label: Label = %StateLabel
 @onready var _statistics_label: Label = %StatisticsLabel
 @onready var _wind_label: Label = %WindLabel
@@ -76,6 +77,7 @@ extends Control
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_title_label.text = "GloryProtect — Prototype 1.8"
 
 
 func _process(_delta: float) -> void:
