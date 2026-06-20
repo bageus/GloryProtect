@@ -2,6 +2,7 @@ class_name BoardingSpawnDirector
 extends Node
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
+@export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
@@ -17,6 +18,7 @@ var _spawn_remaining: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
+@onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _paths: AnchorPathRegistry = get_node(path_registry_path)
 @onready var _registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
@@ -33,24 +35,43 @@ func _ready() -> void:
 	assert(enemy_scene != null, "BoardingSpawnDirector requires enemy scene")
 	assert(balance != null, "BoardingSpawnDirector requires BoardingBalance")
 	_rng.randomize()
-	_spawn_remaining = balance.spawn_interval
+	_spawn_remaining = get_current_spawn_interval()
 
 
 func _physics_process(delta: float) -> void:
 	if not _game_flow.is_world_simulation_active():
 		return
+
+	var current_interval: float = get_current_spawn_interval()
 	if not _paths.has_available_paths():
-		_spawn_remaining = balance.spawn_interval
+		_spawn_remaining = current_interval
 		return
-	if _registry.get_ground_count() >= balance.max_ground_enemies:
+	if _registry.get_ground_count() >= get_current_ground_limit():
 		return
 
+	_spawn_remaining = minf(_spawn_remaining, current_interval)
 	_spawn_remaining -= delta
 	if _spawn_remaining > 0.0:
 		return
 
 	spawn_now()
-	_spawn_remaining = balance.spawn_interval
+	_spawn_remaining = current_interval
+
+
+func get_current_spawn_interval() -> float:
+	return balance.get_spawn_interval_for_difficulty(
+		_difficulty.get_normalized()
+	)
+
+
+func get_current_ground_limit() -> int:
+	return balance.get_ground_limit_for_difficulty(
+		_difficulty.get_normalized()
+	)
+
+
+func get_spawn_remaining() -> float:
+	return maxf(0.0, _spawn_remaining)
 
 
 func spawn_now() -> BoardingEnemy:
