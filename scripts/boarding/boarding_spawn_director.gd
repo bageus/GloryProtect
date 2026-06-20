@@ -13,6 +13,7 @@ extends Node
 @export var enemy_container_path: NodePath
 @export var enemy_scene: PackedScene
 @export var balance: BoardingBalance
+@export var enemy_catalog: BoardingEnemyCatalog
 
 var _spawn_remaining: float = 0.0
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
@@ -34,6 +35,8 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _ready() -> void:
 	assert(enemy_scene != null, "BoardingSpawnDirector requires enemy scene")
 	assert(balance != null, "BoardingSpawnDirector requires BoardingBalance")
+	assert(enemy_catalog != null, "BoardingSpawnDirector requires enemy catalog")
+	assert(enemy_catalog.validate(), "Boarding enemy catalog is invalid")
 	_rng.randomize()
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	reset_spawn_timer()
@@ -85,21 +88,46 @@ func spawn_now() -> BoardingEnemy:
 	var side: int = 1
 	if _rng.randf() < 0.5:
 		side = -1
-	return _spawn_enemy(side)
+	var archetype: BoardingEnemyArchetype = enemy_catalog.choose_archetype(
+		_rng,
+		_difficulty.get_normalized()
+	)
+	return _spawn_enemy(side, archetype)
 
 
-func spawn_debug_on_platform(local_x: float = 0.0) -> BoardingEnemy:
-	var enemy: BoardingEnemy = _spawn_enemy(1)
-	enemy.force_board_at(local_x)
+func spawn_debug_on_platform(
+	local_x: float = 0.0,
+	archetype_id: StringName = &"basic"
+) -> BoardingEnemy:
+	var enemy: BoardingEnemy = spawn_debug_archetype(archetype_id, 1)
+	if enemy != null:
+		enemy.force_board_at(local_x)
 	return enemy
 
 
-func _spawn_enemy(side: int) -> BoardingEnemy:
+func spawn_debug_archetype(
+	archetype_id: StringName,
+	side: int = 1
+) -> BoardingEnemy:
+	var archetype: BoardingEnemyArchetype = enemy_catalog.get_archetype(
+		archetype_id
+	)
+	if archetype == null:
+		return null
+	return _spawn_enemy(side, archetype)
+
+
+func _spawn_enemy(
+	side: int,
+	archetype: BoardingEnemyArchetype
+) -> BoardingEnemy:
+	if archetype == null:
+		return null
 	var enemy: BoardingEnemy = enemy_scene.instantiate() as BoardingEnemy
 	assert(enemy != null, "Boarding enemy scene root must use BoardingEnemy")
 	_container.add_child(enemy)
-	_registry.register_enemy(enemy)
 	enemy.configure(
+		archetype,
 		balance,
 		_game_flow,
 		_platform,
@@ -109,6 +137,7 @@ func _spawn_enemy(side: int) -> BoardingEnemy:
 		_movement_resolver,
 		_jump_planner
 	)
+	_registry.register_enemy(enemy)
 	var preferred_x: float = (
 		_platform.global_position.x
 		+ float(side) * balance.spawn_distance_from_platform
