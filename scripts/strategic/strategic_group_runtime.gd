@@ -15,6 +15,13 @@ var travel_duration: float
 var lane_offset: float
 var impact_remaining: float = 0.0
 var state: State = State.TRAVELING
+var map_angle: float = 0.0
+var map_distance: float = 1.0
+var route_start_angle: float = 0.0
+var route_start_distance: float = 1.0
+var route_target_angle: float = 0.0
+var route_elapsed: float = 0.0
+var mutation_cooldown_remaining: float = 0.0
 
 
 func _init(
@@ -22,7 +29,9 @@ func _init(
 	new_section_id: int,
 	new_enemy_count: int,
 	new_travel_duration: float,
-	new_lane_offset: float
+	new_lane_offset: float,
+	section_count: int,
+	mutation_cooldown: float
 ) -> void:
 	group_id = new_group_id
 	section_id = new_section_id
@@ -30,3 +39,31 @@ func _init(
 	initial_enemy_count = enemy_count
 	travel_duration = maxf(0.01, new_travel_duration)
 	lane_offset = new_lane_offset
+	route_target_angle = get_section_angle(section_id, section_count)
+	map_angle = wrapf(route_target_angle + lane_offset, 0.0, TAU)
+	route_start_angle = map_angle
+	mutation_cooldown_remaining = maxf(0.0, mutation_cooldown)
+
+
+func replan_route(
+	new_section_id: int,
+	section_count: int,
+	new_duration: float,
+	mutation_cooldown: float
+) -> void:
+	section_id = new_section_id
+	route_start_angle = map_angle
+	route_start_distance = map_distance
+	route_target_angle = get_section_angle(section_id, section_count)
+	route_elapsed = 0.0
+	travel_duration = maxf(0.01, new_duration)
+	progress = 1.0 - map_distance
+	state = State.TRAVELING
+	impact_remaining = 0.0
+	mutation_cooldown_remaining = maxf(0.0, mutation_cooldown)
+
+
+static func get_section_angle(section_id: int, section_count: int) -> float:
+	if section_count <= 0:
+		return 0.0
+	return TAU * float(section_id) / float(section_count)
