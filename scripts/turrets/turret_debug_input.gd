@@ -9,7 +9,7 @@ signal command_feedback(message: StringName)
 @export_node_path("BuildableGrid") var grid_path: NodePath
 @export_node_path("BuildableDebugInput") var buildable_input_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
-@export_node_path("CrewDebugInput") var crew_debug_input_path: NodePath
+@export_node_path("CrewSelectionController") var crew_debug_input_path: NodePath
 
 var selected_turret_id: int = -1
 
@@ -20,7 +20,9 @@ var selected_turret_id: int = -1
 	buildable_input_path
 )
 @onready var _roles: CrewRoleManager = get_node(role_manager_path)
-@onready var _crew_input: CrewDebugInput = get_node(crew_debug_input_path)
+@onready var _crew_selection: CrewSelectionController = get_node(
+	crew_debug_input_path
+)
 
 
 func _ready() -> void:
@@ -128,7 +130,7 @@ func _assign_selected_defender() -> void:
 		command_feedback.emit(&"turret_missing")
 		return
 	_roles.request_assignment(
-		_crew_input.selected_defender_id,
+		_crew_selection.get_selected_defender_id(),
 		CrewRole.Id.TURRET,
 		selected_turret_id
 	)
