@@ -3,6 +3,7 @@ extends RefCounted
 
 var buildable_id: int
 var target_enemy_id: int = -1
+var shot_origin_local: Vector2 = Vector2.ZERO
 var last_target_world: Vector2 = Vector2.ZERO
 var tracer_remaining: float = 0.0
 var flash_remaining: float = 0.0
@@ -12,8 +13,13 @@ func _init(new_buildable_id: int) -> void:
 	buildable_id = new_buildable_id
 
 
-func begin_target(enemy_id: int, target_world: Vector2) -> void:
+func begin_target(
+	enemy_id: int,
+	origin_local: Vector2,
+	target_world: Vector2
+) -> void:
 	target_enemy_id = enemy_id
+	shot_origin_local = origin_local
 	last_target_world = target_world
 
 
@@ -29,6 +35,8 @@ func resolve_shot(tracer_duration: float, flash_duration: float) -> void:
 
 func cancel_target() -> void:
 	target_enemy_id = -1
+	tracer_remaining = 0.0
+	flash_remaining = 0.0
 
 
 func tick(delta: float) -> void:
