@@ -1,4 +1,4 @@
-[gd_scene load_steps=58 format=3]
+[gd_scene load_steps=60 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -57,6 +57,8 @@
 [ext_resource type="Script" path="res://scripts/medical/medical_station_system.gd" id="55_medical"]
 [ext_resource type="Script" path="res://scripts/buildables/buildable_debug_input.gd" id="56_buildable_input"]
 [ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual.gd" id="57_buildable_visual"]
+[ext_resource type="Script" path="res://scripts/turrets/turret_system.gd" id="58_turret_system"]
+[ext_resource type="Script" path="res://scripts/turrets/turret_debug_input.gd" id="59_turret_input"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -136,6 +138,15 @@ grid_path = NodePath("../World/BuildableGrid")
 role_manager_path = NodePath("../World/Platform/CrewRoleManager")
 crew_debug_input_path = NodePath("../CrewDebugInput")
 balance = ExtResource("52_buildable_balance")
+
+[node name="TurretDebugInput" type="Node" parent="."]
+script = ExtResource("59_turret_input")
+game_flow_path = NodePath("../GameFlowController")
+inventory_path = NodePath("../BuildableInventory")
+grid_path = NodePath("../World/BuildableGrid")
+buildable_input_path = NodePath("../BuildableDebugInput")
+role_manager_path = NodePath("../World/Platform/CrewRoleManager")
+crew_debug_input_path = NodePath("../CrewDebugInput")
 
 [node name="CrewFailureController" type="Node" parent="."]
 script = ExtResource("25_crew_failure")
@@ -236,6 +247,16 @@ crew_manager_path = NodePath("../Platform/CrewManager")
 role_manager_path = NodePath("../Platform/CrewRoleManager")
 balance = ExtResource("52_buildable_balance")
 
+[node name="TurretSystem" type="Node" parent="World"]
+script = ExtResource("58_turret_system")
+game_flow_path = NodePath("../../GameFlowController")
+platform_path = NodePath("../Platform")
+buildable_grid_path = NodePath("../BuildableGrid")
+crew_manager_path = NodePath("../Platform/CrewManager")
+role_manager_path = NodePath("../Platform/CrewRoleManager")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+balance = ExtResource("52_buildable_balance")
+
 [node name="BoardingMovementResolver" type="Node" parent="World"]
 script = ExtResource("33_movement_resolver")
 platform_path = NodePath("../Platform")
@@ -300,6 +321,7 @@ platform_path = NodePath("..")
 grid_path = NodePath("../../BuildableGrid")
 inventory_path = NodePath("../../../BuildableInventory")
 debug_input_path = NodePath("../../../BuildableDebugInput")
+turret_input_path = NodePath("../../../TurretDebugInput")
 balance = ExtResource("52_buildable_balance")
 
 [node name="CrewManager" type="Node2D" parent="World/Platform"]
@@ -346,6 +368,8 @@ buildable_inventory_path = NodePath("../../BuildableInventory")
 buildable_grid_path = NodePath("../../World/BuildableGrid")
 buildable_debug_input_path = NodePath("../../BuildableDebugInput")
 medical_station_system_path = NodePath("../../World/MedicalStationSystem")
+turret_system_path = NodePath("../../World/TurretSystem")
+turret_debug_input_path = NodePath("../../TurretDebugInput")
 orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
@@ -356,8 +380,8 @@ spawn_director_path = NodePath("../../World/BoardingSpawnDirector")
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 1180.0
-offset_bottom = 584.0
+offset_right = 1200.0
+offset_bottom = 652.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -373,7 +397,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 1.6"
+text = "GloryProtect — Prototype 1.7"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -430,6 +454,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Лечение"
 
+[node name="TurretLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Турели"
+
 [node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -464,6 +493,11 @@ text = "5/6/7 — защитник   D — рулевой   Z/X — якорщи
 layout_mode = 2
 theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
 text = ",/. — клетка   B — открыть медпост   M — установить/перенести   Del — снять"
+
+[node name="TurretHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
+text = "T — открыть турель   G — новая   K — выбрать   V — перенести   J — оператор   Backspace — снять"
 
 [node name="ShieldHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
