@@ -7,7 +7,7 @@
 - Godot 4.6.2 stable, строго типизированный GDScript.
 - Максимум 600 строк на поддерживаемый файл; с 450 строк файл оценивается на разделение.
 - Каждое изменяемое состояние имеет одного владельца.
-- Настройки и баланс находятся в типизированных `Resource`.
+- Баланс и определения находятся в типизированных `Resource`.
 - UI читает состояние и отправляет команды, но не реализует механику.
 - Представление не изменяет симуляцию.
 - Архитектурное изменение обновляет этот файл в том же наборе изменений.
@@ -18,13 +18,11 @@
 Input / UI
     ↓ команды
 Domain systems
-    ↓ события и неизменяемые снимки
+    ↓ события и неизменяемые определения
 Presentation
 ```
 
-UI может владеть только состоянием интерфейса, например выбранным защитником. Оно не определяет доступность роли окончательно и не изменяет назначение напрямую.
-
-Представление может хранить только краткоживущие визуальные данные: время вспышки, трассера или последнюю известную позицию цели. Эти данные не используются симуляцией.
+UI может владеть только состоянием интерфейса, например выбранным защитником. Визуальные компоненты могут хранить только восстановимый кэш и краткоживущие эффекты.
 
 ## 3. Композиция GameRoot
 
@@ -43,7 +41,11 @@ GameRoot
 │   ├── OrbDomain
 │   ├── StrategicWaveDomain
 │   ├── AnchorDomain
-│   ├── BoardingDomain
+│   ├── BoardingEnemyRegistry
+│   ├── BoardingMovementResolver
+│   ├── BoardingJumpPlanner
+│   ├── BoardingSpawnDirector
+│   ├── BoardingEnemyContainer
 │   ├── BuildableGrid
 │   ├── MedicalStationSystem
 │   ├── TurretSystem
@@ -62,9 +64,7 @@ GameRoot
     └── GameOverPanel
 ```
 
-`CrewDebugInput` сохранён как совместимое имя узла и тонкая оболочка над `CrewSelectionController`. Клавиатура, мышь и панель экипажа используют один контроллер выбора.
-
-`PrototypeHUD` создаёт и настраивает `CrewCommandPanel` внутри слоя UI. Панель не добавляется в доменный слой.
+`BoardingSpawnDirector` получает каталог типов косвенно через `BoardingBalance`. Сцена не перечисляет конкретные архетипы.
 
 ## 4. Владельцы состояния
 
@@ -75,16 +75,18 @@ GameRoot
 | Монеты | `RunEconomy` |
 | Выдача карточек | `UpgradeSystem` |
 | Выбранный защитник | `CrewSelectionController` |
-| Открытое количество объектов | `BuildableInventory` |
-| Размещённые объекты и занятость клеток | `BuildableGrid` |
-| Текущий цикл лечения | `MedicalStationSystem` |
-| Боевой runtime каждой турели | `TurretSystem` через `TurretRuntime` |
-| Визуальные эффекты турели | `TurretVisualController` через `TurretVisualRuntime` |
-| Роли, конкретные посты и их владельцы | `CrewRoleManager` + `RoleStationRegistry` |
+| Роли и владельцы постов | `CrewRoleManager` + `RoleStationRegistry` |
 | Здоровье сущности | её `HealthComponent` |
 | Положение и скорость платформы | `PlatformController` |
-| Состояния якорей | `AnchorRuntimeStore` |
-| Реестр физических врагов | `BoardingEnemyRegistry` |
+| Состояния четырёх якорей | `AnchorRuntimeStore` |
+| Размещённые объекты и занятость клеток | `BuildableGrid` |
+| Текущий цикл лечения | `MedicalStationSystem` |
+| Боевой runtime турели | `TurretSystem` через `TurretRuntime` |
+| Визуальные эффекты турели | `TurretVisualController` |
+| Активные физические враги | `BoardingEnemyRegistry` |
+| Состояние конкретного врага | его `BoardingEnemyController` |
+| Неизменяемые характеристики типа врага | `BoardingEnemyArchetype` |
+| Доступный набор и веса типов | `BoardingEnemyCatalog` |
 | Стратегические группы | `StrategicWaveSystem` |
 | Статистика забега | `RunStatistics` |
 
@@ -96,26 +98,9 @@ CrewDebugInput
 DefenderVisual
 ```
 
-`CrewSelectionController` владеет только `selected_defender_id` и публикует:
+`CrewSelectionController` владеет `selected_defender_id` и принимает выбор от клавиатуры, портретов и мирового клика. `CrewDebugInput` является совместимой тонкой оболочкой.
 
-```text
-select_defender(defender_id)
-get_selected_defender_id()
-get_selected_defender()
-selected_defender_changed
-```
-
-Источники выбора:
-
-- клавиши `5`, `6`, `7`;
-- кнопки портретов;
-- необработанный левый клик рядом с живым защитником в мировых координатах.
-
-Клик по UI не доходит до мирового выбора, потому что панель перехватывает мышь. Для преобразования экранной позиции используется canvas transform текущего viewport.
-
-`DefenderVisual` получает только флаг `set_selected(bool)` и рисует жёлтое кольцо. Он не меняет доменное состояние.
-
-После замены защитника сохраняется тот же стабильный `defender_id`, поэтому выбранность автоматически применяется к новому экземпляру.
+`DefenderVisual.set_selected(bool)` только рисует кольцо и не меняет доменное состояние.
 
 ## 6. CrewCommandPresentation
 
@@ -126,57 +111,15 @@ CrewCommandText
 PrototypeHUD
 ```
 
-### CrewCommandPanel
+`CrewCommandPanel` читает состояние экипажа и объектов, затем отправляет только:
 
-Координатор UI:
+```text
+CrewRoleManager.request_assignment(defender_id, role_id, station_id)
+```
 
-- читает `CrewManager`, `CrewRoleManager`, `CrewReplacementController` и `BuildableGrid`;
-- получает выбранного защитника из `CrewSelectionController`;
-- отправляет только `request_assignment(...)`;
-- подписывается на изменения назначений, экипажа и объектов;
-- показывает результат или причину отказа.
+Панель не резервирует пост и не меняет `CrewAssignmentRuntime`. `CrewCommandPanelView` создаёт контролы, а `CrewCommandText` форматирует названия и причины отказа.
 
-Панель не резервирует пост и не меняет `CrewAssignmentRuntime` напрямую.
-
-### CrewCommandPanelView
-
-Создаёт и хранит только контролы:
-
-- портрет-кнопки;
-- стандартные роли;
-- список турелей;
-- выбранное состояние;
-- строку обратной связи.
-
-Он не знает правила доступности ролей.
-
-### CrewCommandText
-
-Статически форматирует:
-
-- названия ролей;
-- текущую и целевую роль;
-- занятость поста;
-- причины отказа.
-
-Он не читает дерево сцены и не хранит состояние.
-
-### Доступность кнопок
-
-UI предварительно блокирует команду, если:
-
-- игра не выполняет мировую симуляцию;
-- защитник погиб;
-- назначение не находится в `ACTIVE`;
-- пост отсутствует;
-- пост занят другим защитником;
-- роль уже активна на том же `station_id`.
-
-`CrewRoleManager` остаётся окончательным валидатором и может отклонить команду независимо от состояния кнопки.
-
-### Диагностический HUD
-
-Большая телеметрическая панель скрыта по умолчанию и переключается `F10`. Она остаётся только диагностическим представлением и не участвует в управлении.
+Большая диагностическая телеметрия скрыта по умолчанию и переключается `F10`.
 
 ## 7. PlatformDomain
 
@@ -189,7 +132,7 @@ get_cell_local_x(cell_index)
 get_nearest_cell_index(local_x)
 ```
 
-BuildableDomain, роли, медицина, турели и визуал не повторяют формулу положения клетки.
+Роли, объекты, медицина и турели не повторяют формулу координаты клетки.
 
 ## 8. BuildableDomain
 
@@ -204,19 +147,7 @@ BuildableDebugInput
 BuildableGridVisual
 ```
 
-Поддерживаемые типы:
-
-```text
-MEDICAL_STATION
-TURRET
-```
-
-`BuildableInventory` владеет открытым количеством каждого типа. `BuildableGrid` владеет:
-
-```text
-Dictionary[buildable_id, BuildableRuntime]
-Dictionary[cell_index, buildable_id]
-```
+`BuildableInventory` владеет открытым количеством. `BuildableGrid` владеет размещёнными экземплярами и занятостью клеток.
 
 Атомарные операции:
 
@@ -232,13 +163,12 @@ demolish(buildable_id)
 - служебные клетки недоступны;
 - персонажи не блокируют установку;
 - объекты не создают коллизий;
-- размещённое количество не превышает открытое;
 - демонтаж не удаляет открытие;
 - наружу выдаются `BuildableSnapshot`.
 
 ## 9. ConcreteRoleStationDomain
 
-Назначение защитника состоит из:
+Назначение содержит:
 
 ```text
 current_role
@@ -248,81 +178,190 @@ target_station_id
 state
 ```
 
-Статические посты используют `station_id = -1`:
-
-```text
-DRIVER
-LEFT_ANCHOR
-RIGHT_ANCHOR
-```
-
-Медицинский пост использует `MEDIC / 0`. Каждая турель использует `TURRET / buildable_id`.
+Статические посты используют `station_id = -1`. Медицинский пост использует `MEDIC / 0`. Каждая турель использует `TURRET / buildable_id`.
 
 `RoleStationRegistry` хранит владельца и координату по составному ключу `role_id : station_id`.
 
-Основной API:
-
-```text
-request_assignment(defender_id, role_id, station_id)
-set_dynamic_role_station(role_id, available, local_x, station_id, relocate_active)
-get_role_owner(role_id, station_id)
-is_role_station_available(role_id, station_id)
-```
-
 ## 10. Неделимые внешние действия
 
-Системы ролей не знают устройство лечения или выстрела. Они получают только общий флаг:
+Лечение и выстрел сообщают менеджеру ролей только общий флаг:
 
 ```text
 set_external_role_action_active(defender_id, role_id, active)
 ```
 
-Пока флаг активен, переназначение переходит в `WAITING_FOR_ACTION`. После снятия флага начинается физический переход.
-
-Интерфейс используют:
-
-- `MedicalStationSystem` для цикла лечения;
-- `TurretSystem` для начатого выстрела.
+Пока флаг активен, переназначение переходит в `WAITING_FOR_ACTION`. После завершения действия начинается физический переход.
 
 ## 11. MedicalStationDomain
 
-`MedicalStationSystem` владеет целью и таймером лечения, но не здоровьем и не ролью.
-
-Цикл:
+`MedicalStationSystem` владеет целью и пятисекундным циклом лечения, но не здоровьем и не ролью.
 
 ```text
 выбрать наиболее раненую цель
-→ добежать до неё
-→ 5 секунд непрерывного контакта
+→ добежать
+→ 5 секунд контакта
 → HealthComponent.heal(1)
-→ повторная оценка целей
+→ повторная оценка
 ```
 
-Активный лекарь не использует ближний бой. При переносе поста текущий цикл завершается, затем лекарь прибывает к новой позиции. Демонтаж немедленно освобождает роль.
+При переносе текущий цикл завершается. Демонтаж освобождает роль немедленно.
 
-## 12. TurretCombatDomain
+## 12. BoardingEnemyDefinitionDomain
 
 ```text
-TurretRuntime
-TurretTargetSelector
-TurretGeometry
-TurretSystem
-TurretDebugInput
+BoardingEnemyArchetype
+BoardingEnemyCatalog
+BoardingBalance
+resources/enemies/*.tres
 ```
 
-Каждая турель имеет независимые:
+### BoardingEnemyArchetype
+
+Один ресурс описывает один тип и является единственным источником:
 
 ```text
-operator_id
-target_enemy_id
-shot_remaining
-cooldown_remaining
-firing
+archetype_id
+display_name
+max_health
+body_radius
+body_color
+accent_color
+ground_move_speed
+climb_move_speed
+platform_move_speed
+attack_damage
+attack_windup
+attack_cooldown
+attack_range
+unlock_difficulty
+weight_at_unlock
+weight_at_max_difficulty
 ```
 
-`TurretGeometry` является общим источником локального и мирового pivot.
+Ресурс не хранит изменяемое состояние экземпляра.
 
-`TurretTargetSelector` выбирает ближайшую допустимую цель в состояниях:
+### BoardingEnemyCatalog
+
+Каталог:
+
+- хранит типизированный массив архетипов;
+- проверяет уникальность `archetype_id`;
+- возвращает архетип по ID;
+- рассчитывает вес для текущей нормализованной сложности;
+- выполняет взвешенный выбор через переданный `RandomNumberGenerator`.
+
+При сложности ниже `unlock_difficulty` вес равен нулю.
+
+### Текущие определения
+
+```text
+basic  — доступен с 0.00
+runner — доступен с 0.15
+brute  — доступен с 0.45
+```
+
+`BoardingBalance` владеет только общими правилами спавна, разделения, прыжка и боя защитников. Поля группы `Legacy Base Enemy Defaults` временно сохранены для совместимости старых тестовых сценариев и не читаются runtime врага.
+
+## 13. BoardingEnemyRuntimeDomain
+
+```text
+BoardingEnemy
+BoardingEnemyController
+BoardingEnemyRegistry
+BoardingSpawnDirector
+BoardingMovementResolver
+BoardingJumpPlanner
+BoardingEnemyVisual
+```
+
+### Создание экземпляра
+
+```text
+BoardingSpawnDirector
+→ BoardingEnemyCatalog.choose_archetype(difficulty)
+→ instantiate BoardingEnemy
+→ BoardingEnemy.configure(archetype, ...)
+→ BoardingEnemyRegistry.register_enemy(enemy)
+```
+
+Конфигурация происходит до регистрации, поэтому подписчики `enemy_registered` всегда видят настроенный архетип.
+
+### BoardingEnemy
+
+Хранит ссылку на неизменяемый `archetype` и предоставляет:
+
+```text
+get_archetype_id()
+get_archetype_name()
+get_body_radius()
+```
+
+Здоровье остаётся у `HealthComponent`, атака — у `MeleeAttackComponent`, движение и состояния — у `BoardingEnemyController`.
+
+### BoardingEnemyController
+
+Общая машина состояний:
+
+```text
+WAITING_WITHOUT_PATH
+RUNNING_TO_ANCHOR
+CLIMBING
+ON_PLATFORM
+FIGHTING
+JUMPING
+DEAD
+```
+
+Контроллер не проверяет конкретные ID типов. Он читает скорость и параметры атаки из назначенного архетипа.
+
+### BoardingSpawnDirector
+
+Директор владеет только таймером спавна и RNG. Он не хранит копии характеристик типов.
+
+Для тестов доступны:
+
+```text
+spawn_debug_archetype(archetype_id, side)
+spawn_debug_on_platform(local_x, archetype_id)
+```
+
+### BoardingMovementResolver
+
+Разделение пары врагов:
+
+```text
+max(global_minimum_spacing, first.radius + second.radius)
+```
+
+Правило применяется на земле, тросе, платформе и при поиске свободной точки. Разделение врага и защитника равно сумме их радиусов.
+
+### BoardingJumpPlanner
+
+Использует радиус прыгающего врага, радиус блокирующего врага и индивидуальную дальность атаки архетипа. Точка приземления резервируется через обычный movement resolver.
+
+### BoardingEnemyVisual
+
+Временная векторная графика читает цвет, акцент и радиус архетипа. Она не участвует в выборе типа, движении, атаке или награде.
+
+### Награды
+
+Все текущие архетипы проходят общий поток смерти:
+
+```text
+HealthComponent.depleted
+→ BoardingEnemy.kill(reason)
+→ BoardingEnemyRegistry.enemy_removed
+→ BoardingRewardController
+→ RunEconomy / RunStatistics
+```
+
+Prototype 2.0 выдаёт одинаковую базовую награду всем физическим типам.
+
+## 14. TurretDomain
+
+Каждая турель имеет отдельный `TurretRuntime`, конкретный пост `TURRET/buildable_id`, оператора, цель, windup и cooldown.
+
+`TurretTargetSelector` атакует физического врага в состояниях:
 
 ```text
 CLIMBING
@@ -331,106 +370,66 @@ FIGHTING
 JUMPING
 ```
 
-`TurretSystem`:
+`TurretSystem` наносит урон только через `HealthComponent.apply_damage(1)` и не начисляет монеты напрямую.
 
-- регистрирует пост `TURRET/buildable_id`;
-- проверяет живого прибывшего оператора;
-- фиксирует ближайшую цель на весь выстрел;
-- вызывает `HealthComponent.apply_damage(1)`;
-- запускает независимый кулдаун;
-- публикует read-only состояние;
-- не начисляет монеты напрямую.
+`TurretVisualController` рисует корпус, радиус, заряд, кулдаун, отдачу, вспышку и трассер, но не меняет симуляцию.
 
-Смерть проходит через общий поток:
+## 15. Пауза
 
-```text
-HealthComponent.depleted
-→ BoardingEnemy.kill("combat")
-→ BoardingEnemyRegistry.enemy_removed
-→ BoardingRewardController
-→ RunEconomy / RunStatistics
-```
+Во время `CARD_SELECTION` и `MANUAL_PAUSE` мировые таймеры не изменяются.
 
-Во время выстрела оператор завершает неделимое действие перед переходом. При переносе турели объект меняет клетку сразу, а оператор должен физически прибыть. Демонтаж отменяет выстрел и освобождает оператора.
-
-## 13. TurretPresentationDomain
-
-```text
-TurretVisualRuntime
-TurretVisualController
-BuildableBalance
-```
-
-Визуальный runtime хранит только:
-
-```text
-shot_origin_local
-last_target_world
-tracer_remaining
-flash_remaining
-```
-
-Контроллер рисует корпус, состояние оператора, радиус, заряд, кулдаун, отдачу, вспышку и трассер. Он не выбирает цель и не наносит урон.
-
-При переносе во время подготовки сохранённый `shot_origin_local` позволяет завершить визуальный выстрел из старой позиции.
-
-## 14. Пауза
-
-Во время `CARD_SELECTION` и `MANUAL_PAUSE`:
-
-- мировые системы не изменяют таймеры;
-- UI назначения не отправляет команды;
 - при карточках `CrewCommandPanel` скрыт;
-- при ручной паузе панель видима, но кнопки отключены;
-- flash/tracer и остальные pausable-процессы заморожены.
+- при ручной паузе панель видима, но команды отключены;
+- спавн и движение врагов остановлены;
+- лечение, атаки, flash и tracer заморожены.
 
-## 15. Обязательные тестовые границы
+## 16. Обязательные тестовые границы
 
-### CrewSelectionController
+### Enemy catalog
 
-- выбранный `defender_id` является единым для мыши, кнопок и клавиш;
-- выбранный защитник получает визуальное кольцо;
-- при смене выбора кольцо снимается с предыдущего;
-- замена экземпляра сохраняет выбранный стабильный ID.
+- ID уникальны;
+- некорректный каталог не проходит `validate()`;
+- типы закрыты до своего порога;
+- при нулевой сложности выбирается только базовый тип;
+- при максимальной сложности выбираются все доступные типы.
 
-### CrewCommandPanel
+### Enemy instances
 
-- создаёт кнопку для каждого доступного защитника;
-- стандартные роли отправляют команду выбранному защитнику;
-- лекарь недоступен без медицинского поста;
-- установленная турель создаёт отдельную кнопку;
-- занятый другим защитником пост отключён;
-- состояние `MOVING` и `WAITING_FOR_ACTION` отключает новые команды;
-- карточки скрывают панель;
-- ручная пауза отключает команды;
-- UI не изменяет назначения напрямую.
+- здоровье, радиус и скорости берутся из архетипа;
+- быстрый враг проходит большее расстояние за одинаковое время;
+- тяжёлый враг имеет три сегмента здоровья;
+- реестр считает типы отдельно;
+- два крупных врага сохраняют расстояние не меньше суммы радиусов;
+- старые сценарии прыжка, боя и тросовой очереди продолжают работать.
 
 ### Общие
 
 - здоровье изменяется только через `HealthComponent`;
 - UI не владеет боевой логикой;
-- карточки и ручная пауза останавливают симуляцию;
+- стратегические враги не используют физический каталог;
+- карточки остаются заглушками;
 - лимит 600 строк не нарушен.
 
-## 16. Следующая итерация
+## 17. Следующая итерация
 
-1. Подключение настоящих ассетов защитников и врагов.
-2. Состояния idle, бег, атака, смерть и переход к рабочему посту.
-3. Отдельный presentation-controller анимаций без изменения боевой логики.
-4. Подключение ассетов медицинского поста, турели, якорей и тросов.
-5. Сохранение диагностической векторной графики как fallback для тестов.
+1. Добавить отдельную прочность каждому установленному тросу.
+2. Добавить маленького врага-взрывателя, который выбирает доступный трос.
+3. Взрыв должен повреждать трос, а не секцию щита или платформу.
+4. Разрушение троса должно закрывать путь, сбрасывать поднимающихся врагов и возвращать якорь.
+5. Добавить предупреждение и диагностическое состояние повреждённого троса.
 
-Карточки остаются заглушками до отдельной итерации.
+Ассеты и карточки остаются отложенными до готовности соответствующей спецификации.
 
-## 17. Запрещённые решения
+## 18. Запрещённые решения
 
+- Проверки `archetype_id` внутри общей машины движения и ближнего боя.
+- Копирование характеристик архетипа в `BoardingBalance` как активный источник runtime.
+- Случайный выбор типа внутри `BoardingEnemy`.
+- Разные сцены с дублированной логикой для простых вариантов скорости и здоровья.
 - Второй владелец выбранного защитника.
 - Прямое изменение `CrewAssignmentRuntime` из UI.
 - Резервирование поста кнопкой интерфейса.
-- Отдельная система ролей только для турелей.
-- Один общий оператор для нескольких турелей.
 - Прямое начисление монет из `TurretSystem`.
 - Прямое удаление врага вместо `HealthComponent.apply_damage()`.
 - Выбор цели или нанесение урона из визуального слоя.
-- Управление ролью из `DefenderVisual`.
 - Архитектурное изменение без обновления этого файла.
