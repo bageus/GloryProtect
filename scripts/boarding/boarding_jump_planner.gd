@@ -25,6 +25,8 @@ func create_plan(
 		return null
 	if not enemy.health.is_alive() or not target.health.is_alive():
 		return null
+	if enemy.archetype == null:
+		return null
 
 	var current_x: float = enemy.controller.get_platform_local_x()
 	var target_x: float = target.position.x
@@ -42,7 +44,11 @@ func create_plan(
 		return null
 
 	var blocker_x: float = blocker.controller.get_platform_occupancy_x()
-	var enemy_gap: float = boarding_balance.platform_enemy_spacing
+	var enemy_gap: float = _movement_resolver.get_enemy_gap(
+		enemy,
+		blocker,
+		boarding_balance.platform_enemy_spacing
+	)
 	if (
 		absf(blocker_x - current_x)
 		> enemy_gap + boarding_balance.jump_trigger_tolerance
@@ -50,13 +56,13 @@ func create_plan(
 		return null
 	if (
 		absf(target_x - blocker_x)
-		> boarding_balance.enemy_attack_range
+		> blocker.archetype.attack_range
 			+ boarding_balance.jump_trigger_tolerance
 	):
 		return null
 
 	var landing_gap: float = (
-		boarding_balance.enemy_body_radius
+		enemy.get_body_radius()
 		+ crew_balance.defender_body_radius
 		+ boarding_balance.jump_landing_clearance
 	)
