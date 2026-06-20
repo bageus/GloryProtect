@@ -67,9 +67,7 @@ func get_selected_cell_index() -> int:
 
 
 func get_summary() -> String:
-	return "клетка %d | B открыть | M установить/перенести | Del снять | H лекарь" % (
-		selected_cell_index + 1
-	)
+	return "выбрана клетка %d" % (selected_cell_index + 1)
 
 
 func _select_cell(cell_index: int) -> void:
