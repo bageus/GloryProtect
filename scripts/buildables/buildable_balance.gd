@@ -4,6 +4,7 @@ extends Resource
 @export_group("Inventory")
 @export_range(0, 8, 1) var medical_station_max_count: int = 1
 @export_range(0, 32, 1) var default_medical_cell: int = 11
+@export var reserved_cell_indices: Array[int] = [1, 6, 7, 8, 9, 16]
 
 @export_group("Medical Station")
 @export_range(0.1, 30.0, 0.1) var heal_interval: float = 5.0
@@ -22,3 +23,7 @@ func get_max_count(type_id: int) -> int:
 			return 0
 		_:
 			return 0
+
+
+func is_reserved_cell(cell_index: int) -> bool:
+	return reserved_cell_indices.has(cell_index)
