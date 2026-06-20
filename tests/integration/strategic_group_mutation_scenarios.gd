@@ -30,6 +30,7 @@ func _run_scenarios() -> void:
 	director.balance.first_wave_delay = 999.0
 	director.balance.initial_wave_interval = 999.0
 	director.balance.minimum_wave_interval = 999.0
+	director.reset_for_run()
 	waves.balance.mutation_cooldown = 0.0
 	waves.balance.mutation_check_interval = 999.0
 	waves.balance.merge_angle_tolerance = 0.5
