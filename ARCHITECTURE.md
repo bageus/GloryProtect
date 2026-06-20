@@ -40,6 +40,7 @@ GameRoot
 │   ├── OrbDomain
 │   ├── StrategicWaveSystem
 │   ├── StrategicWaveDirector
+│   ├── StrategicGroupMutationController
 │   ├── PlatformDomain
 │   ├── AnchorDomain
 │   ├── CrewDomain
@@ -65,9 +66,11 @@ GameRoot
 | Монеты забега | `RunEconomy` |
 | Число покупок и открытая выдача | `UpgradeSystem` |
 | Формула стоимости карточек | `UpgradeBalance` |
-| Стратегические группы | `StrategicWaveSystem` |
+| Массив стратегических групп | `StrategicWaveSystem` |
+| Положение и маршрут стратегической группы | её `StrategicGroupRuntime`, внутри `StrategicWaveSystem` |
 | Номер и таймер следующей волны | `StrategicWaveDirector` |
-| Параметры стратегических волн | `StrategicWaveBalance` |
+| Таймер проверки мутаций и RNG решений | `StrategicGroupMutationController` |
+| Параметры стратегических волн и мутаций | `StrategicWaveBalance` |
 | Ветер | `WindSystem` |
 | Позиция и скорость платформы | `PlatformController` |
 | Доступность рулевого ввода | `SteeringInputProvider`, управляемый `CrewRoleManager` |
@@ -88,7 +91,7 @@ GameRoot
 | Геометрия шаров | `GroundOrbCatalog` через `GroundOrbRegistry` |
 | Занятость клеток объектами | будущий `BuildableGrid` |
 
-Stateless-компоненты и представление не дублируют состояние владельцев. `StrategicMinimap` получает только `StrategicGroupSnapshot`, а не изменяемые runtime-объекты.
+Контроллеры решений и представление не дублируют состояние владельцев. `StrategicGroupMutationController` читает снимки и отправляет команды, а `StrategicMinimap` получает только `StrategicGroupSnapshot`.
 
 ## 5. GameFlowDomain
 
@@ -103,7 +106,7 @@ MANUAL_PAUSE
 GAME_OVER
 ```
 
-Владеет началом забега, полной паузой и причиной поражения. `CARD_SELECTION` включает `SceneTree.paused`. UI карточек использует `PROCESS_MODE_ALWAYS`, чтобы оставаться доступным во время паузы.
+Владеет началом забега, полной паузой и причиной поражения. `CARD_SELECTION` включает `SceneTree.paused`. UI карточек использует `PROCESS_MODE_ALWAYS`.
 
 ### Контроллеры поражения
 
@@ -128,7 +131,7 @@ get_percent()
 reset_for_run()
 ```
 
-Время растёт только в `RUNNING`. Стартовая задержка, карточки, ручная пауза и `GAME_OVER` не увеличивают сложность. Каждый домен применяет собственный ресурс баланса к общему нормализованному значению.
+Время растёт только в `RUNNING`. Стартовая задержка, карточки, ручная пауза и `GAME_OVER` не увеличивают сложность. Каждый домен применяет собственный ресурс баланса к общему значению.
 
 ## 7. StrategicWaveDomain
 
@@ -136,28 +139,34 @@ reset_for_run()
 StrategicWaveBalance
 StrategicWaveDirector
 StrategicWaveSystem
+StrategicGroupMutationController
 StrategicGroupRuntime
 StrategicGroupSnapshot
 ```
 
 ### StrategicWaveBalance
 
-Единственный источник:
+Единственный источник параметров создания, движения, ударов и мутаций:
 
 ```text
 first_wave_delay
-initial_wave_interval
-minimum_wave_interval
-initial_wave_size
-maximum_wave_size
-initial_travel_duration
-minimum_travel_duration
-initial_target_sections
-maximum_target_sections
+initial/minimum_wave_interval
+initial/maximum_wave_size
+initial/minimum_travel_duration
+initial/maximum_target_sections
 impact_interval
 damage_per_enemy
 max_active_groups
 maximum_lane_offset
+mutation_check_interval
+merge_angle_tolerance
+merge_distance_tolerance
+mutation_cooldown
+minimum_split_enemy_count
+maximum_split_parts
+initial/maximum_split_chance
+split_redirect_chance
+split_min/max_progress
 ```
 
 Текущие диапазоны:
@@ -167,50 +176,77 @@ wave interval: 12 → 4 seconds
 wave size: 6 → 30
 group travel: 8 → 4 seconds
 target sections: 1 → 3
-damage per enemy: 1
-impact interval: 0.35 seconds
+split chance per check: 4% → 22%
+mutation cooldown: 2 seconds
 ```
 
 ### StrategicWaveDirector
 
-Владеет только `_wave_remaining`, `_wave_number` и RNG.
+Владеет только `_wave_remaining`, `_wave_number` и RNG новой волны.
 
 Он:
 
 - читает `RunDifficulty`;
-- вычисляет размер, интервал, скорость и число целей через `StrategicWaveBalance`;
+- вычисляет параметры через `StrategicWaveBalance`;
 - выбирает уникальные секции;
-- распределяет реальное количество врагов между группами;
-- создаёт группы через `StrategicWaveSystem.add_group()`;
-- не двигает группы;
-- не наносит урон;
-- не изменяет щит.
+- распределяет реальное количество врагов;
+- вызывает `StrategicWaveSystem.add_group()`;
+- не двигает и не мутирует группы;
+- не наносит урон.
+
+### StrategicGroupRuntime
+
+Хранит доменное состояние одной агрегированной группы:
+
+```text
+group_id
+section_id
+enemy_count
+initial_enemy_count
+state
+map_angle
+map_distance
+route_start_angle
+route_start_distance
+route_target_angle
+route_elapsed
+travel_duration
+impact_remaining
+mutation_cooldown_remaining
+```
+
+`map_distance` равен `1.0` на внешнем краю и `0.0` у щита. Положение принадлежит симуляции, а не миникарте.
+
+`replan_route()` создаёт новый плавный маршрут из фактической текущей точки. Это используется после слияния и перенаправленного разделения.
 
 ### StrategicWaveSystem
 
 Единственный владелец `Array[StrategicGroupRuntime]`.
 
-Состояния группы:
+Публичные атомарные операции:
 
 ```text
-TRAVELING
-IMPACTING
+add_group()
+merge_groups()
+split_group()
+get_group_snapshots()
+reset_for_run()
 ```
 
-Поток:
+Обычный поток:
 
 ```text
 Director creates group
     ↓
-TRAVELING: progress 0 → 1
+TRAVELING: map_distance 1 → 0
     ↓
-IMPACTING at assigned shield section
+IMPACTING at assigned section
     ↓
 one enemy applies damage
     ↓
 enemy_count -= 1
     ↓
-remove group when enemy_count == 0
+remove group at zero
 ```
 
 Урон проходит только через:
@@ -219,11 +255,50 @@ remove group when enemy_count == 0
 ShieldSystem.apply_damage(section_id, damage_per_enemy)
 ```
 
-Группа сохраняет реальное количество врагов. Визуальная масса уменьшается синхронно с `enemy_count`.
+### Объединение
+
+`merge_groups(first_id, second_id)` допускает только две движущиеся группы с завершённым кулдауном.
+
+- Более крупная группа становится выжившей.
+- Сохраняется её секция.
+- Количество и `initial_enemy_count` суммируются.
+- Угол, расстояние и оставшееся время усредняются с весом по количеству врагов.
+- Поглощённая группа удаляется.
+- Общее количество врагов остаётся неизменным.
+
+### Разделение
+
+`split_group(source_id, target_sections, enemy_counts)` проверяет:
+
+- минимум две части;
+- одинаковую длину массивов;
+- положительное количество каждой части;
+- валидность секций;
+- наличие свободных слотов;
+- точное равенство суммы исходной группе.
+
+Исходная группа удаляется, а части создаются в одной `map_angle/map_distance`. Каждая часть строит маршрут от точки разделения к своей секции.
+
+### StrategicGroupMutationController
+
+Владеет только таймером проверки и RNG решения.
+
+За одну проверку:
+
+1. читает снимки;
+2. ищет ближайшую допустимую пару;
+3. при наличии вызывает `merge_groups()`;
+4. иначе выполняет вероятностную проверку разделения;
+5. выбирает 2–3 части и их количества;
+6. сохраняет первую цель;
+7. дополнительные части могут получить другие секции;
+8. вызывает `split_group()`.
+
+Контроллер не хранит ссылки на runtime-группы и не изменяет их поля напрямую. Вне `RUNNING` мутации запрещены.
 
 ### StrategicGroupSnapshot
 
-Неизменяемое представление для UI:
+Неизменяемое представление:
 
 ```text
 group_id
@@ -231,11 +306,13 @@ section_id
 enemy_count
 initial_enemy_count
 progress
-lane_offset
+map_angle
+map_distance
 is_impacting
+mutation_ready
 ```
 
-Изменяемый `StrategicGroupRuntime` наружу не выдаётся.
+Изменяемый runtime наружу не выдаётся.
 
 ### Независимость от физического абордажа
 
@@ -246,7 +323,6 @@ is_impacting
 - не регистрируются в `BoardingEnemyRegistry`;
 - не используют якоря;
 - не взаимодействуют с экипажем;
-- не публикуют физическую причину смерти;
 - не дают монет.
 
 ## 8. PresentationDomain: StrategicMinimap
@@ -256,25 +332,15 @@ StrategicMinimap
 scenes/ui/strategic_minimap.tscn
 ```
 
-Миникарта всегда находится в `CanvasLayer`, независимо от камеры платформы.
+Миникарта находится в `CanvasLayer` и читает:
 
-Она читает:
-
-- проценты и цвета секций из `ShieldSystem`;
+- секции из `ShieldSystem`;
 - снимки групп из `StrategicWaveSystem`;
-- номер и таймер волны из `StrategicWaveDirector`.
+- номер и таймер из `StrategicWaveDirector`.
 
-Она отображает:
+Она преобразует `map_angle/map_distance` в экранную позицию. Поэтому слияние увеличивает одну массу, а разделённые части сначала совпадают и затем плавно расходятся.
 
-- пять секций;
-- проценты;
-- зелёное, оранжевое и мигающее красное состояние;
-- движение групп к целям;
-- реальное количество внутри массы;
-- сокращение массы при ударах;
-- номер волны и время до следующей.
-
-Миникарта не меняет щит, группы, таймеры или цели.
+Миникарта не меняет щит, группы, маршруты, таймеры или цели.
 
 ## 9. EconomyDomain
 
@@ -294,17 +360,7 @@ spend_coins(cost, source)
 reset_for_run()
 ```
 
-Награды за физических врагов проходят через:
-
-```text
-BoardingEnemyRegistry.enemy_removed
-    ↓
-BoardingRewardController
-    ↓
-RunEconomy.add_coins
-```
-
-Стратегический домен не подключён к этому потоку.
+Награды за физических врагов проходят через `BoardingEnemyRegistry.enemy_removed → BoardingRewardController → RunEconomy`. Стратегический домен к этому потоку не подключён.
 
 ## 10. UpgradeDomain
 
@@ -320,7 +376,7 @@ UpgradeSelectionPanel
 5, 10, 15, …, 100, 200, 400, 800
 ```
 
-На текущем этапе карточки одинаковы и не применяют эффект. UI только вызывает `choose_card(index)`.
+Карточки одинаковы и не применяют эффект. UI только вызывает `choose_card(index)`.
 
 ## 11. PlatformDomain
 
@@ -337,7 +393,7 @@ GameRoot
 └── WindSystem
 ```
 
-`PlatformController` владеет горизонтальной позицией и скоростью. `PlatformVisualController` только отображает платформу, клетки, посты, шар и дверь замены.
+`PlatformController` владеет горизонтальной позицией и скоростью. `PlatformVisualController` только отображает платформу.
 
 ## 12. OrbDomain и ShieldDomain
 
@@ -353,11 +409,9 @@ ShieldFailureController
 ```
 
 - `GroundOrbCatalog` хранит позиции и контактную геометрию.
-- `GroundOrbRegistry` публикует координаты, зоны и точки крепления.
 - `OrbContactSystem` владеет активным контактом.
 - `ShieldSystem` владеет пятью значениями прочности.
-- `ShieldRechargeController` восстанавливает только связанную секцию.
-- Стратегические удары и зарядка используют публичный интерфейс `ShieldSystem`.
+- Зарядка и стратегические удары используют публичный интерфейс `ShieldSystem`.
 
 ## 13. AnchorDomain
 
@@ -391,7 +445,7 @@ Defender
 └── DefenderVisual
 ```
 
-`CrewManager` владеет стабильными `defender_id`. `CrewReplacementController` владеет независимыми таймерами. `CrewRoleManager` владеет ролями. `DefenderMovement` владеет целевой координатой.
+`CrewManager` владеет стабильными `defender_id`. `CrewReplacementController` владеет таймерами замен. `CrewRoleManager` владеет ролями. `DefenderMovement` владеет целевой координатой.
 
 ## 15. CombatDomain
 
@@ -415,7 +469,7 @@ BoardingJumpPlanner
 BoardingEnemyContainer
 ```
 
-`BoardingSpawnDirector` получает `RunDifficulty` и через `BoardingBalance` вычисляет:
+`BoardingSpawnDirector` через `BoardingBalance` вычисляет:
 
 ```text
 ground limit: 8 → 20
@@ -435,63 +489,67 @@ MedicalStationSystem
 TurretSystem
 ```
 
-Будущая турель наносит физический урон и использует существующий reward flow через причину `combat`.
+Будущая турель наносит физический урон и использует reward flow через причину `combat`.
 
 ## 18. Обязательные тестовые границы
+
+### Стратегические мутации
+
+- Мутации выполняются только в `RUNNING`.
+- За проверку выполняется максимум одна операция.
+- Две близкие группы объединяются в одну.
+- Сумма врагов при объединении не меняется.
+- Разделение создаёт 2–3 положительные части.
+- Сумма частей равна исходной группе.
+- Все части начинают в одной точке.
+- Хотя бы одна часть может получить другую секцию.
+- Перенаправление не создаёт телепорта.
+- Кулдаун блокирует немедленную повторную мутацию.
+- Таймер проверки останавливается при `CARD_SELECTION`.
 
 ### Стратегические волны
 
 - Волны не идут во время `START_DELAY` и полной паузы.
-- Одна волна выбирает уникальные секции.
 - Сумма врагов в группах равна размеру волны.
-- Группа сохраняет реальное количество.
-- При `CARD_SELECTION` прогресс не меняется.
 - Каждый враг наносит отдельный импульс урона.
-- Группа уменьшается после каждого удара.
 - Исчерпанная группа удаляется.
 - Стратегические враги не дают монет.
-- Новый забег очищает группы и номер волны.
-- Миникарта постоянно присутствует.
-
-### Сложность
-
-- Начало, середина и максимум дают корректные параметры обоих типов угроз.
-- Сложность растёт только в `RUNNING`.
-- Новый забег сбрасывает прогресс.
+- Новый забег очищает группы, номер волны и таймер мутаций.
 
 ### Остальные системы
 
+- Сложность растёт только в `RUNNING`.
 - Контакт заряжает только связанную секцию.
 - Разрушение секции завершает забег.
 - Ноль живых защитников завершает забег.
 - Без якорей физический спавн запрещён.
-- Физические враги сохраняют минимальные дистанции.
 - Лимит 600 строк не нарушен.
 
 ## 19. Следующая итерация
 
-1. Визуальное объединение близких стратегических масс.
-2. Разделение группы на несколько групп.
-3. Перенаправление частей к разным секциям.
-4. Общий звуковой сигнал новой критической угрозы.
-5. Статистика времени выживания и физических убийств.
+1. `RunStatistics` как владелец времени выживания и физических убийств.
+2. Итоговый экран забега.
+3. Звуковой сигнал новой критической секции.
+4. История лучших результатов текущего запуска.
+5. Подготовка точек расширения лекаря и турелей.
 
 Карточки остаются заглушками без различных эффектов.
 
 ## 20. Запрещённые решения
 
 - Глобальный объект, управляющий всей игрой.
-- Второй владелец стратегических групп.
-- Движение или урон групп внутри `StrategicWaveDirector`.
+- Второй владелец стратегических групп или их положения.
+- Прямое изменение runtime-полей из `StrategicGroupMutationController`.
+- Решение о мутации внутри миникарты.
+- Движение, мутации или урон групп внутри `StrategicWaveDirector`.
 - Планирование волн внутри `StrategicWaveSystem`.
-- Выдача изменяемого runtime миникарте.
+- Выдача изменяемого runtime представлению.
+- Потеря или создание врагов при слиянии и разделении.
 - Создание физического `Node2D` на каждого стратегического врага.
 - Регистрация стратегических врагов в `BoardingEnemyRegistry`.
 - Начисление монет за стратегических врагов.
-- Хардкод параметров волн вне `StrategicWaveBalance`.
+- Хардкод параметров волн или мутаций вне `StrategicWaveBalance`.
 - UI как владелец симуляции, монет, сложности или карточек.
-- Изменение монет вне `RunEconomy`.
-- Дублирование здоровья вне `HealthComponent`.
 - Зависимость симуляции от визуала.
-- Один большой скрипт для стратегических волн, физического абордажа или UI.
+- Один большой скрипт для всех стратегических обязанностей.
 - Архитектурное изменение без обновления этого файла.
