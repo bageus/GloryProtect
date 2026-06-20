@@ -127,9 +127,9 @@ func _get_section_angle(section_id: int, section_count: int) -> float:
 
 func _get_health_color(section_id: int) -> Color:
 	var percent: float = _shield.get_health_percent(section_id)
-	if percent > 50.0:
+	if percent > _shield.balance.indicator_threshold_percent:
 		return Color(0.22, 0.88, 0.36)
-	if percent > 25.0:
+	if percent > _shield.balance.critical_threshold_percent:
 		return Color(1.0, 0.67, 0.12)
 	var pulse: float = 0.55 + sin(_blink_elapsed * 7.0) * 0.25
 	return Color(1.0, 0.1, 0.08, pulse)
