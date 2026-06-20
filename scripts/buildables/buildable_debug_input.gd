@@ -9,7 +9,7 @@ signal command_feedback(message: StringName)
 @export_node_path("BuildableInventory") var inventory_path: NodePath
 @export_node_path("BuildableGrid") var grid_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
-@export_node_path("CrewDebugInput") var crew_debug_input_path: NodePath
+@export_node_path("CrewSelectionController") var crew_debug_input_path: NodePath
 @export var balance: BuildableBalance
 
 var selected_cell_index: int = 0
@@ -19,7 +19,9 @@ var selected_cell_index: int = 0
 @onready var _inventory: BuildableInventory = get_node(inventory_path)
 @onready var _grid: BuildableGrid = get_node(grid_path)
 @onready var _roles: CrewRoleManager = get_node(role_manager_path)
-@onready var _crew_input: CrewDebugInput = get_node(crew_debug_input_path)
+@onready var _crew_selection: CrewSelectionController = get_node(
+	crew_debug_input_path
+)
 
 
 func _ready() -> void:
@@ -54,7 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_demolish_medical_station()
 		KEY_H:
 			_roles.request_assignment(
-				_crew_input.selected_defender_id,
+				_crew_selection.get_selected_defender_id(),
 				CrewRole.Id.MEDIC
 			)
 		_:
