@@ -15,14 +15,22 @@ extends Resource
 @export_range(20.0, 160.0, 1.0) var medical_station_height: float = 66.0
 @export_range(-120.0, 20.0, 1.0) var medical_station_bottom_y: float = -28.0
 
-@export_group("Turret")
+@export_group("Turret Combat")
 @export_range(1, 10, 1) var turret_damage: int = 1
 @export_range(40.0, 1000.0, 1.0) var turret_range: float = 360.0
 @export_range(0.05, 5.0, 0.05) var turret_shot_windup: float = 0.45
 @export_range(0.0, 10.0, 0.05) var turret_shot_cooldown: float = 0.8
+
+@export_group("Turret Presentation")
 @export_range(10.0, 120.0, 1.0) var turret_width: float = 42.0
 @export_range(10.0, 140.0, 1.0) var turret_height: float = 48.0
 @export_range(-120.0, 20.0, 1.0) var turret_bottom_y: float = -28.0
+@export_range(8.0, 80.0, 1.0) var turret_barrel_length: float = 28.0
+@export_range(0.0, 20.0, 0.5) var turret_recoil_distance: float = 5.0
+@export_range(0.02, 1.0, 0.01) var turret_flash_duration: float = 0.1
+@export_range(0.02, 1.0, 0.01) var turret_tracer_duration: float = 0.14
+@export_range(0.05, 1.0, 0.05) var turret_inactive_alpha: float = 0.35
+@export_range(0.0, 0.5, 0.01) var turret_radius_fill_alpha: float = 0.08
 
 
 func get_max_count(type_id: int) -> int:
