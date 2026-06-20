@@ -8,6 +8,7 @@ func _init() -> void:
 
 
 func _run_scenarios() -> void:
+	SessionRecordsStore.reset_records()
 	var game: Node2D = GAME_SCENE.instantiate() as Node2D
 	root.add_child(game)
 	await process_frame
@@ -21,6 +22,12 @@ func _run_scenarios() -> void:
 	)
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var panel: Control = game.get_node("CanvasLayer/GameOverPanel")
+	var time_label: Label = game.get_node(
+		"CanvasLayer/GameOverPanel/Panel/Margin/VBox/TimeLabel"
+	)
+	var session_label: Label = game.get_node(
+		"CanvasLayer/GameOverPanel/Panel/Margin/VBox/SessionLabel"
+	)
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	difficulty.set_debug_elapsed_seconds(125.7)
@@ -42,10 +49,14 @@ func _run_scenarios() -> void:
 	assert(snapshot.purchased_upgrades == 0)
 	assert(snapshot.end_reason == &"shield_section_destroyed")
 	assert(panel.visible)
-	assert(
-		game.get_node("CanvasLayer/GameOverPanel/Panel/Margin/VBox/TimeLabel").text
-		== "Время выживания: 02:05"
-	)
+	assert(time_label.text == "Время выживания: 02:05")
+	assert(session_label.text == "Забегов в текущем запуске: 1")
+	assert(statistics.get_session_completed_runs() == 1)
+	assert(is_equal_approx(
+		statistics.get_session_best_survival_seconds(),
+		125.7
+	))
+	assert(statistics.get_session_best_physical_kills() == 2)
 
 	rewards.reward_granted.emit(3, 1, &"combat")
 	assert(statistics.get_physical_kills() == 2)
@@ -55,6 +66,19 @@ func _run_scenarios() -> void:
 	assert(not statistics.has_final_snapshot())
 	assert(statistics.get_physical_kills() == 0)
 	assert(not panel.visible)
+
+	game_flow.state = GameFlowController.RunState.RUNNING
+	difficulty.set_debug_elapsed_seconds(60.0)
+	rewards.reward_granted.emit(4, 1, &"combat")
+	game_flow.end_run(&"all_defenders_dead")
+	await process_frame
+	assert(statistics.get_session_completed_runs() == 2)
+	assert(is_equal_approx(
+		statistics.get_session_best_survival_seconds(),
+		125.7
+	))
+	assert(statistics.get_session_best_physical_kills() == 2)
+	assert(session_label.text == "Забегов в текущем запуске: 2")
 
 	print("Run statistics and game over scenarios passed")
 	quit()
