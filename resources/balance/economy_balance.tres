@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="EconomyBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/economy/economy_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+starting_coins = 0
+boarding_enemy_base_reward = 1
+rewarded_boarding_death_reasons = Array[StringName]([&"combat", &"anchor_path_closed"])
