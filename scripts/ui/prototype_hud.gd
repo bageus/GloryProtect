@@ -78,7 +78,7 @@ extends Control
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_title_label.text = "GloryProtect — Prototype 1.9"
+	_title_label.text = "GloryProtect — Prototype 2.0"
 	_telemetry_panel.visible = false
 	_create_crew_command_panel()
 
