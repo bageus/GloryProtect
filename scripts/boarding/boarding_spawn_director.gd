@@ -35,11 +35,12 @@ func _ready() -> void:
 	assert(enemy_scene != null, "BoardingSpawnDirector requires enemy scene")
 	assert(balance != null, "BoardingSpawnDirector requires BoardingBalance")
 	_rng.randomize()
-	_spawn_remaining = get_current_spawn_interval()
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
+	reset_spawn_timer()
 
 
 func _physics_process(delta: float) -> void:
-	if not _game_flow.is_world_simulation_active():
+	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
 
 	var current_interval: float = get_current_spawn_interval()
@@ -72,6 +73,10 @@ func get_current_ground_limit() -> int:
 
 func get_spawn_remaining() -> float:
 	return maxf(0.0, _spawn_remaining)
+
+
+func reset_spawn_timer() -> void:
+	_spawn_remaining = get_current_spawn_interval()
 
 
 func spawn_now() -> BoardingEnemy:
@@ -113,3 +118,11 @@ func _spawn_enemy(side: int) -> BoardingEnemy:
 		_orbs.catalog.ground_y - balance.ground_vertical_offset
 	)
 	return enemy
+
+
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
+		return
+	reset_spawn_timer()
