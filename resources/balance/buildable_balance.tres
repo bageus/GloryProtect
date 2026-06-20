@@ -6,6 +6,7 @@
 script = ExtResource("1_balance")
 medical_station_max_count = 1
 default_medical_cell = 11
+reserved_cell_indices = Array[int]([1, 6, 7, 8, 9, 16])
 heal_interval = 5.0
 heal_amount = 1
 heal_range = 18.0
