@@ -9,6 +9,7 @@ signal died(enemy_id: int, reason: StringName)
 @export_node_path("BoardingEnemyVisual") var visual_path: NodePath
 
 var enemy_id: int = -1
+var archetype: BoardingEnemyArchetype
 var _dead: bool = false
 
 @onready var health: HealthComponent = get_node(health_path)
@@ -27,6 +28,7 @@ func set_enemy_id(value: int) -> void:
 
 
 func configure(
+	profile: BoardingEnemyArchetype,
 	balance: BoardingBalance,
 	game_flow: GameFlowController,
 	platform: PlatformController,
@@ -36,15 +38,19 @@ func configure(
 	movement_resolver: BoardingMovementResolver,
 	jump_planner: BoardingJumpPlanner
 ) -> void:
-	health.configure(balance.enemy_max_health)
+	assert(profile != null, "BoardingEnemy requires an archetype")
+	assert(profile.is_valid(), "BoardingEnemy archetype is invalid")
+	archetype = profile
+	health.configure(archetype.max_health)
 	melee.configure(
-		balance.enemy_attack_damage,
-		balance.enemy_attack_windup,
-		balance.enemy_attack_cooldown
+		archetype.attack_damage,
+		archetype.attack_windup,
+		archetype.attack_cooldown
 	)
-	visual.configure(balance.enemy_body_radius)
+	visual.configure(archetype)
 	controller.configure(
 		self,
+		archetype,
 		balance,
 		game_flow,
 		platform,
@@ -78,6 +84,24 @@ func is_on_platform() -> bool:
 
 func force_board_at(local_x: float) -> void:
 	controller.force_board_at(local_x)
+
+
+func get_archetype_id() -> StringName:
+	if archetype == null:
+		return &""
+	return archetype.archetype_id
+
+
+func get_archetype_name() -> String:
+	if archetype == null:
+		return "Не настроен"
+	return archetype.display_name
+
+
+func get_body_radius() -> float:
+	if archetype == null:
+		return 0.0
+	return archetype.body_radius
 
 
 func _on_health_depleted() -> void:
