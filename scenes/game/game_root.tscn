@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=3]
+[gd_scene load_steps=43 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -40,12 +40,19 @@
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_system.gd" id="38_upgrade_system"]
 [ext_resource type="Resource" path="res://resources/balance/upgrade_balance.tres" id="39_upgrade_balance"]
 [ext_resource type="PackedScene" path="res://scenes/ui/upgrade_selection_panel.tscn" id="40_upgrade_panel"]
+[ext_resource type="Script" path="res://scripts/difficulty/run_difficulty.gd" id="41_difficulty"]
+[ext_resource type="Resource" path="res://resources/balance/run_difficulty_balance.tres" id="42_difficulty_balance"]
 
 [node name="GameRoot" type="Node2D"]
 
 [node name="GameFlowController" type="Node" parent="."]
 script = ExtResource("1_flow")
 start_delay_seconds = 3.0
+
+[node name="RunDifficulty" type="Node" parent="."]
+script = ExtResource("41_difficulty")
+game_flow_path = NodePath("../GameFlowController")
+balance = ExtResource("42_difficulty_balance")
 
 [node name="RunEconomy" type="Node" parent="."]
 script = ExtResource("35_run_economy")
@@ -169,6 +176,7 @@ crew_balance = ExtResource("14_crew_balance")
 [node name="BoardingSpawnDirector" type="Node" parent="World"]
 script = ExtResource("30_spawn_director")
 game_flow_path = NodePath("../../GameFlowController")
+run_difficulty_path = NodePath("../../RunDifficulty")
 platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
@@ -236,6 +244,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("4_hud")
 game_flow_path = NodePath("../../GameFlowController")
+run_difficulty_path = NodePath("../../RunDifficulty")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../../World/Platform")
 anchor_system_path = NodePath("../../World/AnchorSystem")
@@ -249,6 +258,7 @@ contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
 shield_debug_input_path = NodePath("../../ShieldDebugInput")
 enemy_registry_path = NodePath("../../World/BoardingEnemyRegistry")
+spawn_director_path = NodePath("../../World/BoardingSpawnDirector")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
 offset_left = 16.0
@@ -270,7 +280,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 1.1"
+text = "GloryProtect — Prototype 1.2"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
