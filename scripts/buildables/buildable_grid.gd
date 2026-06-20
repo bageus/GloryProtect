@@ -27,9 +27,7 @@ func _ready() -> void:
 
 
 func place(type_id: int, cell_index: int) -> int:
-	if not _platform.is_valid_cell(cell_index):
-		return -1
-	if is_cell_occupied(cell_index):
+	if not is_cell_available(cell_index):
 		return -1
 	if not _inventory.can_deploy(type_id, get_count_by_type(type_id)):
 		return -1
@@ -49,12 +47,10 @@ func place(type_id: int, cell_index: int) -> int:
 func move(buildable_id: int, cell_index: int) -> bool:
 	if not _buildables.has(buildable_id):
 		return false
-	if not _platform.is_valid_cell(cell_index):
-		return false
 	var runtime: BuildableRuntime = _buildables[buildable_id]
 	if runtime.cell_index == cell_index:
 		return true
-	if is_cell_occupied(cell_index):
+	if not is_cell_available(cell_index):
 		return false
 
 	var previous_cell: int = runtime.cell_index
@@ -98,6 +94,14 @@ func get_count_by_type(type_id: int) -> int:
 
 func is_cell_occupied(cell_index: int) -> bool:
 	return _cell_occupants.has(cell_index)
+
+
+func is_cell_available(cell_index: int) -> bool:
+	return (
+		_platform.is_valid_cell(cell_index)
+		and not balance.is_reserved_cell(cell_index)
+		and not is_cell_occupied(cell_index)
+	)
 
 
 func get_cell_local_x(cell_index: int) -> float:
