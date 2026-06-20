@@ -80,8 +80,8 @@ func choose_card(card_index: int) -> bool:
 
 
 func reset_for_run() -> void:
+	_cancel_offer()
 	_completed_purchases = 0
-	_offer_open = false
 	progress_reset.emit()
 
 
@@ -109,9 +109,15 @@ func _emit_current_offer() -> void:
 func _close_offer() -> void:
 	if not _offer_open:
 		return
+	_cancel_offer()
+	_game_flow.finish_card_selection()
+
+
+func _cancel_offer() -> void:
+	if not _offer_open:
+		return
 	_offer_open = false
 	offer_closed.emit()
-	_game_flow.finish_card_selection()
 
 
 func _on_coins_changed(
@@ -134,4 +140,4 @@ func _on_run_state_changed(previous_state: int, new_state: int) -> void:
 		return
 
 	if new_state == GameFlowController.RunState.GAME_OVER:
-		_offer_open = false
+		_cancel_offer()
