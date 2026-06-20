@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="StrategicWaveBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/strategic/strategic_wave_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+first_wave_delay = 5.0
+initial_wave_interval = 12.0
+minimum_wave_interval = 4.0
+initial_wave_size = 6
+maximum_wave_size = 30
+initial_travel_duration = 8.0
+minimum_travel_duration = 4.0
+initial_target_sections = 1
+maximum_target_sections = 3
+impact_interval = 0.35
+damage_per_enemy = 1.0
+max_active_groups = 15
+maximum_lane_offset = 0.35
