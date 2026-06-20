@@ -24,6 +24,12 @@ func _run_scenarios() -> void:
 	var presenter: Control = game.get_node(
 		"CanvasLayer/ShieldCriticalAlertPresenter"
 	)
+	var message_label: Label = game.get_node(
+		"CanvasLayer/ShieldCriticalAlertPresenter/MessageLabel"
+	)
+	var audio_player: AudioStreamPlayer = game.get_node(
+		"CanvasLayer/ShieldCriticalAlertPresenter/AudioStreamPlayer"
+	)
 	alerts.critical_alert_raised.connect(_on_critical_alert_raised)
 
 	game_flow.state = GameFlowController.RunState.RUNNING
@@ -33,11 +39,8 @@ func _run_scenarios() -> void:
 	assert(_alert_count == 1)
 	assert(_last_alert_ids == [0, 1])
 	assert(presenter.visible)
-	assert(
-		game.get_node(
-			"CanvasLayer/ShieldCriticalAlertPresenter/MessageLabel"
-		).text == "КРИТИЧЕСКИЙ ЩИТ: S1, S2"
-	)
+	assert(message_label.text == "КРИТИЧЕСКИЙ ЩИТ: S1, S2")
+	assert(audio_player.stream is AudioStreamWAV)
 
 	shield.set_health(0, 60.0)
 	shield.set_health(0, 20.0)
