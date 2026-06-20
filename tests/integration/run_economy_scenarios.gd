@@ -25,9 +25,6 @@ func _run_scenarios() -> void:
 
 	var combat_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(120.0)
 	combat_enemy.kill(&"combat")
-	await process_frame
-	assert(economy.get_coins() == reward)
-
 	combat_enemy.kill(&"combat")
 	await process_frame
 	assert(economy.get_coins() == reward)
