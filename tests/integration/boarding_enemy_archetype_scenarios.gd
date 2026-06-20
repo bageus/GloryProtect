@@ -14,6 +14,7 @@ func _run_scenarios() -> void:
 	await process_frame
 
 	var game_flow: GameFlowController = game.get_node("GameFlowController")
+	var wind: WindSystem = game.get_node("WindSystem")
 	var platform: PlatformController = game.get_node("World/Platform")
 	var spawn: BoardingSpawnDirector = game.get_node(
 		"World/BoardingSpawnDirector"
@@ -23,6 +24,9 @@ func _run_scenarios() -> void:
 	)
 
 	game_flow.state = GameFlowController.RunState.RUNNING
+	wind.balance.level_forces = PackedFloat32Array([0.0, 0.0, 0.0])
+	wind.balance.fluctuation_force = 0.0
+	wind.set_debug_state(1, 1)
 	spawn.balance.spawn_interval = 999.0
 	platform.position.x = 0.0
 	platform.horizontal_velocity = 0.0
