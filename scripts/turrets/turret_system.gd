@@ -52,6 +52,11 @@ func has_turret(buildable_id: int) -> bool:
 	return _runtimes.has(buildable_id)
 
 
+func is_operational(buildable_id: int) -> bool:
+	var runtime: TurretRuntime = _runtimes.get(buildable_id)
+	return runtime != null and runtime.operator_id >= 0
+
+
 func is_firing(buildable_id: int) -> bool:
 	var runtime: TurretRuntime = _runtimes.get(buildable_id)
 	return runtime != null and runtime.firing
@@ -78,6 +83,25 @@ func get_shot_remaining(buildable_id: int) -> float:
 	return maxf(0.0, runtime.shot_remaining)
 
 
+func get_shot_progress(buildable_id: int) -> float:
+	if not is_firing(buildable_id):
+		return 0.0
+	if balance.turret_shot_windup <= 0.0:
+		return 1.0
+	return clampf(
+		1.0 - get_shot_remaining(buildable_id) / balance.turret_shot_windup,
+		0.0,
+		1.0
+	)
+
+
+func get_cooldown_remaining(buildable_id: int) -> float:
+	var runtime: TurretRuntime = _runtimes.get(buildable_id)
+	if runtime == null:
+		return 0.0
+	return maxf(0.0, runtime.cooldown_remaining)
+
+
 func get_summary() -> String:
 	var parts := PackedStringArray()
 	for buildable_id: int in get_turret_ids():
@@ -92,8 +116,10 @@ func get_summary() -> String:
 				runtime.target_enemy_id + 1,
 				runtime.shot_remaining,
 			]
+		elif runtime.operator_id >= 0:
+			state_text = "оператор %d" % (runtime.operator_id + 1)
 		elif owner_id >= 0:
-			state_text = "оператор %d" % (owner_id + 1)
+			state_text = "оператор %d в пути" % (owner_id + 1)
 		parts.append("T%d %s" % [buildable_id + 1, state_text])
 	if parts.is_empty():
 		return "нет турелей"
@@ -133,7 +159,7 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 		return
 	var target: BoardingEnemy = _selector.get_nearest_target(
 		_enemies,
-		_get_turret_world_origin(snapshot),
+		TurretGeometry.get_world_pivot(_platform, snapshot, balance),
 		balance.turret_range
 	)
 	if target != null:
@@ -207,15 +233,6 @@ func _cancel_shot(runtime: TurretRuntime) -> void:
 		)
 	runtime.cancel_shot()
 	shot_cancelled.emit(runtime.buildable_id, previous_target)
-
-
-func _get_turret_world_origin(snapshot: BuildableSnapshot) -> Vector2:
-	return _platform.to_global(
-		Vector2(
-			snapshot.local_x,
-			balance.turret_bottom_y - balance.turret_height * 0.5
-		)
-	)
 
 
 func _register_turret(buildable_id: int) -> void:
