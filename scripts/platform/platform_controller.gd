@@ -76,13 +76,35 @@ func get_platform_height() -> float:
 	return balance.platform_height
 
 
+func get_cell_count() -> int:
+	return balance.cell_count
+
+
+func is_valid_cell(cell_index: int) -> bool:
+	return cell_index >= 0 and cell_index < balance.cell_count
+
+
+func get_cell_local_x(cell_index: int) -> float:
+	if not is_valid_cell(cell_index):
+		return 0.0
+	return (
+		-get_platform_width() * 0.5
+		+ (float(cell_index) + 0.5) * balance.cell_width
+	)
+
+
+func get_nearest_cell_index(local_x: float) -> int:
+	var left_edge: float = -get_platform_width() * 0.5
+	var raw_index: int = floori((local_x - left_edge) / balance.cell_width)
+	return clampi(raw_index, 0, balance.cell_count - 1)
+
+
 func _apply_world_and_anchor_constraints(next_x: float) -> float:
 	var minimum_x := balance.world_min_x
 	var maximum_x := balance.world_max_x
 
 	if _anchor_system == null:
 		return clampf(next_x, minimum_x, maximum_x)
-
 	if _anchor_system.is_fully_fixed():
 		return clampf(
 			_anchor_system.get_fixed_platform_x(),
