@@ -11,6 +11,8 @@ func _init() -> void:
 	balance.minimum_travel_duration = 4.0
 	balance.initial_target_sections = 1
 	balance.maximum_target_sections = 3
+	balance.initial_split_chance = 0.04
+	balance.maximum_split_chance = 0.22
 
 	assert(is_equal_approx(balance.get_wave_interval(0.0), 12.0))
 	assert(is_equal_approx(balance.get_wave_interval(0.5), 8.0))
@@ -26,6 +28,11 @@ func _init() -> void:
 	assert(balance.get_target_section_count(1.0, 5) == 3)
 	assert(balance.get_target_section_count(1.0, 2) == 2)
 	assert(balance.get_target_section_count(1.0, 0) == 0)
+	assert(is_equal_approx(balance.get_split_chance(0.0), 0.04))
+	assert(is_equal_approx(balance.get_split_chance(0.5), 0.13))
+	assert(is_equal_approx(balance.get_split_chance(1.0), 0.22))
+	assert(is_equal_approx(balance.get_split_chance(-1.0), 0.04))
+	assert(is_equal_approx(balance.get_split_chance(2.0), 0.22))
 
 	print("Strategic wave balance scenarios passed")
 	quit()
