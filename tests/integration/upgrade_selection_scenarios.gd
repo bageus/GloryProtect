@@ -16,6 +16,7 @@ func _run_scenarios() -> void:
 	var game_flow: GameFlowController = game.get_node("GameFlowController")
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
+	var platform: PlatformController = game.get_node("World/Platform")
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	assert(not get_tree().paused)
@@ -28,12 +29,18 @@ func _run_scenarios() -> void:
 		== upgrades.get_card_description(1)
 	)
 
+	platform.horizontal_velocity = 100.0
 	economy.add_coins(35, &"test_upgrade_funding")
 	assert(upgrades.is_offer_open())
 	assert(game_flow.state == GameFlowController.RunState.CARD_SELECTION)
 	assert(get_tree().paused)
 	assert(upgrades.get_current_offer_number() == 1)
 	assert(upgrades.get_current_cost() == 5)
+
+	var paused_platform_x: float = platform.position.x
+	await _wait_physics_frames(5)
+	assert(is_equal_approx(platform.position.x, paused_platform_x))
+
 	assert(not upgrades.choose_card(-1))
 	assert(not upgrades.choose_card(2))
 	assert(economy.get_coins() == 35)
@@ -71,3 +78,8 @@ func _run_scenarios() -> void:
 
 	print("Upgrade selection scenarios passed")
 	quit()
+
+
+func _wait_physics_frames(frame_count: int) -> void:
+	for _frame: int in range(frame_count):
+		await physics_frame
