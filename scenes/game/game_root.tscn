@@ -243,6 +243,7 @@ crew_role_manager_path = NodePath("../../World/Platform/CrewRoleManager")
 crew_debug_input_path = NodePath("../../CrewDebugInput")
 crew_replacement_path = NodePath("../../CrewReplacementController")
 run_economy_path = NodePath("../../RunEconomy")
+upgrade_system_path = NodePath("../../UpgradeSystem")
 orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
@@ -253,7 +254,7 @@ enemy_registry_path = NodePath("../../World/BoardingEnemyRegistry")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 1080.0
-offset_bottom = 458.0
+offset_bottom = 484.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -305,6 +306,11 @@ text = "Замены"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Монеты забега"
+
+[node name="UpgradeLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Карточки"
 
 [node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
