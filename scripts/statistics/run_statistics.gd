@@ -50,6 +50,18 @@ func has_final_snapshot() -> bool:
 	return _final_snapshot != null
 
 
+func get_session_completed_runs() -> int:
+	return SessionRecordsStore.get_completed_runs()
+
+
+func get_session_best_survival_seconds() -> float:
+	return SessionRecordsStore.get_best_survival_seconds()
+
+
+func get_session_best_physical_kills() -> int:
+	return SessionRecordsStore.get_best_physical_kills()
+
+
 func reset_for_run() -> void:
 	_physical_kills = 0
 	_final_snapshot = null
@@ -76,6 +88,7 @@ func _on_run_ended(reason: StringName) -> void:
 		_upgrades.get_completed_purchase_count(),
 		reason
 	)
+	SessionRecordsStore.register_result(_final_snapshot)
 	run_finalized.emit(_final_snapshot)
 
 
