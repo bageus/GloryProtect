@@ -52,7 +52,6 @@ func _run_scenarios() -> void:
 
 	roles.request_assignment(0, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, 0, CrewRole.Id.MEDIC, 240)
-	var medic: Defender = crew.get_defender(0)
 	var first_target: Defender = crew.get_defender(1)
 	var second_target: Defender = crew.get_defender(2)
 	first_target.health.set_health(1)
@@ -84,14 +83,21 @@ func _run_scenarios() -> void:
 	await _wait_for_role(roles, 0, CrewRole.Id.MEDIC, 240)
 	first_target.health.set_health(1)
 	await _wait_for_healing_target(medical, 1, 120)
+	var demolished_cell: int = grid.get_snapshot(medical_id).cell_index
 	assert(grid.demolish(medical_id))
 	await process_frame
 	assert(not medical.has_station())
 	assert(not medical.is_healing_cycle_active(0))
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
+	assert(inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION))
+	assert(grid.is_cell_available(demolished_cell))
 	var released: CrewAssignmentRuntime = roles.get_assignment(0)
 	assert(released.current_role == CrewRole.Id.FREE_FIGHTER)
 	assert(released.state == CrewAssignmentRuntime.State.ACTIVE)
+	assert(grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		demolished_cell
+	) >= 0)
 
 	print("Buildable and medical station scenarios passed")
 	quit()
