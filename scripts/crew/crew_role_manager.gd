@@ -13,6 +13,7 @@ signal assignment_rejected(defender_id: int, role_id: int, reason: StringName)
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
+@export_node_path("MedicalStationSystem") var medical_station_system_path: NodePath
 
 var _assignments: Dictionary[int, CrewAssignmentRuntime] = {}
 var _stations: RoleStationRegistry = RoleStationRegistry.new()
@@ -22,6 +23,9 @@ var _initialized: bool = false
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _steering: SteeringInputProvider = get_node(steering_input_path)
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
+@onready var _medical: MedicalStationSystem = get_node_or_null(
+	medical_station_system_path
+)
 
 
 func _ready() -> void:
@@ -70,8 +74,33 @@ func request_assignment(defender_id: int, role_id: int) -> void:
 	_begin_transition(runtime)
 
 
+func set_dynamic_role_station(
+	role_id: int,
+	is_available: bool,
+	local_x: float = 0.0
+) -> void:
+	if is_available:
+		_stations.set_dynamic_target(role_id, local_x)
+		_retarget_moving_assignments(role_id)
+		return
+	_disable_dynamic_role(role_id)
+	_stations.clear_dynamic_target(role_id)
+
+
 func get_assignment(defender_id: int) -> CrewAssignmentRuntime:
 	return _assignments.get(defender_id)
+
+
+func get_role_owner(role_id: int) -> int:
+	return _stations.get_owner(role_id)
+
+
+func get_role_target_x(role_id: int, defender_id: int = 0) -> float:
+	return _stations.get_target_x(role_id, defender_id)
+
+
+func is_role_station_available(role_id: int) -> bool:
+	return _stations.has_station(role_id)
 
 
 func get_summary() -> String:
@@ -165,6 +194,11 @@ func _is_current_action_active(runtime: CrewAssignmentRuntime) -> bool:
 			return _anchors.is_operator_busy(AnchorRuntime.Side.LEFT)
 		CrewRole.Id.RIGHT_ANCHOR:
 			return _anchors.is_operator_busy(AnchorRuntime.Side.RIGHT)
+		CrewRole.Id.MEDIC:
+			return (
+				_medical != null
+				and _medical.is_healing_cycle_active(runtime.defender_id)
+			)
 		_:
 			return false
 
@@ -190,12 +224,45 @@ func _deactivate_capability(role_id: int) -> void:
 
 
 func _is_role_available_in_prototype(role_id: int) -> bool:
+	if role_id == CrewRole.Id.MEDIC:
+		return _stations.has_station(role_id)
 	return (
 		role_id == CrewRole.Id.FREE_FIGHTER
 		or role_id == CrewRole.Id.DRIVER
 		or role_id == CrewRole.Id.LEFT_ANCHOR
 		or role_id == CrewRole.Id.RIGHT_ANCHOR
 	)
+
+
+func _retarget_moving_assignments(role_id: int) -> void:
+	for runtime: CrewAssignmentRuntime in _assignments.values():
+		if (
+			runtime.state != CrewAssignmentRuntime.State.MOVING
+			or runtime.target_role != role_id
+		):
+			continue
+		var defender: Defender = _crew.get_defender(runtime.defender_id)
+		if defender != null and defender.health.is_alive():
+			defender.move_to(
+				_stations.get_target_x(role_id, runtime.defender_id)
+			)
+
+
+func _disable_dynamic_role(role_id: int) -> void:
+	for runtime: CrewAssignmentRuntime in _assignments.values():
+		if runtime.current_role != role_id and runtime.target_role != role_id:
+			continue
+		_deactivate_capability(runtime.current_role)
+		_stations.release(runtime.current_role, runtime.defender_id)
+		_stations.release(runtime.target_role, runtime.defender_id)
+		runtime.current_role = CrewRole.Id.FREE_FIGHTER
+		runtime.target_role = CrewRole.Id.FREE_FIGHTER
+		if runtime.state != CrewAssignmentRuntime.State.DEAD:
+			runtime.state = CrewAssignmentRuntime.State.ACTIVE
+			var defender: Defender = _crew.get_defender(runtime.defender_id)
+			if defender != null:
+				defender.movement.stop()
+		_emit_assignment(runtime)
 
 
 func _format_assignment(runtime: CrewAssignmentRuntime) -> String:
