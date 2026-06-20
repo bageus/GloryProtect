@@ -135,7 +135,12 @@ func _choose_unique_sections(count: int) -> Array[int]:
 		var temporary: int = sections[index]
 		sections[index] = sections[swap_index]
 		sections[swap_index] = temporary
-	return sections.slice(0, count)
+
+	var selected: Array[int] = []
+	var selected_count: int = mini(count, sections.size())
+	for index: int in range(selected_count):
+		selected.append(sections[index])
+	return selected
 
 
 func _split_enemy_count(total_count: int, group_count: int) -> Array[int]:
