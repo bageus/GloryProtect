@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UpgradeBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+cards_per_offer = 2
+linear_offer_count = 20
+linear_step_cost = 5
+post_linear_multiplier = 2
+placeholder_title = "Тестовая карточка"
+placeholder_description = "Эффект карточки пока не реализован."
