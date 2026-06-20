@@ -88,7 +88,7 @@ func _draw_medical_station(local_x: float) -> void:
 	)
 
 
-func _on_visual_changed(_a = null, _b = null, _c = null) -> void:
+func _on_visual_changed(_a: int, _b: int, _c: int) -> void:
 	queue_redraw()
 
 
