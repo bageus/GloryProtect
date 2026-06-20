@@ -1,4 +1,4 @@
-[gd_scene load_steps=48 format=3]
+[gd_scene load_steps=52 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -47,6 +47,10 @@
 [ext_resource type="Script" path="res://scripts/strategic/strategic_wave_director.gd" id="45_strategic_director"]
 [ext_resource type="PackedScene" path="res://scenes/ui/strategic_minimap.tscn" id="46_strategic_minimap"]
 [ext_resource type="Script" path="res://scripts/strategic/strategic_group_mutation_controller.gd" id="47_strategic_mutation"]
+[ext_resource type="Script" path="res://scripts/statistics/run_statistics.gd" id="48_statistics"]
+[ext_resource type="PackedScene" path="res://scenes/ui/game_over_panel.tscn" id="49_game_over"]
+[ext_resource type="Script" path="res://scripts/shield/shield_critical_alert_controller.gd" id="50_critical_alert"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shield_critical_alert_presenter.tscn" id="51_critical_presenter"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -70,6 +74,14 @@ game_flow_path = NodePath("../GameFlowController")
 run_economy_path = NodePath("../RunEconomy")
 balance = ExtResource("39_upgrade_balance")
 
+[node name="RunStatistics" type="Node" parent="."]
+script = ExtResource("48_statistics")
+game_flow_path = NodePath("../GameFlowController")
+run_difficulty_path = NodePath("../RunDifficulty")
+reward_controller_path = NodePath("../World/BoardingRewardController")
+run_economy_path = NodePath("../RunEconomy")
+upgrade_system_path = NodePath("../UpgradeSystem")
+
 [node name="SteeringInputProvider" type="Node" parent="."]
 script = ExtResource("9_steering")
 driver_available = true
@@ -84,6 +96,11 @@ balance = ExtResource("23_shield_balance")
 
 [node name="ShieldFailureController" type="Node" parent="."]
 script = ExtResource("21_failure")
+game_flow_path = NodePath("../GameFlowController")
+shield_system_path = NodePath("../ShieldSystem")
+
+[node name="ShieldCriticalAlertController" type="Node" parent="."]
+script = ExtResource("50_critical_alert")
 game_flow_path = NodePath("../GameFlowController")
 shield_system_path = NodePath("../ShieldSystem")
 
@@ -272,6 +289,7 @@ mouse_filter = 2
 script = ExtResource("4_hud")
 game_flow_path = NodePath("../../GameFlowController")
 run_difficulty_path = NodePath("../../RunDifficulty")
+run_statistics_path = NodePath("../../RunStatistics")
 wind_system_path = NodePath("../../WindSystem")
 platform_path = NodePath("../../World/Platform")
 anchor_system_path = NodePath("../../World/AnchorSystem")
@@ -291,7 +309,7 @@ spawn_director_path = NodePath("../../World/BoardingSpawnDirector")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 1080.0
-offset_bottom = 484.0
+offset_bottom = 510.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -307,12 +325,17 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 1.4"
+text = "GloryProtect — Prototype 1.5"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Состояние"
+
+[node name="StatisticsLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Результат"
 
 [node name="WindLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -412,5 +435,12 @@ shield_system_path = NodePath("../../ShieldSystem")
 wave_system_path = NodePath("../../World/StrategicWaveSystem")
 wave_director_path = NodePath("../../World/StrategicWaveDirector")
 
+[node name="ShieldCriticalAlertPresenter" parent="CanvasLayer" instance=ExtResource("51_critical_presenter")]
+alert_controller_path = NodePath("../../ShieldCriticalAlertController")
+
 [node name="UpgradeSelectionPanel" parent="CanvasLayer" instance=ExtResource("40_upgrade_panel")]
 upgrade_system_path = NodePath("../../UpgradeSystem")
+
+[node name="GameOverPanel" parent="CanvasLayer" instance=ExtResource("49_game_over")]
+game_flow_path = NodePath("../../GameFlowController")
+run_statistics_path = NodePath("../../RunStatistics")
