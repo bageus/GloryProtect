@@ -20,6 +20,7 @@ var _platform_local_x: float = 0.0
 var _jump_elapsed: float = 0.0
 var _jump_plan: BoardingJumpPlan = null
 var _enemy: BoardingEnemy
+var _archetype: BoardingEnemyArchetype
 var _balance: BoardingBalance
 var _game_flow: GameFlowController
 var _platform: PlatformController
@@ -33,6 +34,7 @@ var _melee: MeleeAttackComponent
 
 func configure(
 	enemy: BoardingEnemy,
+	archetype: BoardingEnemyArchetype,
 	balance: BoardingBalance,
 	game_flow: GameFlowController,
 	platform: PlatformController,
@@ -44,6 +46,7 @@ func configure(
 	melee: MeleeAttackComponent
 ) -> void:
 	_enemy = enemy
+	_archetype = archetype
 	_balance = balance
 	_game_flow = game_flow
 	_platform = platform
@@ -139,7 +142,7 @@ func _update_waiting(delta: float) -> void:
 	var desired_x: float = move_toward(
 		_enemy.global_position.x,
 		_platform.global_position.x,
-		_balance.ground_move_speed * delta
+		_archetype.ground_move_speed * delta
 	)
 	_enemy.global_position.x = _movement_resolver.resolve_ground_x(
 		_enemy,
@@ -164,7 +167,7 @@ func _update_running_to_anchor(delta: float) -> void:
 	var desired_x: float = move_toward(
 		_enemy.global_position.x,
 		path.ground_point.x,
-		_balance.ground_move_speed * delta
+		_archetype.ground_move_speed * delta
 	)
 	_enemy.global_position.x = _movement_resolver.resolve_ground_x(
 		_enemy,
@@ -211,7 +214,7 @@ func _update_climbing(delta: float) -> void:
 	)
 	var desired_progress: float = minf(
 		1.0,
-		_climb_progress + _balance.climb_move_speed * delta / rope_length
+		_climb_progress + _archetype.climb_move_speed * delta / rope_length
 	)
 	_climb_progress = _movement_resolver.resolve_climb_progress(
 		_enemy,
@@ -256,7 +259,7 @@ func _update_on_platform(delta: float) -> void:
 		target.global_position.x - _platform.global_position.x
 	)
 	var distance: float = absf(target_local_x - _platform_local_x)
-	if distance <= _balance.enemy_attack_range:
+	if distance <= _archetype.attack_range:
 		if _melee.try_start(target.health):
 			state = State.FIGHTING
 		return
@@ -264,7 +267,7 @@ func _update_on_platform(delta: float) -> void:
 	var desired_x: float = move_toward(
 		_platform_local_x,
 		target_local_x,
-		_balance.platform_move_speed * delta
+		_archetype.platform_move_speed * delta
 	)
 	var resolved_x: float = _movement_resolver.resolve_enemy_platform_x(
 		_enemy,
