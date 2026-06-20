@@ -51,7 +51,7 @@ func get_owner(role_id: int) -> int:
 
 func get_target_x(role_id: int, defender_id: int) -> float:
 	if _dynamic_targets.has(role_id):
-		return _dynamic_targets[role_id]
+		return float(_dynamic_targets[role_id])
 	var platform_width := _platform.get_platform_width()
 	var post_offset := (
 		platform_width * 0.5
