@@ -32,14 +32,17 @@ func resolve_ground_x(
 	for other: BoardingEnemy in _enemies.get_all_enemies():
 		if other == enemy or not other.health.is_alive():
 			continue
-		var other_state: int = other.get_state()
-		if not _is_ground_state(other_state):
+		if not _is_ground_state(other.get_state()):
 			continue
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
 			other.global_position.x,
-			boarding_balance.ground_enemy_spacing
+			get_enemy_gap(
+				enemy,
+				other,
+				boarding_balance.ground_enemy_spacing
+			)
 		)
 	return resolved_x
 
@@ -52,12 +55,13 @@ func find_ground_spawn_x(
 	if _is_ground_slot_free(enemy, preferred_x):
 		return preferred_x
 	var direction: float = 1.0 if spawn_side >= 0 else -1.0
+	var step_size: float = maxf(
+		boarding_balance.ground_enemy_spacing,
+		enemy.get_body_radius() * 2.0
+	)
 	for step_index: int in range(1, boarding_balance.max_ground_enemies + 2):
 		var candidate_x: float = (
-			preferred_x
-			+ direction
-			* float(step_index)
-			* boarding_balance.ground_enemy_spacing
+			preferred_x + direction * float(step_index) * step_size
 		)
 		if _is_ground_slot_free(enemy, candidate_x):
 			return candidate_x
@@ -69,7 +73,6 @@ func can_enter_climb(
 	anchor_id: int,
 	rope_length: float
 ) -> bool:
-	var minimum_progress: float = INF
 	for other: BoardingEnemy in _enemies.get_all_enemies():
 		if other == enemy or not other.health.is_alive():
 			continue
@@ -77,16 +80,16 @@ func can_enter_climb(
 			continue
 		if other.controller.get_selected_anchor_id() != anchor_id:
 			continue
-		minimum_progress = minf(
-			minimum_progress,
-			other.controller.get_climb_progress()
+		var distance_from_entry: float = (
+			other.controller.get_climb_progress() * maxf(1.0, rope_length)
 		)
-	if minimum_progress == INF:
-		return true
-	return (
-		minimum_progress * maxf(1.0, rope_length)
-		>= boarding_balance.climb_enemy_spacing
-	)
+		if distance_from_entry < get_enemy_gap(
+			enemy,
+			other,
+			boarding_balance.climb_enemy_spacing
+		):
+			return false
+	return true
 
 
 func resolve_climb_progress(
@@ -96,7 +99,8 @@ func resolve_climb_progress(
 	desired_progress: float,
 	rope_length: float
 ) -> float:
-	var nearest_ahead: float = INF
+	var resolved_progress: float = desired_progress
+	var safe_rope_length: float = maxf(1.0, rope_length)
 	for other: BoardingEnemy in _enemies.get_all_enemies():
 		if other == enemy or not other.health.is_alive():
 			continue
@@ -107,19 +111,17 @@ func resolve_climb_progress(
 		var other_progress: float = other.controller.get_climb_progress()
 		if other_progress <= current_progress:
 			continue
-		nearest_ahead = minf(nearest_ahead, other_progress)
-
-	if nearest_ahead == INF:
-		return desired_progress
-
-	var progress_gap: float = (
-		boarding_balance.climb_enemy_spacing / maxf(1.0, rope_length)
-	)
-	var maximum_progress: float = maxf(
-		current_progress,
-		nearest_ahead - progress_gap
-	)
-	return minf(desired_progress, maximum_progress)
+		var progress_gap: float = get_enemy_gap(
+			enemy,
+			other,
+			boarding_balance.climb_enemy_spacing
+		) / safe_rope_length
+		var maximum_progress: float = maxf(
+			current_progress,
+			other_progress - progress_gap
+		)
+		resolved_progress = minf(resolved_progress, maximum_progress)
+	return resolved_progress
 
 
 func can_exit_to_platform(enemy: BoardingEnemy, local_x: float) -> bool:
@@ -132,9 +134,11 @@ func find_nearest_platform_slot(
 ) -> float:
 	if can_place_enemy_at(enemy, preferred_x):
 		return preferred_x
-
 	var platform_half_width: float = _platform.get_platform_width() * 0.5
-	var step_size: float = boarding_balance.platform_enemy_spacing
+	var step_size: float = maxf(
+		boarding_balance.platform_enemy_spacing,
+		enemy.get_body_radius() * 2.0
+	)
 	var max_steps: int = ceili(platform_half_width * 2.0 / step_size)
 	for step_index: int in range(1, max_steps + 1):
 		var offset: float = float(step_index) * step_size
@@ -144,7 +148,7 @@ func find_nearest_platform_slot(
 		var right_candidate: float = preferred_x + offset
 		if can_place_enemy_at(enemy, right_candidate):
 			return right_candidate
-	return preferred_x
+	return _clamp_enemy_to_platform(enemy, preferred_x)
 
 
 func find_nearest_defender_slot(preferred_x: float) -> float:
@@ -152,7 +156,10 @@ func find_nearest_defender_slot(preferred_x: float) -> float:
 		return _clamp_defender_to_platform(preferred_x)
 
 	var platform_half_width: float = _platform.get_platform_width() * 0.5
-	var step_size: float = _get_enemy_defender_gap()
+	var step_size: float = maxf(
+		boarding_balance.platform_enemy_spacing,
+		crew_balance.defender_body_radius * 2.0
+	)
 	var max_steps: int = ceili(platform_half_width * 2.0 / step_size)
 	for step_index: int in range(1, max_steps + 1):
 		var offset: float = float(step_index) * step_size
@@ -167,7 +174,7 @@ func find_nearest_defender_slot(preferred_x: float) -> float:
 
 func can_place_enemy_at(enemy: BoardingEnemy, local_x: float) -> bool:
 	var platform_half_width: float = _platform.get_platform_width() * 0.5
-	var enemy_radius: float = boarding_balance.enemy_body_radius
+	var enemy_radius: float = enemy.get_body_radius()
 	if local_x < -platform_half_width + enemy_radius:
 		return false
 	if local_x > platform_half_width - enemy_radius:
@@ -178,11 +185,15 @@ func can_place_enemy_at(enemy: BoardingEnemy, local_x: float) -> bool:
 			continue
 		if (
 			absf(other.controller.get_platform_occupancy_x() - local_x)
-			< boarding_balance.platform_enemy_spacing
+			< get_enemy_gap(
+				enemy,
+				other,
+				boarding_balance.platform_enemy_spacing
+			)
 		):
 			return false
 
-	var defender_gap: float = _get_enemy_defender_gap()
+	var defender_gap: float = get_enemy_defender_gap(enemy)
 	for defender: Defender in _crew.get_living_defenders():
 		if absf(defender.position.x - local_x) < defender_gap:
 			return false
@@ -194,7 +205,7 @@ func resolve_enemy_platform_x(
 	current_x: float,
 	desired_x: float
 ) -> float:
-	var resolved_x: float = _clamp_enemy_to_platform(desired_x)
+	var resolved_x: float = _clamp_enemy_to_platform(enemy, desired_x)
 	for other: BoardingEnemy in _enemies.get_boarded_enemies():
 		if other == enemy:
 			continue
@@ -202,10 +213,14 @@ func resolve_enemy_platform_x(
 			current_x,
 			resolved_x,
 			other.controller.get_platform_occupancy_x(),
-			boarding_balance.platform_enemy_spacing
+			get_enemy_gap(
+				enemy,
+				other,
+				boarding_balance.platform_enemy_spacing
+			)
 		)
 
-	var defender_gap: float = _get_enemy_defender_gap()
+	var defender_gap: float = get_enemy_defender_gap(enemy)
 	for defender: Defender in _crew.get_living_defenders():
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
@@ -222,15 +237,29 @@ func resolve_defender_platform_x(
 	desired_x: float
 ) -> float:
 	var resolved_x: float = _clamp_defender_to_platform(desired_x)
-	var defender_gap: float = _get_enemy_defender_gap()
 	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
 			enemy.controller.get_platform_occupancy_x(),
-			defender_gap
+			get_enemy_defender_gap(enemy)
 		)
 	return resolved_x
+
+
+func get_enemy_gap(
+	first: BoardingEnemy,
+	second: BoardingEnemy,
+	minimum_spacing: float
+) -> float:
+	return maxf(
+		minimum_spacing,
+		first.get_body_radius() + second.get_body_radius()
+	)
+
+
+func get_enemy_defender_gap(enemy: BoardingEnemy) -> float:
+	return enemy.get_body_radius() + crew_balance.defender_body_radius
 
 
 func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
@@ -241,7 +270,11 @@ func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
 			continue
 		if (
 			absf(other.global_position.x - world_x)
-			< boarding_balance.ground_enemy_spacing
+			< get_enemy_gap(
+				enemy,
+				other,
+				boarding_balance.ground_enemy_spacing
+			)
 		):
 			return false
 	return true
@@ -251,11 +284,10 @@ func _is_defender_slot_free(local_x: float) -> bool:
 	var clamped_x: float = _clamp_defender_to_platform(local_x)
 	if not is_equal_approx(local_x, clamped_x):
 		return false
-	var minimum_gap: float = _get_enemy_defender_gap()
 	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
 		if (
 			absf(enemy.controller.get_platform_occupancy_x() - local_x)
-			< minimum_gap
+			< get_enemy_defender_gap(enemy)
 		):
 			return false
 	return true
@@ -268,13 +300,13 @@ func _is_ground_state(enemy_state: int) -> bool:
 	)
 
 
-func _clamp_enemy_to_platform(local_x: float) -> float:
+func _clamp_enemy_to_platform(
+	enemy: BoardingEnemy,
+	local_x: float
+) -> float:
 	var half_width: float = _platform.get_platform_width() * 0.5
-	return clampf(
-		local_x,
-		-half_width + boarding_balance.enemy_body_radius,
-		half_width - boarding_balance.enemy_body_radius
-	)
+	var radius: float = enemy.get_body_radius()
+	return clampf(local_x, -half_width + radius, half_width - radius)
 
 
 func _clamp_defender_to_platform(local_x: float) -> float:
@@ -283,13 +315,6 @@ func _clamp_defender_to_platform(local_x: float) -> float:
 		local_x,
 		-half_width + crew_balance.defender_body_radius,
 		half_width - crew_balance.defender_body_radius
-	)
-
-
-func _get_enemy_defender_gap() -> float:
-	return (
-		boarding_balance.enemy_body_radius
-		+ crew_balance.defender_body_radius
 	)
 
 
