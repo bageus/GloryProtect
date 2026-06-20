@@ -11,6 +11,9 @@ extends Control
 @onready var _kills_label: Label = %KillsLabel
 @onready var _coins_label: Label = %CoinsLabel
 @onready var _upgrades_label: Label = %UpgradesLabel
+@onready var _session_label: Label = %SessionLabel
+@onready var _best_time_label: Label = %BestTimeLabel
+@onready var _best_kills_label: Label = %BestKillsLabel
 @onready var _restart_button: Button = %RestartButton
 
 
@@ -40,6 +43,15 @@ func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
 	)
 	_coins_label.text = "Монет осталось: %d" % snapshot.remaining_coins
 	_upgrades_label.text = "Карточек куплено: %d" % snapshot.purchased_upgrades
+	_session_label.text = "Забегов в текущем запуске: %d" % (
+		_statistics.get_session_completed_runs()
+	)
+	_best_time_label.text = "Лучшее время: %s" % _format_duration(
+		_statistics.get_session_best_survival_seconds()
+	)
+	_best_kills_label.text = "Лучший результат по убийствам: %d" % (
+		_statistics.get_session_best_physical_kills()
+	)
 	visible = true
 	_restart_button.grab_focus()
 
