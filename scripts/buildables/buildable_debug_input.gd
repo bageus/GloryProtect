@@ -95,16 +95,15 @@ func _place_or_move_medical_station() -> void:
 			BuildableType.Id.MEDICAL_STATION,
 			selected_cell_index
 		)
-		command_feedback.emit(
-			&"medical_station_placed" if medical_id >= 0
-			else &"medical_station_place_failed"
-		)
+		if medical_id >= 0:
+			command_feedback.emit(&"medical_station_placed")
+		else:
+			command_feedback.emit(&"medical_station_place_failed")
 		return
-	var moved: bool = _grid.move(medical_id, selected_cell_index)
-	command_feedback.emit(
-		&"medical_station_moved" if moved
-		else &"medical_station_move_failed"
-	)
+	if _grid.move(medical_id, selected_cell_index):
+		command_feedback.emit(&"medical_station_moved")
+	else:
+		command_feedback.emit(&"medical_station_move_failed")
 
 
 func _demolish_medical_station() -> void:
@@ -114,7 +113,7 @@ func _demolish_medical_station() -> void:
 	if medical_id < 0:
 		command_feedback.emit(&"medical_station_missing")
 		return
-	command_feedback.emit(
-		&"medical_station_demolished" if _grid.demolish(medical_id)
-		else &"medical_station_demolish_failed"
-	)
+	if _grid.demolish(medical_id):
+		command_feedback.emit(&"medical_station_demolished")
+	else:
+		command_feedback.emit(&"medical_station_demolish_failed")
