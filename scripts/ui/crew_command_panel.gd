@@ -66,12 +66,12 @@ func request_selected_role(role_id: int, station_id: int = -1) -> void:
 			true
 		)
 		return
+	_view.set_feedback("Команда отправлена", false)
 	_roles.request_assignment(
 		_selection.get_selected_defender_id(),
 		role_id,
 		station_id
 	)
-	_view.set_feedback("Команда отправлена", false)
 
 
 func are_commands_enabled() -> bool:
