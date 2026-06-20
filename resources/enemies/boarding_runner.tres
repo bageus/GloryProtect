@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BoardingEnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_archetype.gd" id="1_archetype"]
+
+[resource]
+script = ExtResource("1_archetype")
+archetype_id = &"runner"
+display_name = "Быстрый абордажник"
+max_health = 1
+body_radius = 10.0
+body_color = Color(0.42, 0.2, 0.72, 1)
+accent_color = Color(0.86, 0.66, 1, 1)
+ground_move_speed = 175.0
+climb_move_speed = 150.0
+platform_move_speed = 135.0
+attack_damage = 1
+attack_windup = 0.35
+attack_cooldown = 0.65
+attack_range = 26.0
+unlock_difficulty = 0.15
+weight_at_unlock = 0.25
+weight_at_max_difficulty = 1.4
