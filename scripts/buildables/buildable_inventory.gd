@@ -53,9 +53,11 @@ func reset_for_run() -> void:
 
 
 func get_summary() -> String:
-	return "медпост %d/%d" % [
+	return "медпост %d/%d | турели %d/%d" % [
 		get_unlocked_count(BuildableType.Id.MEDICAL_STATION),
 		balance.medical_station_max_count,
+		get_unlocked_count(BuildableType.Id.TURRET),
+		balance.turret_max_count,
 	]
 
 
