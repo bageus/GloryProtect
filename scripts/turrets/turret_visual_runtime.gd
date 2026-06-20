@@ -35,6 +35,7 @@ func resolve_shot(tracer_duration: float, flash_duration: float) -> void:
 
 func cancel_target() -> void:
 	target_enemy_id = -1
+	last_target_world = Vector2.ZERO
 	tracer_remaining = 0.0
 	flash_remaining = 0.0
 
@@ -42,6 +43,8 @@ func cancel_target() -> void:
 func tick(delta: float) -> void:
 	tracer_remaining = maxf(0.0, tracer_remaining - delta)
 	flash_remaining = maxf(0.0, flash_remaining - delta)
+	if target_enemy_id < 0 and not is_effect_active():
+		last_target_world = Vector2.ZERO
 
 
 func is_effect_active() -> bool:
