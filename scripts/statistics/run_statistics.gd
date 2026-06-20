@@ -74,7 +74,7 @@ func _on_reward_granted(
 	_amount: int,
 	_reason: StringName
 ) -> void:
-	if _game_flow.state == GameFlowController.RunState.GAME_OVER:
+	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
 	_physical_kills += 1
 	statistics_changed.emit(get_current_survival_seconds(), _physical_kills)
