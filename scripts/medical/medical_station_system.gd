@@ -235,7 +235,9 @@ func _sync_station() -> void:
 	_roles.set_dynamic_role_station(
 		CrewRole.Id.MEDIC,
 		true,
-		_station_local_x
+		_station_local_x,
+		CrewRoleManager.DEFAULT_DYNAMIC_STATION_ID,
+		true
 	)
 	station_availability_changed.emit(true, _station_local_x)
 
