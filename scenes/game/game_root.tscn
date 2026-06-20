@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=38 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -34,12 +34,20 @@
 [ext_resource type="Script" path="res://scripts/crew/crew_replacement_controller.gd" id="32_replacement"]
 [ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver.gd" id="33_movement_resolver"]
 [ext_resource type="Script" path="res://scripts/boarding/boarding_jump_planner.gd" id="34_jump_planner"]
+[ext_resource type="Script" path="res://scripts/economy/run_economy.gd" id="35_run_economy"]
+[ext_resource type="Script" path="res://scripts/economy/boarding_reward_controller.gd" id="36_reward_controller"]
+[ext_resource type="Resource" path="res://resources/balance/economy_balance.tres" id="37_economy_balance"]
 
 [node name="GameRoot" type="Node2D"]
 
 [node name="GameFlowController" type="Node" parent="."]
 script = ExtResource("1_flow")
 start_delay_seconds = 3.0
+
+[node name="RunEconomy" type="Node" parent="."]
+script = ExtResource("35_run_economy")
+game_flow_path = NodePath("../GameFlowController")
+balance = ExtResource("37_economy_balance")
 
 [node name="SteeringInputProvider" type="Node" parent="."]
 script = ExtResource("9_steering")
@@ -125,6 +133,12 @@ balance = ExtResource("26_boarding_balance")
 
 [node name="BoardingEnemyRegistry" type="Node" parent="World"]
 script = ExtResource("29_enemy_registry")
+
+[node name="BoardingRewardController" type="Node" parent="World"]
+script = ExtResource("36_reward_controller")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+run_economy_path = NodePath("../../RunEconomy")
+balance = ExtResource("37_economy_balance")
 
 [node name="BoardingMovementResolver" type="Node" parent="World"]
 script = ExtResource("33_movement_resolver")
@@ -219,6 +233,7 @@ anchor_system_path = NodePath("../../World/AnchorSystem")
 crew_role_manager_path = NodePath("../../World/Platform/CrewRoleManager")
 crew_debug_input_path = NodePath("../../CrewDebugInput")
 crew_replacement_path = NodePath("../../CrewReplacementController")
+run_economy_path = NodePath("../../RunEconomy")
 orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 contact_system_path = NodePath("../../World/OrbContactSystem")
 shield_system_path = NodePath("../../ShieldSystem")
@@ -229,7 +244,7 @@ enemy_registry_path = NodePath("../../World/BoardingEnemyRegistry")
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 1080.0
-offset_bottom = 432.0
+offset_bottom = 458.0
 
 [node name="Margin" type="MarginContainer" parent="CanvasLayer/PrototypeHUD/TelemetryPanel"]
 layout_mode = 2
@@ -245,7 +260,7 @@ theme_override_constants/separation = 6
 [node name="Title" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 22
-text = "GloryProtect — Prototype 0.9"
+text = "GloryProtect — Prototype 1.0"
 
 [node name="StateLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
@@ -276,6 +291,11 @@ text = "Экипаж"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Замены"
+
+[node name="EconomyLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Монеты забега"
 
 [node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
 unique_name_in_owner = true
