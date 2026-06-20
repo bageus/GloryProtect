@@ -35,6 +35,8 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 func _ready() -> void:
 	assert(enemy_scene != null, "BoardingSpawnDirector requires enemy scene")
 	assert(balance != null, "BoardingSpawnDirector requires BoardingBalance")
+	if enemy_catalog == null:
+		enemy_catalog = balance.enemy_catalog
 	assert(enemy_catalog != null, "BoardingSpawnDirector requires enemy catalog")
 	assert(enemy_catalog.validate(), "Boarding enemy catalog is invalid")
 	_rng.randomize()
