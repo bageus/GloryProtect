@@ -31,7 +31,6 @@ func place(type_id: int, cell_index: int) -> int:
 		return -1
 	if not _inventory.can_deploy(type_id, get_count_by_type(type_id)):
 		return -1
-
 	var runtime := BuildableRuntime.new(
 		_next_buildable_id,
 		type_id,
@@ -52,7 +51,6 @@ func move(buildable_id: int, cell_index: int) -> bool:
 		return true
 	if not is_cell_available(cell_index):
 		return false
-
 	var previous_cell: int = runtime.cell_index
 	_cell_occupants.erase(previous_cell)
 	runtime.cell_index = cell_index
@@ -75,21 +73,29 @@ func demolish(buildable_id: int) -> bool:
 	return true
 
 
+func has_buildable(buildable_id: int) -> bool:
+	return _buildables.has(buildable_id)
+
+
 func get_buildable_id_by_type(type_id: int) -> int:
+	var ids: Array[int] = get_buildable_ids_by_type(type_id)
+	if ids.is_empty():
+		return -1
+	return ids[0]
+
+
+func get_buildable_ids_by_type(type_id: int) -> Array[int]:
+	var result: Array[int] = []
 	var ids: Array[int] = _buildables.keys()
 	ids.sort()
 	for buildable_id: int in ids:
 		if _buildables[buildable_id].type_id == type_id:
-			return buildable_id
-	return -1
+			result.append(buildable_id)
+	return result
 
 
 func get_count_by_type(type_id: int) -> int:
-	var count: int = 0
-	for runtime: BuildableRuntime in _buildables.values():
-		if runtime.type_id == type_id:
-			count += 1
-	return count
+	return get_buildable_ids_by_type(type_id).size()
 
 
 func is_cell_occupied(cell_index: int) -> bool:
@@ -138,10 +144,14 @@ func get_summary() -> String:
 	var medical_id: int = get_buildable_id_by_type(
 		BuildableType.Id.MEDICAL_STATION
 	)
-	if medical_id < 0:
-		return "медпост не установлен"
-	var snapshot: BuildableSnapshot = get_snapshot(medical_id)
-	return "медпост клетка %d" % (snapshot.cell_index + 1)
+	var medical_text: String = "медпост не установлен"
+	if medical_id >= 0:
+		var snapshot: BuildableSnapshot = get_snapshot(medical_id)
+		medical_text = "медпост клетка %d" % (snapshot.cell_index + 1)
+	return "%s | турелей %d" % [
+		medical_text,
+		get_count_by_type(BuildableType.Id.TURRET),
+	]
 
 
 func _on_run_state_changed(previous_state: int, new_state: int) -> void:
