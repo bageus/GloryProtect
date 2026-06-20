@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="BoardingEnemyArchetype" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_archetype.gd" id="1_archetype"]
+
+[resource]
+script = ExtResource("1_archetype")
+archetype_id = &"brute"
+display_name = "Тяжёлый абордажник"
+max_health = 3
+body_radius = 16.0
+body_color = Color(0.62, 0.26, 0.12, 1)
+accent_color = Color(1, 0.68, 0.28, 1)
+ground_move_speed = 85.0
+climb_move_speed = 70.0
+platform_move_speed = 62.0
+attack_damage = 1
+attack_windup = 0.8
+attack_cooldown = 1.1
+attack_range = 34.0
+unlock_difficulty = 0.45
+weight_at_unlock = 0.15
+weight_at_max_difficulty = 0.9
