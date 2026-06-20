@@ -13,19 +13,16 @@ signal assignment_rejected(defender_id: int, role_id: int, reason: StringName)
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
-@export_node_path("MedicalStationSystem") var medical_station_system_path: NodePath
 
 var _assignments: Dictionary[int, CrewAssignmentRuntime] = {}
 var _stations: RoleStationRegistry = RoleStationRegistry.new()
+var _external_action_roles: Dictionary[int, int] = {}
 var _initialized: bool = false
 
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _steering: SteeringInputProvider = get_node(steering_input_path)
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
-@onready var _medical: MedicalStationSystem = get_node_or_null(
-	medical_station_system_path
-)
 
 
 func _ready() -> void:
@@ -85,6 +82,18 @@ func set_dynamic_role_station(
 		return
 	_disable_dynamic_role(role_id)
 	_stations.clear_dynamic_target(role_id)
+
+
+func set_external_role_action_active(
+	defender_id: int,
+	role_id: int,
+	is_active: bool
+) -> void:
+	if is_active:
+		_external_action_roles[defender_id] = role_id
+		return
+	if _external_action_roles.get(defender_id, -1) == role_id:
+		_external_action_roles.erase(defender_id)
 
 
 func get_assignment(defender_id: int) -> CrewAssignmentRuntime:
@@ -167,6 +176,7 @@ func _connect_defender(defender: Defender) -> void:
 func _begin_transition(runtime: CrewAssignmentRuntime) -> void:
 	_deactivate_capability(runtime.current_role)
 	_stations.release(runtime.current_role, runtime.defender_id)
+	_external_action_roles.erase(runtime.defender_id)
 
 	runtime.current_role = CrewRole.Id.FREE_FIGHTER
 	runtime.state = CrewAssignmentRuntime.State.MOVING
@@ -194,13 +204,11 @@ func _is_current_action_active(runtime: CrewAssignmentRuntime) -> bool:
 			return _anchors.is_operator_busy(AnchorRuntime.Side.LEFT)
 		CrewRole.Id.RIGHT_ANCHOR:
 			return _anchors.is_operator_busy(AnchorRuntime.Side.RIGHT)
-		CrewRole.Id.MEDIC:
-			return (
-				_medical != null
-				and _medical.is_healing_cycle_active(runtime.defender_id)
-			)
 		_:
-			return false
+			return (
+				_external_action_roles.get(runtime.defender_id, -1)
+				== runtime.current_role
+			)
 
 
 func _activate_capability(role_id: int) -> void:
@@ -255,6 +263,7 @@ func _disable_dynamic_role(role_id: int) -> void:
 		_deactivate_capability(runtime.current_role)
 		_stations.release(runtime.current_role, runtime.defender_id)
 		_stations.release(runtime.target_role, runtime.defender_id)
+		_external_action_roles.erase(runtime.defender_id)
 		runtime.current_role = CrewRole.Id.FREE_FIGHTER
 		runtime.target_role = CrewRole.Id.FREE_FIGHTER
 		if runtime.state != CrewAssignmentRuntime.State.DEAD:
@@ -311,5 +320,6 @@ func _on_defender_died(defender_id: int) -> void:
 	_deactivate_capability(runtime.current_role)
 	_stations.release(runtime.current_role, defender_id)
 	_stations.release(runtime.target_role, defender_id)
+	_external_action_roles.erase(defender_id)
 	runtime.state = CrewAssignmentRuntime.State.DEAD
 	_emit_assignment(runtime)
