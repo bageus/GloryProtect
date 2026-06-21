@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectHeavyExplosiveFifth"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"turret_heavy_explosive_fifth"
+
+[sub_resource type="Resource" id="CardHeavyExplosiveFifth"]
+script = ExtResource("2_definition")
+card_id = &"turret_heavy_explosive_fifth"
+branch_id = &"turret"
+title = "Взрывной пятый снаряд"
+description = "Каждый пятый снаряд дополнительно наносит 1 урон врагам в радиусе 64."
+card_type = 5
+required_specialization_id = &"turret_specialization_heavy"
+effect = SubResource("EffectHeavyExplosiveFifth")
+
+[sub_resource type="Resource" id="EffectElectricOrbFifth"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"turret_electric_orb_fifth"
+
+[sub_resource type="Resource" id="CardElectricOrbFifth"]
+script = ExtResource("2_definition")
+card_id = &"turret_electric_orb_fifth"
+branch_id = &"turret"
+title = "Электрическая сфера"
+description = "Каждый пятый залп заменяет обычный выстрел сферой: 4 урона и оглушение врагам в радиусе 96."
+card_type = 5
+required_specialization_id = &"turret_specialization_electric"
+effect = SubResource("EffectElectricOrbFifth")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardHeavyExplosiveFifth"), SubResource("CardElectricOrbFifth")])
