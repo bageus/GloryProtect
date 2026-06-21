@@ -1,15 +1,15 @@
 # GloryProtect — архитектура проекта
 
-Этот файл — единственный источник правды для архитектуры. Обязательные ограничения находятся в [`PROJECT_RULES.md`](PROJECT_RULES.md).
+Этот файл — единый источник правды для архитектуры. Обязательные ограничения находятся в [`PROJECT_RULES.md`](PROJECT_RULES.md). Подробные игровые правила вынесены в `docs/rules`.
 
 ## 1. Основные правила
 
 - Godot 4.6.2 stable, строго типизированный GDScript.
 - Максимум 600 строк на поддерживаемый файл; с 450 строк файл оценивается на разделение.
 - Каждое изменяемое состояние имеет одного владельца.
-- Баланс и определения находятся в типизированных `Resource`.
+- Баланс и неизменяемые определения находятся в типизированных `Resource`.
 - UI читает состояние и отправляет команды, но не реализует механику.
-- Представление не изменяет симуляцию.
+- Presentation не изменяет симуляцию.
 - Архитектурное изменение обновляет этот файл в том же наборе изменений.
 
 ## 2. Направление зависимостей
@@ -18,11 +18,11 @@
 Input / UI
     ↓ команды
 Domain systems
-    ↓ события и неизменяемые определения
+    ↓ события и read-only данные
 Presentation
 ```
 
-UI может владеть только состоянием интерфейса, например выбранным защитником. Визуальные компоненты могут хранить только восстановимый кэш и краткоживущие эффекты.
+UI может владеть только состоянием интерфейса. Визуальные компоненты могут хранить восстановимый кэш и краткоживущие эффекты.
 
 ## 3. Композиция GameRoot
 
@@ -35,12 +35,13 @@ GameRoot
 ├── BuildableInventory
 ├── RunStatistics
 ├── ShieldSystem
-├── CrewDebugInput : CrewSelectionController
+├── CrewSelectionController
 ├── Input adapters
 ├── World
 │   ├── OrbDomain
 │   ├── StrategicWaveDomain
 │   ├── AnchorDomain
+│   ├── AnchorPathRegistry
 │   ├── BoardingEnemyRegistry
 │   ├── BoardingMovementResolver
 │   ├── BoardingJumpPlanner
@@ -52,19 +53,17 @@ GameRoot
 │   └── Platform
 │       ├── PlatformVisualController
 │       ├── BuildableGridVisual
-│       │   └── TurretVisualController
 │       ├── CrewManager
 │       ├── CrewRoleManager
 │       └── Camera2D
 └── CanvasLayer
     ├── PrototypeHUD
-    │   └── CrewCommandPanel
     ├── StrategicMinimap
     ├── UpgradeSelectionPanel
     └── GameOverPanel
 ```
 
-`BoardingSpawnDirector` получает каталог типов косвенно через `BoardingBalance`. Сцена не перечисляет конкретные архетипы.
+`BoardingSpawnDirector` получает каталог типов через `BoardingBalance`. Сцена не перечисляет конкретные архетипы и не содержит веток по их ID.
 
 ## 4. Владельцы состояния
 
@@ -79,29 +78,24 @@ GameRoot
 | Здоровье сущности | её `HealthComponent` |
 | Положение и скорость платформы | `PlatformController` |
 | Состояния четырёх якорей | `AnchorRuntimeStore` |
-| Прочность четырёх тросов | `AnchorRopeDurability`; значения хранятся в соответствующих `AnchorRuntime` |
+| Прочность четырёх тросов | `AnchorRopeDurability` |
 | Размещённые объекты и занятость клеток | `BuildableGrid` |
 | Текущий цикл лечения | `MedicalStationSystem` |
 | Боевой runtime турели | `TurretSystem` через `TurretRuntime` |
-| Визуальные эффекты турели | `TurretVisualController` |
 | Активные физические враги | `BoardingEnemyRegistry` |
-| Состояние конкретного врага | его `BoardingEnemyController` |
-| Неизменяемые характеристики типа врага | `BoardingEnemyArchetype` |
+| Обычное состояние абордажника | его `BoardingEnemyController` |
+| Специальное состояние врага | подключённый `EnemyBehaviorComponent` |
+| Состояние подрывника троса | его `RopeSaboteurBehavior` |
+| Неизменяемые характеристики типа | `BoardingEnemyArchetype` или подкласс |
 | Доступный набор и веса типов | `BoardingEnemyCatalog` |
+| Фаза дальнего выстрела | `RangedAttackComponent` |
+| Яд на защитнике | его `StatusEffectComponent` |
 | Стратегические группы | `StrategicWaveSystem` |
 | Статистика забега | `RunStatistics` |
 
 ## 5. CrewSelectionDomain
 
-```text
-CrewSelectionController
-CrewDebugInput
-DefenderVisual
-```
-
-`CrewSelectionController` владеет `selected_defender_id` и принимает выбор от клавиатуры, портретов и мирового клика. `CrewDebugInput` является совместимой тонкой оболочкой.
-
-`DefenderVisual.set_selected(bool)` только рисует кольцо и не меняет доменное состояние.
+`CrewSelectionController` владеет `selected_defender_id` и принимает выбор от клавиатуры, портретов и мирового клика. `DefenderVisual.set_selected(bool)` только рисует выделение.
 
 ## 6. CrewCommandPresentation
 
@@ -112,15 +106,13 @@ CrewCommandText
 PrototypeHUD
 ```
 
-`CrewCommandPanel` читает состояние экипажа и объектов, затем отправляет только:
+Панель читает состояние и отправляет только доменные запросы, например:
 
 ```text
 CrewRoleManager.request_assignment(defender_id, role_id, station_id)
 ```
 
-Панель не резервирует пост и не меняет `CrewAssignmentRuntime`. `CrewCommandPanelView` создаёт контролы, а `CrewCommandText` форматирует названия и причины отказа.
-
-Большая диагностическая телеметрия скрыта по умолчанию и переключается `F10`.
+Она не резервирует посты и не изменяет `CrewAssignmentRuntime` напрямую. Диагностическая телеметрия переключается `F10`.
 
 ## 7. PlatformDomain
 
@@ -144,13 +136,10 @@ BuildableRuntime
 BuildableSnapshot
 BuildableInventory
 BuildableGrid
-BuildableDebugInput
 BuildableGridVisual
 ```
 
 `BuildableInventory` владеет открытым количеством. `BuildableGrid` владеет размещёнными экземплярами и занятостью клеток.
-
-Атомарные операции:
 
 ```text
 place(type_id, cell_index)
@@ -158,40 +147,23 @@ move(buildable_id, cell_index)
 demolish(buildable_id)
 ```
 
-Правила:
-
-- одна клетка содержит максимум один объект;
-- служебные клетки недоступны;
-- персонажи не блокируют установку;
-- объекты не создают коллизий;
-- демонтаж не удаляет открытие;
-- наружу выдаются `BuildableSnapshot`.
+Одна клетка содержит максимум один объект. Персонажи не блокируют установку, объекты не создают коллизий, демонтаж не удаляет открытие, наружу выдаются snapshots.
 
 ## 9. ConcreteRoleStationDomain
 
-Назначение содержит:
-
-```text
-current_role
-current_station_id
-target_role
-target_station_id
-state
-```
-
-Статические посты используют `station_id = -1`. Медицинский пост использует `MEDIC / 0`. Каждая турель использует `TURRET / buildable_id`.
+Назначение содержит текущую и целевую роль, текущий и целевой `station_id`, а также состояние перехода. Статические посты используют `station_id = -1`, медицинский пост — `MEDIC / 0`, каждая турель — `TURRET / buildable_id`.
 
 `RoleStationRegistry` хранит владельца и координату по составному ключу `role_id : station_id`.
 
 ## 10. Неделимые внешние действия
 
-Лечение и выстрел сообщают менеджеру ролей только общий флаг:
+Лечение и выстрел сообщают менеджеру ролей общий флаг:
 
 ```text
 set_external_role_action_active(defender_id, role_id, active)
 ```
 
-Пока флаг активен, переназначение переходит в `WAITING_FOR_ACTION`. После завершения действия начинается физический переход.
+Пока флаг активен, переназначение ожидает завершения текущего неделимого действия.
 
 ## 11. MedicalStationDomain
 
@@ -216,58 +188,35 @@ BoardingBalance
 resources/enemies/*.tres
 ```
 
-### BoardingEnemyArchetype
+`BoardingEnemyArchetype` является неизменяемым определением типа. Он задаёт ID, отображаемое имя, здоровье, радиус, скорости, обычные параметры атаки, диагностические цвета, порог открытия, веса спавна и необязательную `behavior_scene`.
 
-Один ресурс описывает один тип и является единственным источником:
+`behavior_scene` создаёт `EnemyBehaviorComponent`. Обычные архетипы оставляют поле пустым и используют `BoardingEnemyController`.
 
-```text
-archetype_id
-display_name
-max_health
-body_radius
-body_color
-accent_color
-ground_move_speed
-climb_move_speed
-platform_move_speed
-attack_damage
-attack_windup
-attack_cooldown
-attack_range
-unlock_difficulty
-weight_at_unlock
-weight_at_max_difficulty
-```
+`BoardingEnemyCatalog`:
 
-Ресурс не хранит изменяемое состояние экземпляра.
+- проверяет уникальность ID и валидность ресурсов;
+- возвращает определение по ID;
+- рассчитывает вес по нормализованной сложности;
+- выполняет взвешенный выбор через переданный RNG.
 
-### BoardingEnemyCatalog
-
-Каталог:
-
-- хранит типизированный массив архетипов;
-- проверяет уникальность `archetype_id`;
-- возвращает архетип по ID;
-- рассчитывает вес для текущей нормализованной сложности;
-- выполняет взвешенный выбор через переданный `RandomNumberGenerator`.
-
-При сложности ниже `unlock_difficulty` вес равен нулю.
-
-### Текущие определения
+Текущие определения:
 
 ```text
-basic  — доступен с 0.00
-runner — доступен с 0.15
-brute  — доступен с 0.45
+basic          — доступен с 0.00
+runner         — доступен с 0.15
+rope_saboteur  — доступен с 0.25
+brute          — доступен с 0.45
 ```
 
-`BoardingBalance` владеет только общими правилами спавна, разделения, прыжка и боя защитников. Поля группы `Legacy Base Enemy Defaults` временно сохранены для совместимости старых тестовых сценариев и не читаются runtime врага.
+`BoardingBalance` владеет только общими правилами спавна, разделения, прыжка и боя защитников.
 
 ## 13. BoardingEnemyRuntimeDomain
 
 ```text
 BoardingEnemy
 BoardingEnemyController
+EnemyBehaviorComponent
+EnemyBehaviorContext
 BoardingEnemyRegistry
 BoardingSpawnDirector
 BoardingMovementResolver
@@ -282,26 +231,17 @@ BoardingSpawnDirector
 → BoardingEnemyCatalog.choose_archetype(difficulty)
 → instantiate BoardingEnemy
 → BoardingEnemy.configure(archetype, ...)
+→ archetype.instantiate_behavior()
+→ behavior.set_context(...)
+→ BoardingEnemy.attach_special_behavior(...)
 → BoardingEnemyRegistry.register_enemy(enemy)
 ```
 
-Конфигурация происходит до регистрации, поэтому подписчики `enemy_registered` всегда видят настроенный архетип.
+Специальное поведение подключается до регистрации, поэтому подписчики всегда видят полностью настроенного врага.
 
-### BoardingEnemy
+### Обычный враг
 
-Хранит ссылку на неизменяемый `archetype` и предоставляет:
-
-```text
-get_archetype_id()
-get_archetype_name()
-get_body_radius()
-```
-
-Здоровье остаётся у `HealthComponent`, атака — у `MeleeAttackComponent`, движение и состояния — у `BoardingEnemyController`.
-
-### BoardingEnemyController
-
-Общая машина состояний:
+Без специального behavior движение и бой принадлежат `BoardingEnemyController`:
 
 ```text
 WAITING_WITHOUT_PATH
@@ -313,40 +253,34 @@ JUMPING
 DEAD
 ```
 
-Контроллер не проверяет конкретные ID типов. Он читает скорость и параметры атаки из назначенного архетипа.
+Контроллер не проверяет конкретные ID типов.
 
-### BoardingSpawnDirector
+### Специальный враг
 
-Директор владеет только таймером спавна и RNG. Он не хранит копии характеристик типов.
-
-Для тестов доступны:
+`BoardingEnemy.attach_special_behavior()` останавливает обычный controller и melee-компонент. `EnemyBehaviorComponent` сообщает общему runtime:
 
 ```text
-spawn_debug_archetype(archetype_id, side)
-spawn_debug_on_platform(local_x, archetype_id)
+is_targetable_by_turret()
+is_counted_as_ground()
+is_counted_as_climbing()
+is_counted_as_boarded()
 ```
 
-### BoardingMovementResolver
+Это позволяет registry, турелям и movement resolver работать без знания конкретного специального типа.
 
-Разделение пары врагов:
+`EnemyBehaviorContext` предоставляет только необходимые доменные ссылки: платформу, пути, орбы, movement resolver, якоря и общий boarding balance. Контекст устанавливается до активации behavior.
+
+### Физическое разделение
+
+Расстояние между врагами:
 
 ```text
 max(global_minimum_spacing, first.radius + second.radius)
 ```
 
-Правило применяется на земле, тросе, платформе и при поиске свободной точки. Разделение врага и защитника равно сумме их радиусов.
+Наземная фильтрация использует `is_counted_as_ground()`, поэтому специальные наземные враги участвуют в тех же пробках и поиске точки спавна.
 
-### BoardingJumpPlanner
-
-Использует радиус прыгающего врага, радиус блокирующего врага и индивидуальную дальность атаки архетипа. Точка приземления резервируется через обычный movement resolver.
-
-### BoardingEnemyVisual
-
-Временная векторная графика читает цвет, акцент и радиус архетипа. Она не участвует в выборе типа, движении, атаке или награде.
-
-### Награды
-
-Все текущие архетипы проходят общий поток смерти:
+### Смерть и награды
 
 ```text
 HealthComponent.depleted
@@ -356,35 +290,70 @@ HealthComponent.depleted
 → RunEconomy / RunStatistics
 ```
 
-Prototype 2.0 выдаёт одинаковую базовую награду всем физическим типам.
+Награда определяется причиной смерти, а не конкретным классом врага.
 
-## 14. TurretDomain
-
-Каждая турель имеет отдельный `TurretRuntime`, конкретный пост `TURRET/buildable_id`, оператора, цель, windup и cooldown.
-
-`TurretTargetSelector` атакует физического врага в состояниях:
+## 14. RopeSaboteurDomain
 
 ```text
-CLIMBING
-ON_PLATFORM
-FIGHTING
-JUMPING
+RopeSaboteurArchetype
+RopeSaboteurBehavior
+RopeSaboteurVisual
+resources/enemies/boarding_rope_saboteur.tres
+scenes/boarding/rope_saboteur_behavior.tscn
 ```
 
-`TurretSystem` наносит урон только через `HealthComponent.apply_damage(1)` и не начисляет монеты напрямую.
+`RopeSaboteurBehavior` владеет состояниями:
 
-`TurretVisualController` рисует корпус, радиус, заряд, кулдаун, отдачу, вспышку и трассер, но не меняет симуляцию.
+```text
+WAITING_WITHOUT_PATH
+→ RUNNING_TO_ROPE
+→ ARMING
+→ DEAD
+```
 
-## 15. Пауза
+Правила:
+
+- выбирается ближайший доступный трос с прочностью выше нуля;
+- выбранный `anchor_id` фиксируется до закрытия пути или разрушения троса;
+- подрывник остаётся наземным врагом и использует обычное ground separation;
+- он не поднимается по тросу и не атакует защитников;
+- турели могут выбирать его только во время `ARMING`;
+- взрыв вызывает только `AnchorSystem.apply_rope_damage(...)`;
+- успешный взрыв завершает врага причиной `rope_sabotage` без награды;
+- обычное убийство через `HealthComponent` использует `combat` и выдаёт стандартную награду;
+- presentation рисует фитиль и кольцо подготовки, но не меняет runtime.
+
+Физический обрыв троса и закрытие пути остаются ответственностью #16.
+
+## 15. TurretDomain
+
+Каждая турель имеет отдельный `TurretRuntime`, пост, оператора, цель, windup и cooldown. `TurretTargetSelector` получает цели из `BoardingEnemyRegistry.get_turret_targets()` и не проверяет state machine или тип врага.
+
+`TurretSystem` наносит урон только через `HealthComponent.apply_damage()` и не начисляет монеты напрямую. `TurretVisualController` не изменяет симуляцию.
+
+## 16. RangedAndStatusCombatDomain
+
+`RangedAttackComponent` владеет фазой, locked target и положением временного projectile runtime:
+
+```text
+READY → WINDUP → PROJECTILE → COOLDOWN
+```
+
+Фактический урон всегда проходит через целевой `HealthComponent`.
+
+`StatusEffectComponent` находится на цели и владеет стеками, длительностью и таймером яда. Яд не хранит вторую копию здоровья и наносит каждый tick через `HealthComponent.apply_damage()`.
+
+## 17. Пауза
 
 Во время `CARD_SELECTION` и `MANUAL_PAUSE` мировые таймеры не изменяются.
 
-- при карточках `CrewCommandPanel` скрыт;
-- при ручной паузе панель видима, но команды отключены;
 - спавн и движение врагов остановлены;
-- лечение, атаки, flash и tracer заморожены.
+- обычные и специальные behavior не обновляются;
+- подготовка подрывника заморожена;
+- лечение, melee, ranged projectile, cooldown и poison остановлены;
+- presentation не продвигает gameplay-состояние.
 
-## 16. AnchorRopeDurabilityDomain
+## 18. AnchorRopeDurabilityDomain
 
 ```text
 AnchorBalance.rope_max_durability
@@ -394,9 +363,7 @@ AnchorRopeSnapshot
 AnchorSystem public API
 ```
 
-`AnchorRopeDurability` является единственным компонентом, который изменяет прочность тросов. Текущее значение хранится в соответствующем `AnchorRuntime`, чтобы каждый из четырёх якорей имел независимый runtime.
-
-Публичный доступ проходит только через `AnchorSystem`:
+`AnchorRopeDurability` является единственным писателем прочности. Публичный доступ:
 
 ```text
 apply_rope_damage(anchor_id, amount, source)
@@ -404,81 +371,66 @@ get_rope_snapshot(anchor_id)
 get_all_rope_snapshots()
 ```
 
-Правила:
+Урон принимают только установленные или перегруженные тросы. Значение ограничено диапазоном `0..maximum`. Новая успешная установка восстанавливает полную прочность. Перегрузка ветром и повреждение являются независимыми механизмами.
 
-- максимальная прочность находится в типизированном `AnchorBalance`;
-- урон принимают только установленные или перегруженные тросы;
-- отрицательный и нулевой урон отклоняется;
-- прочность ограничивается диапазоном от `0` до максимума;
-- новая успешная установка восстанавливает трос до полной прочности;
-- перегрузка ветром и повреждение прочности являются независимыми механизмами;
-- при достижении нуля публикуется `rope_destroyed(anchor_id, source)` ровно один раз;
-- в рамках issue #14 нулевая прочность сама не меняет состояние якоря и не закрывает путь;
-- переход в возврат, уничтожение пути, падение врагов и визуальный обрыв принадлежат issue #16;
-- UI и враги получают только snapshots и отправляют команды через публичный API.
+При достижении нуля публикуется `rope_destroyed` один раз. До #16 нулевая прочность сама не закрывает путь. Подрывник уже исключает такой трос из списка целей.
 
-`AnchorRopeSnapshot` является read-only DTO для UI, diagnostics и тестов. Он содержит текущее значение, максимум, нормализованную долю и признак разрушения.
-
-## 17. Обязательные тестовые границы
+## 19. Обязательные тестовые границы
 
 ### Rope durability
 
-- четыре троса имеют независимую прочность;
+- четыре независимые шкалы;
 - снятый трос не принимает урон;
-- урон ограничивается нулём;
-- событие разрушения не повторяется после достижения нуля;
-- новая установка восстанавливает полную прочность;
-- reset забега восстанавливает все четыре шкалы;
-- snapshot не даёт внешнему коду изменять runtime;
-- достижение нуля до реализации #16 не снимает путь автоматически.
+- событие разрушения не повторяется;
+- новая установка восстанавливает прочность;
+- ноль до #16 не закрывает путь автоматически.
 
-### Enemy catalog
+### Enemy catalog и runtime
 
-- ID уникальны;
-- некорректный каталог не проходит `validate()`;
-- типы закрыты до своего порога;
-- при нулевой сложности выбирается только базовый тип;
-- при максимальной сложности выбираются все доступные типы.
+- ID уникальны и определения валидны;
+- типы закрыты до порога сложности;
+- специальный behavior создаётся из архетипа до регистрации;
+- обычные враги продолжают использовать прежний controller;
+- registry и турели не зависят от конкретной state machine;
+- физическое разделение учитывает радиусы и special ground enemies.
 
-### Enemy instances
+### Rope saboteur
 
-- здоровье, радиус и скорости берутся из архетипа;
-- быстрый враг проходит большее расстояние за одинаковое время;
-- тяжёлый враг имеет три сегмента здоровья;
-- реестр считает типы отдельно;
-- два крупных врага сохраняют расстояние не меньше суммы радиусов;
-- старые сценарии прыжка, боя и тросовой очереди продолжают работать.
+- без пути автоматический spawn невозможен;
+- цель фиксируется и меняется только при недоступности;
+- подготовка замораживается паузой;
+- взрыв повреждает только выбранный трос;
+- щит, платформа, экипаж и другие тросы не меняются;
+- самоподрыв не выдаёт награду;
+- combat-убийство выдаёт обычную награду.
 
 ### Общие
 
-- здоровье изменяется только через `HealthComponent`;
-- UI не владеет боевой логикой;
+- здоровье меняется только через `HealthComponent`;
+- UI и presentation не владеют боевой логикой;
 - стратегические враги не используют физический каталог;
-- карточки остаются заглушками;
 - лимит 600 строк не нарушен.
 
-## 18. Следующая итерация
+## 20. Следующая якорная итерация
 
-1. Добавить маленького врага-взрывателя, который выбирает доступный трос.
-2. Взрыв должен вызывать `AnchorSystem.apply_rope_damage(...)`, а не менять runtime напрямую.
-3. Разрушение троса должно закрывать путь, сбрасывать поднимающихся врагов и возвращать якорь.
-4. Добавить предупреждение и диагностическое состояние повреждённого троса.
+Issue #16 должен подписаться на разрушение троса и через существующих владельцев:
 
-Ассеты и карточки остаются отложенными до готовности соответствующей спецификации.
+1. закрыть boarding-путь;
+2. сбросить поднимающихся врагов;
+3. перевести якорь в возврат;
+4. показать визуальный обрыв и повреждённое состояние.
 
-## 19. Запрещённые решения
+## 21. Запрещённые решения
 
 - Прямое изменение `AnchorRuntime.rope_durability` из врага, UI или presentation.
-- Второй владелец прочности троса вне `AnchorRopeDurability`.
-- Автоматическое закрытие пути внутри компонента прочности до реализации #16.
-- Проверки `archetype_id` внутри общей машины движения и ближнего боя.
-- Копирование характеристик архетипа в `BoardingBalance` как активный источник runtime.
+- Второй владелец прочности вне `AnchorRopeDurability`.
+- Физический обрыв внутри `RopeSaboteurBehavior`.
+- Проверки `archetype_id` внутри общей машины движения, registry, турелей или spawn director.
+- Специальный controller, дублирующий `EnemyBehaviorComponent` framework.
+- Копирование характеристик архетипа в общий balance как активный runtime-источник.
 - Случайный выбор типа внутри `BoardingEnemy`.
-- Разные сцены с дублированной логикой для простых вариантов скорости и здоровья.
-- Второй владелец выбранного защитника.
+- Прямое начисление монет из врага или турели.
+- Прямое удаление врага вместо общего death pipeline.
+- Нанесение урона из визуального слоя.
 - Прямое изменение `CrewAssignmentRuntime` из UI.
-- Резервирование поста кнопкой интерфейса.
-- Прямое начисление монет из `TurretSystem`.
-- Прямое удаление врага вместо `HealthComponent.apply_damage()`.
-- Выбор цели или нанесение урона из визуального слоя.
 - Архитектурное изменение без обновления этого файла.
