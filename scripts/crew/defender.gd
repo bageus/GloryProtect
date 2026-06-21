@@ -56,6 +56,18 @@ func apply_melee_upgrades(
 		_apply_configuration()
 
 
+func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
+	return _melee_upgrades
+
+
+func blocks_enemy_jump() -> bool:
+	return (
+		_melee_upgrades != null
+		and _melee_upgrades.heavy_blocks_jump
+		and health.is_alive()
+	)
+
+
 func move_to(local_x: float) -> void:
 	if health.is_alive():
 		movement.move_to(local_x)
