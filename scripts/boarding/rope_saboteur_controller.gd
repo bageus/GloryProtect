@@ -107,9 +107,7 @@ func is_arming() -> bool:
 
 
 func _update_waiting(delta: float) -> void:
-	var path: AnchorPathSnapshot = _paths.choose_nearest_path(
-		_enemy.global_position.x
-	)
+	var path: AnchorPathSnapshot = _choose_target_path()
 	if path != null:
 		selected_anchor_id = path.anchor_id
 		state = State.RUNNING_TO_ROPE
@@ -174,14 +172,35 @@ func _update_arming(delta: float) -> void:
 	_reset_target()
 
 
+func _choose_target_path() -> AnchorPathSnapshot:
+	var excluded_anchor_ids: Array[int] = []
+	for snapshot: AnchorRopeSnapshot in _anchors.get_all_rope_snapshots():
+		if snapshot.is_destroyed:
+			excluded_anchor_ids.append(snapshot.anchor_id)
+	return _paths.choose_nearest_path(
+		_enemy.global_position.x,
+		excluded_anchor_ids
+	)
+
+
 func _get_selected_path_or_reset() -> AnchorPathSnapshot:
-	if not _paths.is_path_available(selected_anchor_id):
+	if (
+		not _paths.is_path_available(selected_anchor_id)
+		or not _is_selected_rope_damageable()
+	):
 		_reset_target()
 		return null
 	var path: AnchorPathSnapshot = _paths.get_path(selected_anchor_id)
 	if path == null:
 		_reset_target()
 	return path
+
+
+func _is_selected_rope_damageable() -> bool:
+	var snapshot: AnchorRopeSnapshot = _anchors.get_rope_snapshot(
+		selected_anchor_id
+	)
+	return snapshot != null and not snapshot.is_destroyed
 
 
 func _reset_target() -> void:
