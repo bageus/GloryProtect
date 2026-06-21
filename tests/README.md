@@ -37,9 +37,10 @@ The catalog scenario verifies the unlock threshold, specialized archetype and we
 godot --headless --path . --script res://tests/unit/upgrade_presentation_scenarios.gd
 godot --headless --path . --script res://tests/unit/upgrade_specialization_view_scenarios.gd
 godot --headless --path . --script res://tests/integration/upgrade_ui_scenarios.gd
+godot --headless --path . --script res://tests/integration/upgrade_specialization_ui_scenarios.gd
 ```
 
-The presentation scenarios verify branch/type labels, effect summaries, prerequisite status, repeat counters, diagnostic reason text and specialization lock warnings. The UI integration scenario verifies three-card rendering, diagnostics, continuous card-selection pause and rejection of stale repeated selections.
+The presentation scenarios verify branch/type labels, effect summaries, prerequisite status, repeat counters, diagnostic reason text and specialization lock warnings. The UI integration scenarios verify three-card rendering, diagnostics, continuous card-selection pause, stale-selection rejection and the complete specialization event flow.
 
 ## Project guard
 
