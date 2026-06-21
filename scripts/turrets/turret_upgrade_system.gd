@@ -112,7 +112,9 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 				get_current_range(),
 				_enemies,
 				upgrades,
-				balance.turret_damage
+				balance.turret_damage,
+				runtime.is_next_shot_fifth(),
+				runtime.is_next_volley_fifth()
 			) > 0
 	_roles.set_external_role_action_active(
 		runtime.operator_id,
