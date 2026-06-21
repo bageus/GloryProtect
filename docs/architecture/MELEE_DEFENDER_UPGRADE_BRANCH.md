@@ -10,7 +10,7 @@ The manager reapplies the shared runtime to current defenders and passes it to n
 
 ## Catalog
 
-`melee_defender_upgrade_catalog.tres` contains the melee branch. `active_game_upgrade_catalog.tres` combines it with the canonical `game_upgrade_catalog.tres`. The provisional common-pool fixture is not used by the live scene.
+`melee_defender_upgrade_catalog.tres` contains the melee branch. `active_game_upgrade_catalog.tres` combines it with the canonical `game_upgrade_catalog.tres`. After the turret correction branch lands, this aggregate must compose the complete turret branch catalog instead of bypassing its modular area cards.
 
 ## Base lines
 
@@ -48,9 +48,15 @@ The second attack has its own windup and completion. Normal cooldown begins afte
 - optional extra forward hit and one rear hit only when a rear enemy exists;
 - optional one-use lethal guard.
 
-## Locked actions
+## Locked actions and roles
 
 `DefenderCombatController` stores the enemy instance when a melee windup starts. Follow-up effects use that same target and do not retarget the begun action.
+
+Role reassignment remains owned by `CrewRoleManager`. A pending assignment waits while the current combat action is active. For a duelist double attack, both locked attacks complete before the defender leaves the old post and starts moving to the new role.
+
+## New-run reset
+
+`UpgradeSystem.reset_for_run()` calls `CrewManager.reset_run_modifiers()`. The shared melee runtime, health bonuses, armor, specialization flags and life-scoped lethal guard state return to their base values for every current defender.
 
 ## Tests
 
@@ -63,4 +69,6 @@ The second attack has its own windup and completion. Normal cooldown begins afte
 - `tests/integration/melee_defender_replacement_scenarios.gd`;
 - `tests/integration/melee_counterattack_scenarios.gd`;
 - `tests/integration/melee_isolated_damage_scenarios.gd`;
-- `tests/integration/melee_specialization_combat_scenarios.gd`.
+- `tests/integration/melee_specialization_combat_scenarios.gd`;
+- `tests/integration/melee_role_transition_scenarios.gd`;
+- `tests/integration/melee_run_reset_scenarios.gd`.
