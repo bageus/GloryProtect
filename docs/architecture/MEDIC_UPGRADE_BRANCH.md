@@ -64,7 +64,7 @@ An active healing cycle remains indivisible and temporarily blocks the field-med
 
 A successful heal applies `+15%` attack speed and `+15%` movement speed for `5 seconds`. The effect composes with global crew and role modifiers, refreshes on another successful heal and freezes during manual pause or card selection.
 
-The revival card has a `60 second` run-scoped cooldown. When the final living defender dies, `CrewFailureController` first reserves the revival transaction. The actual replacement runs deferred after the current death-signal dispatch, preventing the old role-death handler from marking the new defender dead. If revival is unavailable, normal zero-crew defeat proceeds immediately.
+The revival card has a `60 second` run-scoped cooldown. The first eligible defender death while the cooldown is ready reserves an immediate deferred replacement. If that death removes the final living defender, `CrewFailureController` recognizes the already reserved transaction before declaring defeat. Listener order does not matter: the failure controller can also reserve the same transaction as a fallback. The deferred replacement runs only after the current death-signal dispatch, preventing the old role-death handler from marking the new defender dead.
 
 ## Protective healing
 
