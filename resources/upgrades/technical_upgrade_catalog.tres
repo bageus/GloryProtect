@@ -1,204 +1,172 @@
-[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=38 format=3]
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=24 format=3]
 
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
 
-[sub_resource type="Resource" id="EffectTurretPost"]
+[sub_resource type="Resource" id="EffectUnlockTurret"]
 script = ExtResource("3_effect")
 effect_type = 1
 integer_value = 1
 buildable_type_id = 1
 
-[sub_resource type="Resource" id="CardTurretPost"]
+[sub_resource type="Resource" id="CardUnlockTurret"]
 script = ExtResource("2_definition")
-card_id = &"common_turret_post"
+card_id = &"tech_unlock_turret"
 branch_id = &"turret"
-title = "Пост турели"
-description = "Добавляет одну доступную турель. Первая копия открывает турельные линии."
+title = "Открыть турель"
+description = "Техническая открывающая карточка."
 card_type = 0
-repeat_limit = 3
-effect = SubResource("EffectTurretPost")
+repeat_limit = 1
+effect = SubResource("EffectUnlockTurret")
 
-[sub_resource type="Resource" id="EffectTurretBasic"]
+[sub_resource type="Resource" id="EffectBasicScalar"]
 script = ExtResource("3_effect")
 effect_type = 4
-target_id = &"turret_base_damage"
+target_id = &"tech_turret_damage"
 scalar_value = 1.0
 
-[sub_resource type="Resource" id="CardTurretBasic"]
+[sub_resource type="Resource" id="CardBasic"]
 script = ExtResource("2_definition")
-card_id = &"turret_basic_damage"
+card_id = &"tech_turret_basic"
 branch_id = &"turret"
-title = "Базовая турель"
-description = "Базовая турель наносит 1 урон."
+title = "Базовое усиление турели"
+description = "Техническая базовая карточка."
 card_type = 1
-prerequisite_card_ids = Array[StringName]([&"common_turret_post"])
-repeat_limit = 1
-effect = SubResource("EffectTurretBasic")
+prerequisite_card_ids = Array[StringName]([&"tech_unlock_turret"])
+repeat_limit = 2
+effect = SubResource("EffectBasicScalar")
 
-[sub_resource type="Resource" id="EffectTurretAdvanced"]
+[sub_resource type="Resource" id="EffectAdvancedScalar"]
 script = ExtResource("3_effect")
 effect_type = 4
-target_id = &"turret_fire_rate"
+target_id = &"tech_turret_fire_rate"
 scalar_value = 0.15
 
-[sub_resource type="Resource" id="CardTurretAdvanced"]
+[sub_resource type="Resource" id="CardAdvanced"]
 script = ExtResource("2_definition")
-card_id = &"turret_advanced_rate"
+card_id = &"tech_turret_advanced"
 branch_id = &"turret"
 title = "Продвинутая турель"
-description = "Увеличивает темп стрельбы турелей."
+description = "Требует базовую карточку."
 card_type = 2
-prerequisite_card_ids = Array[StringName]([&"turret_basic_damage"])
+prerequisite_card_ids = Array[StringName]([&"tech_turret_basic"])
 repeat_limit = 1
-effect = SubResource("EffectTurretAdvanced")
+effect = SubResource("EffectAdvancedScalar")
+
+[sub_resource type="Resource" id="EffectIndividual"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"tech_individual_defender_bonus"
+
+[sub_resource type="Resource" id="CardIndividual"]
+script = ExtResource("2_definition")
+card_id = &"tech_individual"
+branch_id = &"defender"
+title = "Индивидуальное усиление"
+description = "Техническая индивидуальная карточка."
+card_type = 3
+repeat_limit = 1
+effect = SubResource("EffectIndividual")
 
 [sub_resource type="Resource" id="EffectHeavySpecialization"]
 script = ExtResource("3_effect")
 effect_type = 3
-target_id = &"turret_specialization_heavy"
+target_id = &"tech_specialization_heavy"
 
 [sub_resource type="Resource" id="CardHeavySpecialization"]
 script = ExtResource("2_definition")
-card_id = &"turret_specialization_heavy"
+card_id = &"tech_turret_heavy"
 branch_id = &"turret"
 title = "Тяжёлая специализация"
 description = "Технический выбор тяжёлой специализации."
 card_type = 4
-closes_specialization_ids = Array[StringName]([&"turret_specialization_rapid", &"turret_specialization_electric"])
+closes_specialization_ids = Array[StringName]([&"tech_turret_rapid", &"tech_turret_electric"])
 repeat_limit = 1
 effect = SubResource("EffectHeavySpecialization")
 
 [sub_resource type="Resource" id="EffectRapidSpecialization"]
 script = ExtResource("3_effect")
 effect_type = 3
-target_id = &"turret_specialization_rapid"
+target_id = &"tech_specialization_rapid"
 
 [sub_resource type="Resource" id="CardRapidSpecialization"]
 script = ExtResource("2_definition")
-card_id = &"turret_specialization_rapid"
+card_id = &"tech_turret_rapid"
 branch_id = &"turret"
 title = "Скоростная специализация"
 description = "Технический выбор скоростной специализации."
 card_type = 4
-closes_specialization_ids = Array[StringName]([&"turret_specialization_heavy", &"turret_specialization_electric"])
+closes_specialization_ids = Array[StringName]([&"tech_turret_heavy", &"tech_turret_electric"])
 repeat_limit = 1
 effect = SubResource("EffectRapidSpecialization")
 
 [sub_resource type="Resource" id="EffectElectricSpecialization"]
 script = ExtResource("3_effect")
 effect_type = 3
-target_id = &"turret_specialization_electric"
+target_id = &"tech_specialization_electric"
 
 [sub_resource type="Resource" id="CardElectricSpecialization"]
 script = ExtResource("2_definition")
-card_id = &"turret_specialization_electric"
+card_id = &"tech_turret_electric"
 branch_id = &"turret"
 title = "Электрическая специализация"
 description = "Технический выбор электрической специализации."
 card_type = 4
-closes_specialization_ids = Array[StringName]([&"turret_specialization_heavy", &"turret_specialization_rapid"])
+closes_specialization_ids = Array[StringName]([&"tech_turret_heavy", &"tech_turret_rapid"])
 repeat_limit = 1
 effect = SubResource("EffectElectricSpecialization")
 
-[sub_resource type="Resource" id="EffectFourthTurret"]
+[sub_resource type="Resource" id="EffectSpecializationExtraA"]
 script = ExtResource("3_effect")
-effect_type = 1
-integer_value = 1
-buildable_type_id = 1
+effect_type = 4
+target_id = &"tech_heavy_bonus_a"
+scalar_value = 1.0
 
-[sub_resource type="Resource" id="CardFourthTurret"]
+[sub_resource type="Resource" id="CardSpecializationExtraA"]
 script = ExtResource("2_definition")
-card_id = &"common_fourth_turret"
+card_id = &"tech_turret_heavy_extra"
 branch_id = &"turret"
-title = "4-я турель"
-description = "Добавляет четвёртую турель после развития турельной ветки."
-card_type = 0
-required_repeat_card_id = &"common_turret_post"
-required_repeat_count = 3
-required_specialized_branch_id = &"turret"
-required_completed_branch_id = &"turret"
+title = "Усиление тяжёлой турели A"
+description = "Независимая карточка тяжёлой специализации."
+card_type = 5
+required_specialization_id = &"tech_turret_heavy"
 repeat_limit = 1
-effect = SubResource("EffectFourthTurret")
+effect = SubResource("EffectSpecializationExtraA")
 
-[sub_resource type="Resource" id="EffectAddDefender"]
+[sub_resource type="Resource" id="EffectSpecializationExtraB"]
 script = ExtResource("3_effect")
-effect_type = 5
-integer_value = 1
+effect_type = 4
+target_id = &"tech_heavy_bonus_b"
+scalar_value = 1.0
 
-[sub_resource type="Resource" id="CardAddDefender"]
+[sub_resource type="Resource" id="CardSpecializationExtraB"]
 script = ExtResource("2_definition")
-card_id = &"common_add_defender"
-branch_id = &""
-title = "Добавить защитника"
-description = "Добавляет одного защитника. Максимум 8 членов экипажа."
-card_type = 6
-repeat_limit = 5
-effect = SubResource("EffectAddDefender")
-
-[sub_resource type="Resource" id="EffectMoveSpeed"]
-script = ExtResource("3_effect")
-effect_type = 6
-scalar_value = 1.15
-
-[sub_resource type="Resource" id="CardMoveSpeed"]
-script = ExtResource("2_definition")
-card_id = &"common_move_speed"
-branch_id = &""
-title = "Улучшенная скорость перемещения защитников"
-description = "Скорость перемещения всех защитников увеличена на 15%."
-card_type = 6
+card_id = &"tech_turret_heavy_extra_b"
+branch_id = &"turret"
+title = "Усиление тяжёлой турели B"
+description = "Вторая независимая карточка тяжёлой специализации."
+card_type = 5
+required_specialization_id = &"tech_turret_heavy"
 repeat_limit = 1
-effect = SubResource("EffectMoveSpeed")
+effect = SubResource("EffectSpecializationExtraB")
 
-[sub_resource type="Resource" id="EffectMoveSpeedPower"]
+[sub_resource type="Resource" id="EffectGeneral"]
 script = ExtResource("3_effect")
-effect_type = 6
-scalar_value = 1.15
+effect_type = 4
+target_id = &"tech_general_power"
+scalar_value = 0.05
 
-[sub_resource type="Resource" id="CardMoveSpeedPower"]
+[sub_resource type="Resource" id="CardGeneral"]
 script = ExtResource("2_definition")
-card_id = &"common_move_speed_power"
+card_id = &"tech_general"
 branch_id = &""
-title = "Мощная скорость перемещения защитников"
-description = "Дополнительно увеличивает скорость всех защитников на 15%."
+title = "Общее усиление"
+description = "Техническая общая повторяемая карточка."
 card_type = 6
-prerequisite_card_ids = Array[StringName]([&"common_move_speed"])
-repeat_limit = 1
-effect = SubResource("EffectMoveSpeedPower")
-
-[sub_resource type="Resource" id="EffectRespawn"]
-script = ExtResource("3_effect")
-effect_type = 7
-scalar_value = 0.8
-
-[sub_resource type="Resource" id="CardRespawn"]
-script = ExtResource("2_definition")
-card_id = &"common_respawn_speed"
-branch_id = &""
-title = "Ускоренный респаун защитников"
-description = "Время замены погибших защитников уменьшено на 20%."
-card_type = 6
-repeat_limit = 1
-effect = SubResource("EffectRespawn")
-
-[sub_resource type="Resource" id="EffectRespawnTurbo"]
-script = ExtResource("3_effect")
-effect_type = 7
-scalar_value = 0.8
-
-[sub_resource type="Resource" id="CardRespawnTurbo"]
-script = ExtResource("2_definition")
-card_id = &"common_respawn_turbo"
-branch_id = &""
-title = "Турбо-респаун защитников"
-description = "Дополнительно уменьшает время замены защитников на 20%."
-card_type = 6
-prerequisite_card_ids = Array[StringName]([&"common_respawn_speed"])
-repeat_limit = 1
-effect = SubResource("EffectRespawnTurbo")
+repeat_limit = 3
+effect = SubResource("EffectGeneral")
 
 [resource]
 script = ExtResource("1_catalog")
-definitions = Array[ExtResource("2_definition")]([SubResource("CardTurretPost"), SubResource("CardTurretBasic"), SubResource("CardTurretAdvanced"), SubResource("CardHeavySpecialization"), SubResource("CardRapidSpecialization"), SubResource("CardElectricSpecialization"), SubResource("CardFourthTurret"), SubResource("CardAddDefender"), SubResource("CardMoveSpeed"), SubResource("CardMoveSpeedPower"), SubResource("CardRespawn"), SubResource("CardRespawnTurbo")])
+definitions = Array[ExtResource("2_definition")]([SubResource("CardUnlockTurret"), SubResource("CardBasic"), SubResource("CardAdvanced"), SubResource("CardIndividual"), SubResource("CardHeavySpecialization"), SubResource("CardRapidSpecialization"), SubResource("CardElectricSpecialization"), SubResource("CardSpecializationExtraA"), SubResource("CardSpecializationExtraB"), SubResource("CardGeneral")])
