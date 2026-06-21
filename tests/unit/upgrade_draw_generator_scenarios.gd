@@ -17,6 +17,7 @@ func _run_scenarios() -> void:
 	_test_three_cards_from_same_branch()
 	_test_fewer_than_three_remaining()
 	_test_weight_updates_and_reset()
+	_test_non_weighted_card_types()
 	_test_diagnostics()
 	print("Upgrade draw generator scenarios passed")
 	quit()
@@ -95,6 +96,16 @@ func _test_weight_updates_and_reset() -> void:
 	generator.reset_for_run()
 	assert(generator.get_branch_weight(&"turret") == 10)
 	assert(generator.get_branch_weight(&"steering") == 10)
+
+
+func _test_non_weighted_card_types() -> void:
+	var generator := UpgradeDrawGenerator.new()
+	generator.configure(DRAW_BALANCE, CATALOG, UpgradeRuntime.new(), 9)
+	var before: int = generator.get_branch_weight(&"turret")
+	generator.apply_selected_card(CATALOG.get_definition(&"tech_unlock_turret"))
+	assert(generator.get_branch_weight(&"turret") == before)
+	generator.apply_selected_card(CATALOG.get_definition(&"tech_general"))
+	assert(generator.get_branch_weight(&"turret") == before)
 
 
 func _test_diagnostics() -> void:
