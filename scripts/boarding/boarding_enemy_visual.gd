@@ -39,18 +39,42 @@ func _draw() -> void:
 	elif _controller.get_state() == BoardingEnemyController.State.FIGHTING:
 		body_color = body_color.darkened(0.12)
 
-	draw_circle(Vector2.ZERO, _body_radius, body_color)
-	draw_arc(
-		Vector2.ZERO,
-		_body_radius,
-		0.0,
-		TAU,
-		32,
-		_accent_color,
-		2.0
-	)
+	if _archetype_id == &"flyer":
+		_draw_flying_body(body_color)
+	else:
+		draw_circle(Vector2.ZERO, _body_radius, body_color)
+		draw_arc(
+			Vector2.ZERO,
+			_body_radius,
+			0.0,
+			TAU,
+			32,
+			_accent_color,
+			2.0
+		)
 	_draw_type_marker()
 	_draw_health_bar()
+
+
+func _draw_flying_body(body_color: Color) -> void:
+	draw_circle(Vector2.ZERO, _body_radius, body_color)
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(-_body_radius, 0.0),
+			Vector2(-_body_radius - 14.0, -8.0),
+			Vector2(-_body_radius - 8.0, 8.0),
+		]),
+		_accent_color
+	)
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(_body_radius, 0.0),
+			Vector2(_body_radius + 14.0, -8.0),
+			Vector2(_body_radius + 8.0, 8.0),
+		]),
+		_accent_color
+	)
+	draw_arc(Vector2.ZERO, _body_radius, 0.0, TAU, 32, _accent_color, 2.0)
 
 
 func _draw_type_marker() -> void:
@@ -69,6 +93,9 @@ func _draw_type_marker() -> void:
 				false,
 				2.0
 			)
+		&"flyer":
+			draw_line(Vector2(-5.0, 4.0), Vector2.ZERO, _accent_color, 2.0)
+			draw_line(Vector2.ZERO, Vector2(5.0, 4.0), _accent_color, 2.0)
 		_:
 			draw_circle(Vector2.ZERO, 3.0, _accent_color)
 	draw_circle(Vector2(-4.0, -2.0), 2.0, Color(0.05, 0.03, 0.03))
