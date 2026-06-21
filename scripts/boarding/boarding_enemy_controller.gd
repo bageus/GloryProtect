@@ -66,6 +66,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if not _game_flow.is_world_simulation_active():
 		return
+	if _enemy.is_stunned():
+		return
 
 	_melee.tick(delta)
 	match state:
@@ -282,7 +284,6 @@ func _update_on_platform(delta: float) -> void:
 		if plan != null:
 			_begin_jump(plan)
 			return
-
 	_platform_local_x = resolved_x
 	state = State.ON_PLATFORM
 	_update_world_position_from_platform()
