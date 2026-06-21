@@ -10,9 +10,9 @@ godot --headless --path . --script res://tests/integration/anchor_rope_durabilit
 godot --headless --path . --script res://tests/integration/rope_break_recovery_scenarios.gd
 ```
 
-The durability scenarios verify independent values, validation, clamping, one-shot destruction events and reattachment recovery.
+The durability scenarios verify independent values, validation, clamping, one-shot destruction events, reattachment recovery and damage eligibility for every anchor state.
 
-The break-recovery scenario verifies synchronous path closure, removal of enemies on the destroyed rope, survival of boarded enemies, rewarded `anchor_path_closed` deaths, pause-safe return, overloaded-rope recovery and full durability after reinstallation.
+The break-recovery scenario verifies synchronous path closure, removal of enemies on the destroyed rope, survival of boarded enemies, rewarded `anchor_path_closed` deaths, pause-safe return, damage-triggered recovery from `ATTACHED` and `OVERLOADED`, natural wind-overload break recovery and full durability after reinstallation.
 
 ## Rope saboteur
 
