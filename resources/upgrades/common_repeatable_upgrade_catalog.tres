@@ -1,0 +1,204 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=38 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectTurretPost"]
+script = ExtResource("3_effect")
+effect_type = 1
+integer_value = 1
+buildable_type_id = 1
+
+[sub_resource type="Resource" id="CardTurretPost"]
+script = ExtResource("2_definition")
+card_id = &"common_turret_post"
+branch_id = &"turret"
+title = "Пост турели"
+description = "Добавляет одну доступную турель. Первая копия открывает турельные линии."
+card_type = 0
+repeat_limit = 3
+effect = SubResource("EffectTurretPost")
+
+[sub_resource type="Resource" id="EffectTurretBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"turret_base_damage"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardTurretBasic"]
+script = ExtResource("2_definition")
+card_id = &"turret_basic_damage"
+branch_id = &"turret"
+title = "Базовая турель"
+description = "Базовая турель наносит 1 урон."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"common_turret_post"])
+repeat_limit = 1
+effect = SubResource("EffectTurretBasic")
+
+[sub_resource type="Resource" id="EffectTurretAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"turret_fire_rate"
+scalar_value = 0.15
+
+[sub_resource type="Resource" id="CardTurretAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"turret_advanced_rate"
+branch_id = &"turret"
+title = "Продвинутая турель"
+description = "Увеличивает темп стрельбы турелей."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"turret_basic_damage"])
+repeat_limit = 1
+effect = SubResource("EffectTurretAdvanced")
+
+[sub_resource type="Resource" id="EffectHeavySpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"turret_specialization_heavy"
+
+[sub_resource type="Resource" id="CardHeavySpecialization"]
+script = ExtResource("2_definition")
+card_id = &"turret_specialization_heavy"
+branch_id = &"turret"
+title = "Тяжёлая специализация"
+description = "Технический выбор тяжёлой специализации."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"turret_specialization_rapid", &"turret_specialization_electric"])
+repeat_limit = 1
+effect = SubResource("EffectHeavySpecialization")
+
+[sub_resource type="Resource" id="EffectRapidSpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"turret_specialization_rapid"
+
+[sub_resource type="Resource" id="CardRapidSpecialization"]
+script = ExtResource("2_definition")
+card_id = &"turret_specialization_rapid"
+branch_id = &"turret"
+title = "Скоростная специализация"
+description = "Технический выбор скоростной специализации."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"turret_specialization_heavy", &"turret_specialization_electric"])
+repeat_limit = 1
+effect = SubResource("EffectRapidSpecialization")
+
+[sub_resource type="Resource" id="EffectElectricSpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"turret_specialization_electric"
+
+[sub_resource type="Resource" id="CardElectricSpecialization"]
+script = ExtResource("2_definition")
+card_id = &"turret_specialization_electric"
+branch_id = &"turret"
+title = "Электрическая специализация"
+description = "Технический выбор электрической специализации."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"turret_specialization_heavy", &"turret_specialization_rapid"])
+repeat_limit = 1
+effect = SubResource("EffectElectricSpecialization")
+
+[sub_resource type="Resource" id="EffectFourthTurret"]
+script = ExtResource("3_effect")
+effect_type = 1
+integer_value = 1
+buildable_type_id = 1
+
+[sub_resource type="Resource" id="CardFourthTurret"]
+script = ExtResource("2_definition")
+card_id = &"common_fourth_turret"
+branch_id = &"turret"
+title = "4-я турель"
+description = "Добавляет четвёртую турель после развития турельной ветки."
+card_type = 0
+required_repeat_card_id = &"common_turret_post"
+required_repeat_count = 3
+required_specialized_branch_id = &"turret"
+required_completed_branch_id = &"turret"
+repeat_limit = 1
+effect = SubResource("EffectFourthTurret")
+
+[sub_resource type="Resource" id="EffectAddDefender"]
+script = ExtResource("3_effect")
+effect_type = 5
+integer_value = 1
+
+[sub_resource type="Resource" id="CardAddDefender"]
+script = ExtResource("2_definition")
+card_id = &"common_add_defender"
+branch_id = &""
+title = "Добавить защитника"
+description = "Добавляет одного защитника. Максимум 8 членов экипажа."
+card_type = 6
+repeat_limit = 5
+effect = SubResource("EffectAddDefender")
+
+[sub_resource type="Resource" id="EffectMoveSpeed"]
+script = ExtResource("3_effect")
+effect_type = 6
+scalar_value = 1.15
+
+[sub_resource type="Resource" id="CardMoveSpeed"]
+script = ExtResource("2_definition")
+card_id = &"common_move_speed"
+branch_id = &""
+title = "Улучшенная скорость перемещения защитников"
+description = "Скорость перемещения всех защитников увеличена на 15%."
+card_type = 6
+repeat_limit = 1
+effect = SubResource("EffectMoveSpeed")
+
+[sub_resource type="Resource" id="EffectMoveSpeedPower"]
+script = ExtResource("3_effect")
+effect_type = 6
+scalar_value = 1.15
+
+[sub_resource type="Resource" id="CardMoveSpeedPower"]
+script = ExtResource("2_definition")
+card_id = &"common_move_speed_power"
+branch_id = &""
+title = "Мощная скорость перемещения защитников"
+description = "Дополнительно увеличивает скорость всех защитников на 15%."
+card_type = 6
+prerequisite_card_ids = Array[StringName]([&"common_move_speed"])
+repeat_limit = 1
+effect = SubResource("EffectMoveSpeedPower")
+
+[sub_resource type="Resource" id="EffectRespawn"]
+script = ExtResource("3_effect")
+effect_type = 7
+scalar_value = 0.8
+
+[sub_resource type="Resource" id="CardRespawn"]
+script = ExtResource("2_definition")
+card_id = &"common_respawn_speed"
+branch_id = &""
+title = "Ускоренный респаун защитников"
+description = "Время замены погибших защитников уменьшено на 20%."
+card_type = 6
+repeat_limit = 1
+effect = SubResource("EffectRespawn")
+
+[sub_resource type="Resource" id="EffectRespawnTurbo"]
+script = ExtResource("3_effect")
+effect_type = 7
+scalar_value = 0.8
+
+[sub_resource type="Resource" id="CardRespawnTurbo"]
+script = ExtResource("2_definition")
+card_id = &"common_respawn_turbo"
+branch_id = &""
+title = "Турбо-респаун защитников"
+description = "Дополнительно уменьшает время замены защитников на 20%."
+card_type = 6
+prerequisite_card_ids = Array[StringName]([&"common_respawn_speed"])
+repeat_limit = 1
+effect = SubResource("EffectRespawnTurbo")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardTurretPost"), SubResource("CardTurretBasic"), SubResource("CardTurretAdvanced"), SubResource("CardHeavySpecialization"), SubResource("CardRapidSpecialization"), SubResource("CardElectricSpecialization"), SubResource("CardFourthTurret"), SubResource("CardAddDefender"), SubResource("CardMoveSpeed"), SubResource("CardMoveSpeedPower"), SubResource("CardRespawn"), SubResource("CardRespawnTurbo")])
