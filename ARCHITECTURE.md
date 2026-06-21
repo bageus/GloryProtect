@@ -227,6 +227,7 @@ resources/enemies/*.tres
 archetype_id
 display_name
 enemy_scene
+spawn_requirement
 max_health
 body_radius
 body_color
@@ -245,6 +246,13 @@ weight_at_max_difficulty
 
 `enemy_scene` необязателен. Без него директор использует стандартную сцену обычного абордажника. Специализированный тип может предоставить собственную сцену с общим корнем `BoardingEnemy`.
 
+`spawn_requirement` является data-driven условием автоматического появления:
+
+```text
+AVAILABLE_PATH
+DAMAGEABLE_ROPE
+```
+
 `RopeSaboteurArchetype` добавляет `rope_damage` и `arming_duration`. Ресурсы не хранят изменяемое состояние экземпляра.
 
 ### BoardingEnemyCatalog
@@ -254,6 +262,7 @@ weight_at_max_difficulty
 - хранит базовые и специализированные архетипы;
 - проверяет уникальность `archetype_id`;
 - возвращает архетип по ID;
+- фильтрует по разрешённым `spawn_requirement`;
 - рассчитывает вес для текущей сложности;
 - выполняет взвешенный выбор через переданный `RandomNumberGenerator`.
 
@@ -268,7 +277,7 @@ rope_saboteur  — доступен с 0.25
 brute          — доступен с 0.45
 ```
 
-`BoardingBalance` владеет общими правилами спавна, разделения, прыжка и боя защитников. Специализированные параметры подрывника находятся в его архетипе.
+Обычные типы требуют `AVAILABLE_PATH`. Подрывник требует `DAMAGEABLE_ROPE`. `BoardingBalance` владеет общими правилами спавна, разделения, прыжка и боя защитников.
 
 ## 13. BoardingEnemyRuntimeDomain
 
@@ -289,12 +298,15 @@ RopeSaboteurVisual
 
 ```text
 BoardingSpawnDirector
-→ BoardingEnemyCatalog.choose_archetype(difficulty)
+→ определить доступные spawn requirements
+→ BoardingEnemyCatalog.choose_archetype(difficulty, requirements)
 → archetype.enemy_scene или стандартная сцена
 → instantiate BoardingEnemy
 → BoardingEnemy.configure(archetype, ...)
 → BoardingEnemyRegistry.register_enemy(enemy)
 ```
+
+Директор разрешает `DAMAGEABLE_ROPE`, только если среди открытых путей есть трос с ненулевой прочностью. Он не проверяет `archetype_id`.
 
 Конфигурация происходит до регистрации, поэтому подписчики всегда видят настроенный архетип и поведение.
 
@@ -315,7 +327,7 @@ is_fighting()
 is_turret_targetable()
 ```
 
-Registry, movement resolver, visuals и turret selector используют контракт вместо предположения, что каждый враг является обычным абордажником.
+Registry, movement resolver, visuals и turret selector используют контракт вместо enum обычного контроллера.
 
 `BoardingEnemyController` сохраняет обычную машину:
 
@@ -338,11 +350,11 @@ ARMING
 DEAD
 ```
 
-Подрывник выбирает ближайший путь, фиксирует `anchor_id`, сбрасывает цель только после закрытия пути, участвует в наземном разделении, не поднимается и не использует melee. Во время `ARMING` он доступен турели. После подготовки вызывает `AnchorSystem.apply_rope_damage(...)` и умирает с причиной `rope_sabotage`.
+Подрывник выбирает ближайший повреждаемый трос, фиксирует `anchor_id`, сбрасывает цель после закрытия пути или достижения нулевой прочности, участвует в наземном разделении, не поднимается и не использует melee. Во время `ARMING` он доступен турели. После подготовки вызывает `AnchorSystem.apply_rope_damage(...)` и умирает с причиной `rope_sabotage`.
 
 ### BoardingSpawnDirector
 
-Директор владеет таймером спавна и RNG. Он выбирает сцену из архетипа и не содержит условной ветки подрывника.
+Директор владеет таймером, RNG и вычислением доступных категорий появления. Конкретные требования находятся в архетипах; условной ветки по ID подрывника нет.
 
 Для тестов доступны:
 
@@ -350,6 +362,8 @@ DEAD
 spawn_debug_archetype(archetype_id, side)
 spawn_debug_on_platform(local_x, archetype_id)
 ```
+
+Debug spawn намеренно обходит автоматическую eligibility-фильтрацию.
 
 ### BoardingMovementResolver
 
@@ -448,10 +462,11 @@ get_all_rope_snapshots()
 
 ### Rope saboteur
 
-- без пути автоматический spawn не создаёт врага;
+- без открытого пути автоматический spawn не создаёт врага;
+- без повреждаемого троса каталог не выбирает подрывника;
 - специализированный archetype создаёт специализированную сцену;
-- ближайший путь фиксируется как цель;
-- закрытие цели вызывает повторный выбор;
+- ближайший повреждаемый трос фиксируется как цель;
+- закрытие пути или нулевая прочность вызывают повторный выбор;
 - враг не поднимается и не выходит на платформу;
 - подготовка замораживается паузой;
 - во время подготовки враг доступен турели;
@@ -463,8 +478,9 @@ get_all_rope_snapshots()
 ### Enemy catalog и instances
 
 - ID уникальны, определения валидны и закрыты до порога;
+- spawn requirements фильтруются до взвешенного выбора;
 - при нулевой сложности выбирается только базовый тип;
-- при максимальной сложности выбираются все доступные типы;
+- при максимальной сложности выбираются все разрешённые типы;
 - характеристики экземпляра берутся из архетипа;
 - реестр считает типы отдельно;
 - физическое разделение учитывает радиусы;
@@ -489,7 +505,7 @@ get_all_rope_snapshots()
 
 ## 19. Запрещённые решения
 
-- Проверки `archetype_id` внутри controller, movement resolver, turret selector или `BoardingEnemy`.
+- Проверки `archetype_id` внутри controller, director, movement resolver, turret selector или `BoardingEnemy`.
 - Логика подрывника как ветка обычной машины ближнего врага.
 - Прямое изменение `AnchorRuntime.rope_durability` из врага, UI или presentation.
 - Урон взрыва щиту, платформе или защитникам.
