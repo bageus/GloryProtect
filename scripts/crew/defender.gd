@@ -25,6 +25,8 @@ var _medic_combat_enabled: bool = false
 var _medic_healing_action_active: bool = false
 var _medic_damage_bonus: int = 0
 var _medic_move_speed_multiplier: float = 1.0
+var _temporary_attack_speed_multiplier: float = 1.0
+var _temporary_move_speed_multiplier: float = 1.0
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var durability: DefenderDurabilityComponent = get_node(durability_path)
@@ -69,6 +71,8 @@ func reset_melee_upgrades_for_new_life(
 	upgrades: MeleeDefenderUpgradeRuntime
 ) -> void:
 	_melee_upgrades = upgrades
+	_temporary_attack_speed_multiplier = 1.0
+	_temporary_move_speed_multiplier = 1.0
 	if is_node_ready():
 		_apply_configuration(true)
 
@@ -159,6 +163,20 @@ func set_medic_healing_action_active(active: bool) -> void:
 	_medic_healing_action_active = _medic_role_active and active
 
 
+func set_temporary_action_multipliers(
+	attack_speed_multiplier: float,
+	move_speed_multiplier: float
+) -> void:
+	_temporary_attack_speed_multiplier = maxf(0.01, attack_speed_multiplier)
+	_temporary_move_speed_multiplier = maxf(0.01, move_speed_multiplier)
+	if is_node_ready():
+		_refresh_action_configuration()
+
+
+func clear_temporary_action_multipliers() -> void:
+	set_temporary_action_multipliers(1.0, 1.0)
+
+
 func can_medic_role_use_melee() -> bool:
 	return (
 		_medic_role_active
@@ -241,8 +259,13 @@ func _refresh_action_configuration() -> void:
 		cooldown = _melee_upgrades.get_cooldown(cooldown)
 	if _medic_role_active and _medic_combat_enabled:
 		damage += _medic_damage_bonus
+	cooldown /= _temporary_attack_speed_multiplier
 	melee.configure(damage, 0.4, cooldown, self)
-	movement.configure(_base_movement_speed * _medic_move_speed_multiplier)
+	movement.configure(
+		_base_movement_speed
+		* _medic_move_speed_multiplier
+		* _temporary_move_speed_multiplier
+	)
 
 
 func _on_destination_reached() -> void:
@@ -251,6 +274,7 @@ func _on_destination_reached() -> void:
 
 func _on_depleted() -> void:
 	status_effects.clear_poison()
+	clear_temporary_action_multipliers()
 	movement.stop()
 	combat.cancel()
 	visible = false
