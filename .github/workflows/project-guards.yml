@@ -72,4 +72,18 @@ jobs:
           godot --version
 
       - name: Run scenario
-        run: godot --headless --path . --script "res://${{ matrix.scenario }}"
+        shell: bash
+        run: |
+          set +e
+          godot --headless --path . --script "res://${{ matrix.scenario }}" > /tmp/godot-output.log 2>&1
+          status=$?
+          set -e
+          if [ "${status}" -ne 0 ]; then
+            echo "Godot scenario failed: ${{ matrix.scenario }}"
+            grep -E -i 'parse error|script error|error:|assert|failed|invalid|not found' /tmp/godot-output.log | head -n 160 || true
+            echo "--- final output ---"
+            tail -n 100 /tmp/godot-output.log
+          else
+            cat /tmp/godot-output.log
+          fi
+          exit "${status}"
