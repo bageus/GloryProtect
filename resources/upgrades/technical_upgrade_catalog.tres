@@ -1,0 +1,124 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=18 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectUnlockTurret"]
+script = ExtResource("3_effect")
+effect_type = 1
+integer_value = 1
+buildable_type_id = 1
+
+[sub_resource type="Resource" id="CardUnlockTurret"]
+script = ExtResource("2_definition")
+card_id = &"tech_unlock_turret"
+branch_id = &"turret"
+title = "Открыть турель"
+description = "Техническая открывающая карточка."
+card_type = 0
+repeat_limit = 1
+effect = SubResource("EffectUnlockTurret")
+
+[sub_resource type="Resource" id="EffectBasicScalar"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"tech_turret_damage"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardBasic"]
+script = ExtResource("2_definition")
+card_id = &"tech_turret_basic"
+branch_id = &"turret"
+title = "Базовое усиление турели"
+description = "Техническая базовая карточка."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"tech_unlock_turret"])
+repeat_limit = 2
+effect = SubResource("EffectBasicScalar")
+
+[sub_resource type="Resource" id="EffectAdvancedScalar"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"tech_turret_fire_rate"
+scalar_value = 0.15
+
+[sub_resource type="Resource" id="CardAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"tech_turret_advanced"
+branch_id = &"turret"
+title = "Продвинутая турель"
+description = "Требует базовую карточку."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"tech_turret_basic"])
+repeat_limit = 1
+effect = SubResource("EffectAdvancedScalar")
+
+[sub_resource type="Resource" id="EffectIndividual"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"tech_individual_defender_bonus"
+
+[sub_resource type="Resource" id="CardIndividual"]
+script = ExtResource("2_definition")
+card_id = &"tech_individual"
+branch_id = &"defender"
+title = "Индивидуальное усиление"
+description = "Техническая индивидуальная карточка."
+card_type = 3
+repeat_limit = 1
+effect = SubResource("EffectIndividual")
+
+[sub_resource type="Resource" id="EffectSpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"tech_specialization_heavy"
+
+[sub_resource type="Resource" id="CardSpecialization"]
+script = ExtResource("2_definition")
+card_id = &"tech_turret_heavy"
+branch_id = &"turret"
+title = "Тяжёлая специализация"
+description = "Технический выбор специализации."
+card_type = 4
+prerequisite_card_ids = Array[StringName]([&"tech_turret_basic", &"tech_turret_advanced"])
+closes_specialization_ids = Array[StringName]([&"tech_turret_rapid"])
+repeat_limit = 1
+effect = SubResource("EffectSpecialization")
+
+[sub_resource type="Resource" id="EffectSpecializationExtra"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"tech_heavy_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardSpecializationExtra"]
+script = ExtResource("2_definition")
+card_id = &"tech_turret_heavy_extra"
+branch_id = &"turret"
+title = "Усиление тяжёлой турели"
+description = "Доступно только после тяжёлой специализации."
+card_type = 5
+required_specialization_id = &"tech_turret_heavy"
+repeat_limit = 1
+effect = SubResource("EffectSpecializationExtra")
+
+[sub_resource type="Resource" id="EffectGeneral"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"tech_general_power"
+scalar_value = 0.05
+
+[sub_resource type="Resource" id="CardGeneral"]
+script = ExtResource("2_definition")
+card_id = &"tech_general"
+branch_id = &""
+title = "Общее усиление"
+description = "Техническая общая повторяемая карточка."
+card_type = 6
+repeat_limit = 3
+effect = SubResource("EffectGeneral")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardUnlockTurret"), SubResource("CardBasic"), SubResource("CardAdvanced"), SubResource("CardIndividual"), SubResource("CardSpecialization"), SubResource("CardSpecializationExtra"), SubResource("CardGeneral")])

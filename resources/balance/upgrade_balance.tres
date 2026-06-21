@@ -4,9 +4,9 @@
 
 [resource]
 script = ExtResource("1_balance")
-cards_per_offer = 2
+cards_per_offer = 3
 linear_offer_count = 20
 linear_step_cost = 5
 post_linear_multiplier = 2
-placeholder_title = "Тестовая карточка"
-placeholder_description = "Эффект карточки пока не реализован."
+placeholder_title = ""
+placeholder_description = ""
