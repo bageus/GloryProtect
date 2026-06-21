@@ -4,7 +4,7 @@ extends Node
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
-@export_node_path("AnchorSystem") var anchor_system_path: NodePath
+@export_node_path("AnchorSystem") var anchor_system_path := NodePath("../AnchorSystem")
 @export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export_node_path("BoardingMovementResolver") var movement_resolver_path: NodePath
