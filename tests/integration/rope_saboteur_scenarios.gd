@@ -53,6 +53,8 @@ func _test_explosion_damages_only_target_rope_and_pauses() -> void:
 	assert(not saboteur.is_climbing())
 	assert(not saboteur.is_on_platform())
 	var behavior: RopeSaboteurController = saboteur.controller as RopeSaboteurController
+	var definition: RopeSaboteurArchetype = saboteur.archetype as RopeSaboteurArchetype
+	var rope_damage: float = definition.rope_damage
 	assert(await _wait_until(func() -> bool: return behavior.is_arming(), 600))
 	var target_anchor_id: int = behavior.get_selected_anchor_id()
 	assert(target_anchor_id >= 0)
@@ -77,10 +79,9 @@ func _test_explosion_damages_only_target_rope_and_pauses() -> void:
 	var target_after: AnchorRopeSnapshot = anchors.get_rope_snapshot(
 		target_anchor_id
 	)
-	var definition: RopeSaboteurArchetype = saboteur.archetype as RopeSaboteurArchetype
 	assert(is_equal_approx(
 		target_after.current_durability,
-		target_before.current_durability - definition.rope_damage
+		target_before.current_durability - rope_damage
 	))
 	for snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
 		if snapshot.anchor_id == target_anchor_id:
