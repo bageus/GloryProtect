@@ -180,6 +180,7 @@ godot --headless --path . --script res://tests/integration/boarding_enemy_archet
 godot --headless --path . --script res://tests/integration/boarding_separation_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_jump_scenarios.gd
 godot --headless --path . --script res://tests/integration/crew_command_panel_scenarios.gd
+godot --headless --path . --script res://tests/integration/special_enemy_behavior_scenarios.gd
 python tools/check_file_sizes.py
 ```
 
