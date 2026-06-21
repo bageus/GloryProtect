@@ -120,7 +120,7 @@ func _apply_configuration(reset_life_state: bool) -> void:
 		elif not lethal_guard:
 			durability.set_lethal_guard_available(false)
 	_lethal_guard_feature_enabled = lethal_guard
-	melee.configure(damage, 0.4, cooldown)
+	melee.configure(damage, 0.4, cooldown, self)
 	movement.configure(_balance.defender_move_speed)
 	visual.configure(_balance.defender_body_radius, _body_color)
 	position.y = _balance.defender_local_y
