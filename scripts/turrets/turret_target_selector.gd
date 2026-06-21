@@ -37,7 +37,4 @@ func _is_valid_target(enemy: BoardingEnemy) -> bool:
 		return false
 	if not enemy.health.is_alive():
 		return false
-	return (
-		enemy.get_state() == BoardingEnemyController.State.CLIMBING
-		or enemy.is_on_platform()
-	)
+	return enemy.is_turret_targetable()
