@@ -9,6 +9,9 @@ var _platform: PlatformController
 var _roles: CrewRoleManager
 var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
+var _locked_enemy_id: int = -1
+var _completed_hits: int = 0
+var _resolver := MeleeDefenderCombatResolver.new()
 
 
 func configure(
@@ -27,6 +30,12 @@ func configure(
 	_roles = roles
 	_enemies = enemies
 	_melee = melee
+	if not _melee.attack_landed.is_connected(_on_attack_landed):
+		_melee.attack_landed.connect(_on_attack_landed)
+	if not _defender.health.damage_received.is_connected(
+		_on_damage_received
+	):
+		_defender.health.damage_received.connect(_on_damage_received)
 	_configured = true
 
 
@@ -74,7 +83,7 @@ func _physics_process(delta: float) -> void:
 	)
 	if distance <= _balance.defender_attack_range:
 		_defender.movement.pause()
-		_melee.try_start(target.health)
+		_try_start_attack(target)
 		return
 
 	if (
@@ -106,8 +115,13 @@ func is_action_active() -> bool:
 
 
 func cancel() -> void:
+	_locked_enemy_id = -1
 	if _melee != null:
 		_melee.cancel()
+
+
+func get_completed_hit_count() -> int:
+	return _completed_hits
 
 
 func _update_moving_assignment_combat() -> void:
@@ -120,7 +134,61 @@ func _update_moving_assignment_combat() -> void:
 		return
 
 	_defender.movement.pause()
-	_melee.try_start(target.health)
+	_try_start_attack(target)
+
+
+func _try_start_attack(target: BoardingEnemy) -> bool:
+	if target == null or not target.health.is_alive():
+		return false
+	if not _melee.try_start(target.health):
+		return false
+	_locked_enemy_id = target.enemy_id
+	return true
+
+
+func _on_attack_landed(
+	_target_health: HealthComponent,
+	damage: int
+) -> void:
+	var primary: BoardingEnemy = _enemies.get_enemy(_locked_enemy_id)
+	if primary == null:
+		return
+	_completed_hits += 1
+	var upgrades: MeleeDefenderUpgradeRuntime = (
+		_defender.get_melee_upgrades()
+	)
+	if upgrades == null:
+		return
+	_resolver.resolve_primary_hit(
+		_defender,
+		primary,
+		_enemies,
+		upgrades,
+		_completed_hits,
+		damage,
+		_balance.defender_attack_range
+	)
+
+
+func _on_damage_received(
+	_requested_amount: int,
+	_health_damage: int,
+	source_id: StringName
+) -> void:
+	if source_id != &"melee" or not _defender.health.is_alive():
+		return
+	var upgrades: MeleeDefenderUpgradeRuntime = (
+		_defender.get_melee_upgrades()
+	)
+	if upgrades == null:
+		return
+	_resolver.resolve_counterattack(
+		_defender,
+		_enemies,
+		upgrades,
+		_balance.defender_attack_range,
+		_melee.get_damage()
+	)
 
 
 func _get_target_search_distance(
