@@ -28,14 +28,10 @@ func resolve_incoming_damage(
 		_current_armor -= absorbed
 		remaining -= absorbed
 		armor_changed.emit(_current_armor, _max_armor)
-	if (
-		remaining >= current_health
-		and _lethal_guard_available
-		and current_health > 1
-	):
+	if remaining >= current_health and _lethal_guard_available:
 		_lethal_guard_available = false
 		lethal_guard_consumed.emit()
-		return current_health - 1
+		return maxi(0, current_health - 1)
 	return remaining
 
 
