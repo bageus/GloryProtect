@@ -3,6 +3,7 @@ extends Resource
 
 @export var archetype_id: StringName = &"basic"
 @export var display_name: String = "Базовый абордажник"
+@export var behavior_scene: PackedScene
 
 @export_group("Body")
 @export_range(1, 20, 1) var max_health: int = 1
@@ -25,6 +26,19 @@ extends Resource
 @export_range(0.0, 1.0, 0.01) var unlock_difficulty: float = 0.0
 @export_range(0.0, 20.0, 0.05) var weight_at_unlock: float = 1.0
 @export_range(0.0, 20.0, 0.05) var weight_at_max_difficulty: float = 1.0
+
+
+func instantiate_behavior() -> EnemyBehaviorComponent:
+	if behavior_scene == null:
+		return null
+	var component: EnemyBehaviorComponent = (
+		behavior_scene.instantiate() as EnemyBehaviorComponent
+	)
+	assert(
+		component != null,
+		"Boarding enemy behavior scene root must use EnemyBehaviorComponent"
+	)
+	return component
 
 
 func get_weight(normalized_difficulty: float) -> float:
