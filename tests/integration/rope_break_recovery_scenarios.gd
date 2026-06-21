@@ -180,6 +180,7 @@ func _test_natural_wind_break_removes_climbers() -> void:
 	basic.climb_move_speed = 18.0
 	var climber: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
 	assert(climber != null)
+	var climber_id: int = climber.enemy_id
 	assert(await _wait_until(
 		func() -> bool: return climber.is_counted_as_climbing(),
 		480
@@ -201,7 +202,7 @@ func _test_natural_wind_break_removes_climbers() -> void:
 
 	assert(not anchors.is_path_available(2))
 	assert(registry.get_climbing_count() == 0)
-	assert(registry.get_enemy(climber.enemy_id) == null)
+	assert(registry.get_enemy(climber_id) == null)
 	assert(economy.get_coins() == starting_coins + 1)
 	assert(_recovery_anchor_ids == [2])
 	assert(_recovery_sources == [&"wind_overload"])
