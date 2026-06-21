@@ -1,0 +1,257 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=39 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectStation"]
+script = ExtResource("3_effect")
+effect_type = 1
+integer_value = 1
+buildable_type_id = 0
+
+[sub_resource type="Resource" id="CardStation"]
+script = ExtResource("2_definition")
+card_id = &"medic_station"
+branch_id = &"healer"
+title = "Пост лекаря"
+description = "Открывает один медицинский пост, роль лекаря и три базовые линии ветки."
+card_type = 0
+effect = SubResource("EffectStation")
+
+[sub_resource type="Resource" id="EffectHealBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_amount_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardHealBasic"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_amount_basic"
+branch_id = &"healer"
+title = "Улучшенное лечение"
+description = "+1 к объёму лечения за завершённый цикл."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"medic_station"])
+effect = SubResource("EffectHealBasic")
+
+[sub_resource type="Resource" id="EffectHealAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_amount_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardHealAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_amount_advanced"
+branch_id = &"healer"
+title = "Мощное лечение"
+description = "Ещё +1 к объёму лечения за завершённый цикл."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"medic_heal_amount_basic"])
+effect = SubResource("EffectHealAdvanced")
+
+[sub_resource type="Resource" id="EffectSpeedBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_speed_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardSpeedBasic"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_speed_basic"
+branch_id = &"healer"
+title = "Ускоренное лечение"
+description = "Скорость лечения увеличена на 20%."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"medic_station"])
+effect = SubResource("EffectSpeedBasic")
+
+[sub_resource type="Resource" id="EffectSpeedAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_speed_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardSpeedAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_speed_advanced"
+branch_id = &"healer"
+title = "Мощное ускорение лечения"
+description = "Скорость лечения дополнительно увеличена на 20%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"medic_heal_speed_basic"])
+effect = SubResource("EffectSpeedAdvanced")
+
+[sub_resource type="Resource" id="EffectRangeBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_range_bonus_ratio"
+scalar_value = 0.15
+
+[sub_resource type="Resource" id="CardRangeBasic"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_range_basic"
+branch_id = &"healer"
+title = "Увеличенная дальность лечения"
+description = "Дальность лечения увеличена на 15%."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"medic_station"])
+effect = SubResource("EffectRangeBasic")
+
+[sub_resource type="Resource" id="EffectRangeAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_heal_range_bonus_ratio"
+scalar_value = 0.15
+
+[sub_resource type="Resource" id="CardRangeAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"medic_heal_range_advanced"
+branch_id = &"healer"
+title = "Мега-дальность лечения"
+description = "Дальность лечения дополнительно увеличена на 15%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"medic_heal_range_basic"])
+effect = SubResource("EffectRangeAdvanced")
+
+[sub_resource type="Resource" id="EffectHealth"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_role_health_bonus"
+scalar_value = 2.0
+
+[sub_resource type="Resource" id="CardHealth"]
+script = ExtResource("2_definition")
+card_id = &"medic_role_health"
+branch_id = &"healer"
+title = "Здоровье для лекаря"
+description = "+2 к максимальному здоровью активного лекаря."
+card_type = 3
+required_completed_branch_id = &"healer"
+effect = SubResource("EffectHealth")
+
+[sub_resource type="Resource" id="EffectArmor"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"medic_role_armor_bonus"
+scalar_value = 2.0
+
+[sub_resource type="Resource" id="CardArmor"]
+script = ExtResource("2_definition")
+card_id = &"medic_role_armor"
+branch_id = &"healer"
+title = "Броня для лекаря"
+description = "+2 брони активному лекарю. Остаток брони следует за ролью без пополнения при переназначении."
+card_type = 3
+required_completed_branch_id = &"healer"
+effect = SubResource("EffectArmor")
+
+[sub_resource type="Resource" id="EffectField"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_specialization_field"
+
+[sub_resource type="Resource" id="CardField"]
+script = ExtResource("2_definition")
+card_id = &"medic_specialization_field"
+branch_id = &"healer"
+title = "Полевой лекарь"
+description = "+15% к скорости перемещения активного лекаря."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"medic_specialization_stimulant", &"medic_specialization_protective"])
+effect = SubResource("EffectField")
+
+[sub_resource type="Resource" id="EffectStimulant"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_specialization_stimulant"
+
+[sub_resource type="Resource" id="CardStimulant"]
+script = ExtResource("2_definition")
+card_id = &"medic_specialization_stimulant"
+branch_id = &"healer"
+title = "Боевой стимулятор"
+description = "После лечения цель на 5 секунд получает +15% к скорости атаки и перемещения."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"medic_specialization_field", &"medic_specialization_protective"])
+effect = SubResource("EffectStimulant")
+
+[sub_resource type="Resource" id="EffectProtective"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_specialization_protective"
+
+[sub_resource type="Resource" id="CardProtective"]
+script = ExtResource("2_definition")
+card_id = &"medic_specialization_protective"
+branch_id = &"healer"
+title = "Защитное лечение"
+description = "После лечения цель получает +1 временной брони, а после полного лечения игнорирует следующий удар."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"medic_specialization_field", &"medic_specialization_stimulant"])
+effect = SubResource("EffectProtective")
+
+[sub_resource type="Resource" id="EffectFieldCombat"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_field_combat"
+
+[sub_resource type="Resource" id="CardFieldCombat"]
+script = ExtResource("2_definition")
+card_id = &"medic_field_combat"
+branch_id = &"healer"
+title = "Боевой полевой лекарь"
+description = "Активный лекарь может атаковать мечом и получает +1 к урону."
+card_type = 5
+required_specialization_id = &"medic_specialization_field"
+effect = SubResource("EffectFieldCombat")
+
+[sub_resource type="Resource" id="EffectFieldEmergency"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_field_emergency"
+
+[sub_resource type="Resource" id="CardFieldEmergency"]
+script = ExtResource("2_definition")
+card_id = &"medic_field_emergency"
+branch_id = &"healer"
+title = "Экстренная помощь"
+description = "Цикл лечения цели с 1 здоровьем выполняется вдвое быстрее."
+card_type = 5
+required_specialization_id = &"medic_specialization_field"
+effect = SubResource("EffectFieldEmergency")
+
+[sub_resource type="Resource" id="EffectRevival"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_stimulant_revival"
+
+[sub_resource type="Resource" id="CardRevival"]
+script = ExtResource("2_definition")
+card_id = &"medic_stimulant_revival"
+branch_id = &"healer"
+title = "Реанимационный протокол"
+description = "Не чаще раза в 60 секунд мгновенно заменяет погибшего до проверки поражения."
+card_type = 5
+required_specialization_id = &"medic_specialization_stimulant"
+effect = SubResource("EffectRevival")
+
+[sub_resource type="Resource" id="EffectChain"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"medic_protective_chain"
+
+[sub_resource type="Resource" id="CardChain"]
+script = ExtResource("2_definition")
+card_id = &"medic_protective_chain"
+branch_id = &"healer"
+title = "Цепная терапия"
+description = "Второй наиболее раненый защитник получает 50% объёма лечения, минимум 1."
+card_type = 5
+required_specialization_id = &"medic_specialization_protective"
+effect = SubResource("EffectChain")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardStation"), SubResource("CardHealBasic"), SubResource("CardHealAdvanced"), SubResource("CardSpeedBasic"), SubResource("CardSpeedAdvanced"), SubResource("CardRangeBasic"), SubResource("CardRangeAdvanced"), SubResource("CardHealth"), SubResource("CardArmor"), SubResource("CardField"), SubResource("CardStimulant"), SubResource("CardProtective"), SubResource("CardFieldCombat"), SubResource("CardFieldEmergency"), SubResource("CardRevival"), SubResource("CardChain")])
