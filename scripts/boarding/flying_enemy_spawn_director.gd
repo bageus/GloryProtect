@@ -38,7 +38,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if not _game_flow.is_world_simulation_active():
+	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
 	_spawn_remaining = maxf(0.0, _spawn_remaining - delta)
 	if _spawn_remaining > 0.0:
