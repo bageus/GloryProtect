@@ -3,6 +3,7 @@ extends Node
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
+@export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export_node_path("BoardingMovementResolver") var movement_resolver_path: NodePath
 @export_node_path("BoardingJumpPlanner") var jump_planner_path: NodePath
@@ -18,6 +19,7 @@ var _rng := RandomNumberGenerator.new()
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _platform: PlatformController = get_node(platform_path)
+@onready var _paths: AnchorPathRegistry = get_node(path_registry_path)
 @onready var _registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
 @onready var _movement_resolver: BoardingMovementResolver = get_node(movement_resolver_path)
 @onready var _jump_planner: BoardingJumpPlanner = get_node(jump_planner_path)
@@ -31,7 +33,8 @@ func _ready() -> void:
 	assert(boarding_balance != null, "FlyingEnemySpawnDirector requires boarding balance")
 	assert(profile != null and profile.is_valid(), "Flying enemy profile is invalid")
 	_rng.randomize()
-	_spawn_remaining = profile.spawn_interval
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
+	reset_spawn_timer()
 
 
 func _physics_process(delta: float) -> void:
@@ -41,7 +44,7 @@ func _physics_process(delta: float) -> void:
 	if _spawn_remaining > 0.0:
 		return
 	spawn_now()
-	_spawn_remaining = profile.spawn_interval
+	reset_spawn_timer()
 
 
 func spawn_now(side: int = 0) -> BoardingEnemy:
@@ -56,7 +59,7 @@ func spawn_now(side: int = 0) -> BoardingEnemy:
 		boarding_balance,
 		_game_flow,
 		_platform,
-		get_node("../AnchorPathRegistry") as AnchorPathRegistry,
+		_paths,
 		_crew,
 		_orbs,
 		_movement_resolver,
@@ -79,3 +82,11 @@ func reset_spawn_timer() -> void:
 
 func get_spawn_remaining() -> float:
 	return maxf(0.0, _spawn_remaining)
+
+
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
+		return
+	reset_spawn_timer()
