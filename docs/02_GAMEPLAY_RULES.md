@@ -8,7 +8,9 @@
 2. [Платформа, ветер и якоря](rules/02_PLATFORM_WIND_AND_ANCHORS.md)
 3. [Стратегические волны и физический абордаж](rules/03_STRATEGIC_AND_BOARDING_THREATS.md)
 4. [Экипаж, роли и ближний бой](rules/04_CREW_COMBAT_AND_ROLES.md)
-5. [Объекты, экономика, улучшения и интерфейс](rules/05_BUILDABLES_ECONOMY_AND_UI.md)
+5. [Объекты, экономика и интерфейс](rules/05_BUILDABLES_ECONOMY_AND_UI.md)
+6. [Система карточек, веса и специализации](rules/06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md)
+7. [Каталог веток и карточек](rules/07_UPGRADE_BRANCH_CATALOG.md)
 
 ## Правило обновления
 
@@ -32,5 +34,10 @@
 | Ближний бой и смерть | `04_CREW_COMBAT_AND_ROLES.md` |
 | Лечение и турельщики | `04_CREW_COMBAT_AND_ROLES.md` |
 | Медицинский пост и турели | `05_BUILDABLES_ECONOMY_AND_UI.md` |
-| Монеты и карточки | `05_BUILDABLES_ECONOMY_AND_UI.md` |
+| Монеты, стоимость и пауза карточек | `05_BUILDABLES_ECONOMY_AND_UI.md` |
+| Алгоритм предложения и условия выпадения | `06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md` |
+| Веса веток и события специализации | `06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md` |
+| Повторяемые улучшения и лимиты | `06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md` |
+| Состав веток и эффекты карточек | `07_UPGRADE_BRANCH_CATALOG.md` |
+| Общий пул улучшений | `07_UPGRADE_BRANCH_CATALOG.md` |
 | Обязательный интерфейс | `05_BUILDABLES_ECONOMY_AND_UI.md` |
