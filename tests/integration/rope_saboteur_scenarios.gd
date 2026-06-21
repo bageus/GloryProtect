@@ -9,7 +9,7 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	await _test_explosion_damages_only_target_rope_and_pauses()
-	await _test_closed_target_retargets_and_combat_kill_is_rewarded()
+	await _test_invalid_target_retargets_and_combat_kill_is_rewarded()
 	print("Rope saboteur integration scenarios passed")
 	quit()
 
@@ -110,7 +110,7 @@ func _test_explosion_damages_only_target_rope_and_pauses() -> void:
 	await process_frame
 
 
-func _test_closed_target_retargets_and_combat_kill_is_rewarded() -> void:
+func _test_invalid_target_retargets_and_combat_kill_is_rewarded() -> void:
 	var game: Node = GAME_SCENE.instantiate()
 	root.add_child(game)
 	await process_frame
@@ -125,8 +125,18 @@ func _test_closed_target_retargets_and_combat_kill_is_rewarded() -> void:
 
 	director.set_physics_process(false)
 	_configure_stable_world(game_flow, wind, platform)
+	await _install_anchor(anchors, 1)
 	await _install_anchor(anchors, 2)
 	await _install_anchor(anchors, 3)
+
+	var outer_right: AnchorRopeSnapshot = anchors.get_rope_snapshot(3)
+	assert(anchors.apply_rope_damage(
+		3,
+		outer_right.maximum_durability,
+		&"test_setup"
+	))
+	assert(anchors.get_rope_snapshot(3).is_destroyed)
+	assert(anchors.is_path_available(3))
 
 	var saboteur: BoardingEnemy = director.spawn_debug_archetype(
 		&"rope_saboteur",
@@ -139,6 +149,9 @@ func _test_closed_target_retargets_and_combat_kill_is_rewarded() -> void:
 		60
 	))
 	var first_target: int = behavior.get_selected_anchor_id()
+	assert(first_target == 2)
+	assert(first_target != 3)
+
 	anchors.toggle_anchor(first_target)
 	assert(await _wait_until(
 		func() -> bool:
@@ -149,6 +162,7 @@ func _test_closed_target_retargets_and_combat_kill_is_rewarded() -> void:
 		240
 	))
 	var second_target: int = behavior.get_selected_anchor_id()
+	assert(second_target == 1)
 	assert(anchors.is_path_available(second_target))
 
 	var durability_before: Array[float] = []
