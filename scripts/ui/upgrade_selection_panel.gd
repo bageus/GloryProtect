@@ -30,7 +30,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	var card_index: int = key_event.keycode - KEY_1
 	if card_index >= _upgrades.get_card_count():
 		return
-	if _upgrades.choose_card(card_index):
+	var card_id: StringName = _upgrades.get_card_id(card_index)
+	if _upgrades.choose_card_by_id(card_id):
 		get_viewport().set_input_as_handled()
 
 
@@ -65,6 +66,7 @@ func _rebuild_card_buttons() -> void:
 		child.queue_free()
 
 	for card_index: int in range(_upgrades.get_card_count()):
+		var card_id: StringName = _upgrades.get_card_id(card_index)
 		var button := Button.new()
 		button.custom_minimum_size = Vector2(260.0, 180.0)
 		button.text = "%d\n%s\n\n%s" % [
@@ -73,9 +75,9 @@ func _rebuild_card_buttons() -> void:
 			_upgrades.get_card_description(card_index),
 		]
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.pressed.connect(_on_card_pressed.bind(card_index))
+		button.pressed.connect(_on_card_pressed.bind(card_id))
 		_cards_container.add_child(button)
 
 
-func _on_card_pressed(card_index: int) -> void:
-	_upgrades.choose_card(card_index)
+func _on_card_pressed(card_id: StringName) -> void:
+	_upgrades.choose_card_by_id(card_id)
