@@ -3,6 +3,7 @@ extends Node2D
 
 signal died(enemy_id: int, reason: StringName)
 signal visual_state_changed(enemy_id: int, state_id: StringName)
+signal stun_changed(enemy_id: int, remaining_seconds: float)
 
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("MeleeAttackComponent") var melee_path: NodePath
@@ -13,6 +14,8 @@ var enemy_id: int = -1
 var archetype: BoardingEnemyArchetype
 var behavior: EnemyBehaviorComponent
 var _dead: bool = false
+var _stun_remaining: float = 0.0
+var _game_flow: GameFlowController
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var melee: MeleeAttackComponent = get_node(melee_path)
@@ -22,6 +25,15 @@ var _dead: bool = false
 
 func _ready() -> void:
 	health.depleted.connect(_on_health_depleted)
+
+
+func _physics_process(delta: float) -> void:
+	if _stun_remaining <= 0.0 or _game_flow == null:
+		return
+	if not _game_flow.is_world_simulation_active():
+		return
+	_stun_remaining = maxf(0.0, _stun_remaining - maxf(0.0, delta))
+	stun_changed.emit(enemy_id, _stun_remaining)
 
 
 func set_enemy_id(value: int) -> void:
@@ -43,6 +55,8 @@ func configure(
 	assert(profile != null, "BoardingEnemy requires an archetype")
 	assert(profile.is_valid(), "BoardingEnemy archetype is invalid")
 	archetype = profile
+	_game_flow = game_flow
+	_stun_remaining = 0.0
 	health.configure(archetype.max_health)
 	melee.configure(
 		archetype.attack_damage,
@@ -82,10 +96,28 @@ func attach_special_behavior(
 	behavior.configure(self, game_flow)
 
 
+func apply_stun(duration_seconds: float) -> bool:
+	if duration_seconds <= 0.0 or _dead or not health.is_alive():
+		return false
+	_stun_remaining = maxf(_stun_remaining, duration_seconds)
+	melee.cancel()
+	stun_changed.emit(enemy_id, _stun_remaining)
+	return true
+
+
+func is_stunned() -> bool:
+	return _stun_remaining > 0.0
+
+
+func get_stun_remaining() -> float:
+	return maxf(0.0, _stun_remaining)
+
+
 func kill(reason: StringName) -> void:
 	if _dead:
 		return
 	_dead = true
+	_stun_remaining = 0.0
 	if behavior != null:
 		behavior.stop()
 	controller.stop()
