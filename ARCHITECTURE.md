@@ -79,6 +79,7 @@ GameRoot
 | Положение и скорость платформы | `PlatformController` |
 | Состояния четырёх якорей | `AnchorRuntimeStore` |
 | Прочность четырёх тросов | `AnchorRopeDurability` |
+| Физические последствия разрушения троса | `AnchorBreakRecoveryController` |
 | Размещённые объекты и занятость клеток | `BuildableGrid` |
 | Текущий цикл лечения | `MedicalStationSystem` |
 | Боевой runtime турели | `TurretSystem` через `TurretRuntime` |
@@ -264,9 +265,10 @@ is_targetable_by_turret()
 is_counted_as_ground()
 is_counted_as_climbing()
 is_counted_as_boarded()
+get_selected_anchor_id()
 ```
 
-Это позволяет registry, турелям и movement resolver работать без знания конкретного специального типа.
+Это позволяет registry, турелям, movement resolver и восстановлению якоря работать без знания конкретного специального типа.
 
 `EnemyBehaviorContext` предоставляет только необходимые доменные ссылки: платформу, пути, орбы, movement resolver, якоря и общий boarding balance. Контекст устанавливается до активации behavior.
 
@@ -290,7 +292,7 @@ HealthComponent.depleted
 → RunEconomy / RunStatistics
 ```
 
-Награда определяется причиной смерти, а не конкретным классом врага.
+Награда определяется причиной смерти, а не конкретным классом врага. Разрушение троса удаляет карабкающихся врагов с причиной `anchor_path_closed`, поэтому использует существующую награду за снятие или обрыв якоря.
 
 ## 14. RopeSaboteurDomain
 
@@ -323,7 +325,7 @@ WAITING_WITHOUT_PATH
 - обычное убийство через `HealthComponent` использует `combat` и выдаёт стандартную награду;
 - presentation рисует фитиль и кольцо подготовки, но не меняет runtime.
 
-Физический обрыв троса и закрытие пути остаются ответственностью #16.
+Физические последствия нулевой прочности выполняет `AnchorBreakRecoveryController`, а не подрывник.
 
 ## 15. TurretDomain
 
@@ -350,16 +352,20 @@ READY → WINDUP → PROJECTILE → COOLDOWN
 - спавн и движение врагов остановлены;
 - обычные и специальные behavior не обновляются;
 - подготовка подрывника заморожена;
+- возврат разрушенного якоря заморожен;
+- фаза мигания предупреждения троса заморожена;
 - лечение, melee, ranged projectile, cooldown и poison остановлены;
 - presentation не продвигает gameplay-состояние.
 
-## 18. AnchorRopeDurabilityDomain
+## 18. AnchorRopeAndRecoveryDomain
 
 ```text
 AnchorBalance.rope_max_durability
 AnchorRuntime.rope_durability
 AnchorRopeDurability
 AnchorRopeSnapshot
+AnchorBreakRecoveryController
+AnchorVisualController
 AnchorSystem public API
 ```
 
@@ -369,21 +375,38 @@ AnchorSystem public API
 apply_rope_damage(anchor_id, amount, source)
 get_rope_snapshot(anchor_id)
 get_all_rope_snapshots()
+get_anchor_state(anchor_id)
 ```
 
 Урон принимают только установленные или перегруженные тросы. Значение ограничено диапазоном `0..maximum`. Новая успешная установка восстанавливает полную прочность. Перегрузка ветром и повреждение являются независимыми механизмами.
 
-При достижении нуля публикуется `rope_destroyed` один раз. До #16 нулевая прочность сама не закрывает путь. Подрывник уже исключает такой трос из списка целей.
+При достижении нуля `AnchorRopeDurability` публикует `rope_destroyed`, после чего `AnchorBreakRecoveryController`:
+
+1. отменяет ожидающие операции конкретного якоря;
+2. переводит его в `RETURNING`, немедленно закрывая путь;
+3. вызывает `BoardingEnemyRegistry.kill_climbing_on_anchor()`;
+4. не затрагивает boarded enemies;
+5. пересчитывает ограничения платформы;
+6. публикует число удалённых врагов для diagnostics.
+
+`AnchorOperationQueue` продвигает возврат только при активной мировой симуляции. После `STOWED` якорь можно установить снова; успешное закрепление восстанавливает полную прочность.
+
+`AnchorVisualController` читает runtime, показывает процент и шкалу прочности, переключает цвет в повреждённом и критическом диапазоне и использует pause-safe локальную фазу предупреждения. Он не изменяет прочность и не запускает восстановление.
 
 ## 19. Обязательные тестовые границы
 
-### Rope durability
+### Rope durability and recovery
 
 - четыре независимые шкалы;
 - снятый трос не принимает урон;
 - событие разрушения не повторяется;
-- новая установка восстанавливает прочность;
-- ноль до #16 не закрывает путь автоматически.
+- путь закрывается синхронно с достижением нуля;
+- удаляются только враги на конкретном тросе;
+- boarded enemies остаются живы;
+- смерти `anchor_path_closed` используют общий reward flow;
+- разрушение из `ATTACHED` и `OVERLOADED` переходит в `RETURNING`;
+- пауза замораживает возврат и warning phase;
+- новая установка восстанавливает прочность.
 
 ### Enemy catalog и runtime
 
@@ -413,18 +436,16 @@ get_all_rope_snapshots()
 
 ## 20. Следующая якорная итерация
 
-Issue #16 должен подписаться на разрушение троса и через существующих владельцев:
-
-1. закрыть boarding-путь;
-2. сбросить поднимающихся врагов;
-3. перевести якорь в возврат;
-4. показать визуальный обрыв и повреждённое состояние.
+Прочность, подрывник и физическое восстановление троса образуют завершённый первый вертикальный срез якорной угрозы. Следующие изменения якорей должны идти через отдельные issues ветки улучшений и балансировки, не добавляя второго владельца прочности или восстановления.
 
 ## 21. Запрещённые решения
 
 - Прямое изменение `AnchorRuntime.rope_durability` из врага, UI или presentation.
 - Второй владелец прочности вне `AnchorRopeDurability`.
-- Физический обрыв внутри `RopeSaboteurBehavior`.
+- Физический обрыв вне `AnchorBreakRecoveryController`.
+- Прямое удаление карабкающихся врагов без `BoardingEnemy.kill(reason)`.
+- Уничтожение boarded enemies при обрыве троса.
+- Использование wall-clock времени для warning phase, которая должна замораживаться паузой.
 - Проверки `archetype_id` внутри общей машины движения, registry, турелей или spawn director.
 - Специальный controller, дублирующий `EnemyBehaviorComponent` framework.
 - Копирование характеристик архетипа в общий balance как активный runtime-источник.
