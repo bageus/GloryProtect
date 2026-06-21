@@ -8,15 +8,18 @@ var _runtime: UpgradeRuntime
 
 func configure(
 	buildables: BuildableInventory,
-	crew: CrewManager,
-	runtime: UpgradeRuntime
+	runtime: UpgradeRuntime,
+	crew: CrewManager = null
 ) -> void:
 	assert(buildables != null)
-	assert(crew != null)
 	assert(runtime != null)
 	_buildables = buildables
-	_crew = crew
 	_runtime = runtime
+	_crew = crew
+
+
+func set_crew_manager(crew: CrewManager) -> void:
+	_crew = crew
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
