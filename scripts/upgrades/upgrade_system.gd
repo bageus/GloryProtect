@@ -14,13 +14,17 @@ signal progress_reset
 @export var catalog: UpgradeCatalog = preload(
 	"res://resources/upgrades/technical_upgrade_catalog.tres"
 )
+@export var draw_balance: UpgradeDrawBalance = preload(
+	"res://resources/upgrades/upgrade_draw_balance.tres"
+)
+@export var deterministic_seed: int = 0
 
 var _completed_purchases: int = 0
 var _offer_open: bool = false
 var _current_offer: Array[UpgradeDefinition] = []
 var _runtime := UpgradeRuntime.new()
 var _effect_applier := UpgradeEffectApplier.new()
-var _rng := RandomNumberGenerator.new()
+var _draw_generator := UpgradeDrawGenerator.new()
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _economy: RunEconomy = get_node(run_economy_path)
@@ -30,9 +34,15 @@ var _rng := RandomNumberGenerator.new()
 func _ready() -> void:
 	assert(balance != null, "UpgradeSystem requires UpgradeBalance")
 	assert(catalog != null and catalog.is_valid(), "UpgradeSystem catalog is invalid")
+	assert(draw_balance != null and draw_balance.is_valid(), "Upgrade draw balance is invalid")
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_rng.randomize()
 	_effect_applier.configure(_buildables, _runtime)
+	_draw_generator.configure(
+		draw_balance,
+		catalog,
+		_runtime,
+		deterministic_seed
+	)
 	_economy.coins_changed.connect(_on_coins_changed)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 
@@ -54,7 +64,7 @@ func get_current_cost() -> int:
 
 
 func get_card_count() -> int:
-	return _current_offer.size() if _offer_open else balance.cards_per_offer
+	return _current_offer.size() if _offer_open else draw_balance.cards_per_offer
 
 
 func get_card_id(card_index: int) -> StringName:
@@ -70,6 +80,19 @@ func get_card_title(card_index: int) -> String:
 func get_card_description(card_index: int) -> String:
 	var definition: UpgradeDefinition = _get_offer_definition(card_index)
 	return definition.description if definition != null else ""
+
+
+func get_card_unavailability_reason(card_id: StringName) -> StringName:
+	var definition: UpgradeDefinition = catalog.get_definition(card_id)
+	return _draw_generator.get_unavailability_reason(definition)
+
+
+func get_branch_weight(branch_id: StringName) -> int:
+	return _draw_generator.get_branch_weight(branch_id)
+
+
+func set_draw_seed(seed: int) -> void:
+	_draw_generator.set_seed(seed)
 
 
 func is_offer_open() -> bool:
@@ -92,7 +115,7 @@ func choose_card_by_id(card_id: StringName) -> bool:
 	if offer_index < 0:
 		return false
 	var definition: UpgradeDefinition = _current_offer[offer_index]
-	if not catalog.is_available(definition, _runtime):
+	if _draw_generator.get_unavailability_reason(definition) != &"":
 		return false
 	if not _effect_applier.can_apply(definition):
 		return false
@@ -107,6 +130,7 @@ func choose_card_by_id(card_id: StringName) -> bool:
 	if not _runtime.record_card(definition):
 		_economy.add_coins(cost, &"upgrade_refund")
 		return false
+	_draw_generator.apply_selected_card(definition)
 
 	_completed_purchases += 1
 	card_selected.emit(offer_index, offer_number, cost)
@@ -125,6 +149,7 @@ func reset_for_run() -> void:
 	_completed_purchases = 0
 	_current_offer.clear()
 	_runtime.reset_for_run()
+	_draw_generator.reset_for_run()
 	progress_reset.emit()
 
 
@@ -144,14 +169,10 @@ func _open_offer_if_affordable() -> void:
 
 
 func _generate_offer() -> void:
-	_current_offer.clear()
-	var candidates: Array[UpgradeDefinition] = catalog.get_available_definitions(_runtime)
-	while not candidates.is_empty() and _current_offer.size() < balance.cards_per_offer:
-		var index: int = _rng.randi_range(0, candidates.size() - 1)
-		var definition: UpgradeDefinition = candidates[index]
-		candidates.remove_at(index)
-		if _effect_applier.can_apply(definition):
-			_current_offer.append(definition)
+	_current_offer = _draw_generator.generate_offer()
+	for index: int in range(_current_offer.size() - 1, -1, -1):
+		if not _effect_applier.can_apply(_current_offer[index]):
+			_current_offer.remove_at(index)
 
 
 func _emit_current_offer() -> void:
