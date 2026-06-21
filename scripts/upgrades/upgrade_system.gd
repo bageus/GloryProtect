@@ -14,7 +14,7 @@ signal progress_reset
 @export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath("../World/Platform/CrewManager")
 @export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../CrewReplacementController")
 @export var balance: UpgradeBalance
-@export var catalog: UpgradeCatalog = preload("res://resources/upgrades/technical_upgrade_catalog.tres")
+@export var catalog: UpgradeCatalog = preload("res://resources/upgrades/game_upgrade_catalog.tres")
 @export var draw_balance: UpgradeDrawBalance = preload("res://resources/upgrades/upgrade_draw_balance.tres")
 @export var deterministic_seed: int = 0
 

@@ -1,48 +1,175 @@
-# Common and Repeatable Upgrades
+# Common and Repeatable Upgrade Architecture
 
-Issue #39 adds the first production common-pool catalog and repeatable upgrade effects.
+Этот документ фиксирует архитектуру общего пула и повторяемых карточек. Игровые правила и числовые значения находятся в:
 
-## Common pool
+- [`../rules/06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md`](../rules/06_UPGRADE_CARDS_BRANCHES_AND_SPECIALIZATIONS.md);
+- [`../rules/07_UPGRADE_BRANCH_CATALOG.md`](../rules/07_UPGRADE_BRANCH_CATALOG.md).
 
-Common cards use `UpgradeDefinition.CardType.GENERAL`, so the draw generator places them in the fixed-weight general pool. Selecting them does not change branch weights and does not increment specialization progress.
+## Владельцы состояния
 
-The first version contains:
+| Состояние | Единственный владелец |
+|---|---|
+| Выбранные карточки и число повторов | `UpgradeRuntime` |
+| Прогресс веток и выбранные специализации | `UpgradeRuntime` |
+| Веса веток | `UpgradeDrawGenerator` |
+| Текущее предложение и стоимость покупки | `UpgradeSystem` |
+| Открытое количество объектов | `BuildableInventory` |
+| Состав экипажа и множитель скорости | `CrewManager` |
+| Ожидающие замены и множитель времени замены | `CrewReplacementController` |
 
-- `common_add_defender`, repeat limit 5;
-- `common_move_speed`;
-- `common_move_speed_power`, requiring `common_move_speed`;
-- `common_respawn_speed`;
-- `common_respawn_turbo`, requiring `common_respawn_speed`.
+`UpgradeCatalog` хранит неизменяемые определения и условия доступности. Он не хранит состояние забега.
 
-Repeat counts and prerequisites are stored in resources and evaluated against `UpgradeRuntime`.
+## Поток покупки
 
-## Crew expansion
+```text
+UpgradeSystem
+→ UpgradeDrawGenerator / UpgradeSpecializationEventGenerator
+→ UpgradeEffectApplier.can_apply(definition)
+→ RunEconomy.spend_coins(cost)
+→ UpgradeEffectApplier.apply_effect(definition)
+→ UpgradeRuntime.record_card(definition)
+→ UpgradeDrawGenerator.apply_selected_card(definition)
+```
 
-`CrewManager` remains the owner of the crew collection. `UpgradeEffectApplier` calls `CrewManager.add_defender()` and never changes the collection directly. The run starts with 3 defenders and `CrewBalance.maximum_defender_count` limits the collection to 8.
+Если доменный эффект применить невозможно, покупка не выполняется. Если применение эффекта не удалось после списания, стоимость возвращается.
 
-## Movement and respawn
+## Границы UpgradeEffectApplier
 
-Movement upgrades call `CrewManager.multiply_movement_speed()`. The manager applies the resulting multiplier to all current defenders and to replacements or newly added defenders.
+`UpgradeEffectApplier` не владеет:
 
-Respawn upgrades call `CrewReplacementController.multiply_respawn_time()`. New replacement timers use the modified duration; existing timers are not retroactively rewritten.
+- числом выбранных копий;
+- prerequisites;
+- прогрессом специализации;
+- весами веток;
+- лимитом повторов.
 
-Both modifiers reset to `1.0` at the start of a new run.
+Он только переводит типизированный эффект в вызов публичного API владельца домена:
 
-## Turret posts
+```text
+UNLOCK_BUILDABLE
+→ BuildableInventory.unlock(...)
 
-`common_turret_post` is a repeatable opening card with a limit of 3. Each selection calls `BuildableInventory.unlock(TURRET, 1)`. Because it is an opening card, it does not modify turret branch weight or specialization progress. The first recorded copy satisfies the prerequisite for the base turret line.
+ADD_DEFENDER
+→ CrewManager.add_defender(...)
 
-`common_fourth_turret` becomes available only after:
+CREW_MOVE_SPEED_MULTIPLIER
+→ CrewManager.multiply_movement_speed(...)
 
-- three copies of `common_turret_post`;
-- a selected turret specialization;
-- at least one completed turret basic-to-advanced line.
+CREW_RESPAWN_MULTIPLIER
+→ CrewReplacementController.multiply_respawn_time(...)
 
-The buildable balance keeps the hard turret maximum at 4 and the base turret damage at 1.
+DOMAIN_FLAG / DOMAIN_SCALAR
+→ UpgradeRuntime
+```
 
-## Tests
+После третьего `Поста турели` effect layer технически способен открыть ещё один объект, но `UpgradeCatalog` уже запрещает повтор карточки. Четвёртая турель открывается только отдельной карточкой.
 
-- `tests/unit/common_repeatable_upgrade_scenarios.gd`
-- `tests/integration/common_repeatable_upgrade_effects_scenarios.gd`
+## Игровой каталог
 
-They cover common-pair prerequisites, repeat limits, reset behavior, specialization exclusions, turret-post rules, fourth-turret prerequisites, crew maximum, public buildable unlocks, movement effects, respawn effects, and base turret damage.
+Активный каталог прототипа:
+
+```text
+resources/upgrades/game_upgrade_catalog.tres
+```
+
+`technical_upgrade_catalog.tres` и ранний `common_repeatable_upgrade_catalog.tres` не используются игровым `UpgradeSystem`.
+
+## Общий пул
+
+Общие карточки:
+
+- имеют пустой `branch_id`;
+- получают постоянный вес общего пула;
+- не изменяют веса веток;
+- не увеличивают прогресс специализации.
+
+Текущие эффекты:
+
+```text
+Добавить защитника: +1, максимум 5 копий
+Скорость перемещения: ×1.15, затем ещё ×1.15
+Время замены: ×0.75, затем ещё ×0.75
+```
+
+`CrewManager` применяет текущий множитель скорости ко всем существующим защитникам и к каждому вновь созданному или восстановленному защитнику.
+
+`CrewReplacementController` использует текущий множитель при создании нового `CrewReplacementRuntime`. Уже запущенный таймер не пересчитывается задним числом.
+
+## Повторяемый Пост турели
+
+`turret_post`:
+
+- тип `UNLOCK`;
+- `repeat_limit = 3`;
+- каждая копия вызывает `BuildableInventory.unlock(TURRET, 1)`;
+- ни одна копия не учитывается для специализации;
+- ни одна копия не меняет вес турельной ветки.
+
+Три базовые линии используют `turret_post` как prerequisite. Поэтому первая копия автоматически открывает:
+
+- `turret_damage_basic`;
+- `turret_cooldown_basic`;
+- `turret_range_basic`.
+
+Отдельной карточки базового урона турели нет. Базовый урон `1` принадлежит `BuildableBalance`.
+
+## Четвёртая турель
+
+`turret_fourth` является индивидуальной одноразовой карточкой. Все условия задаются данными:
+
+```text
+required_repeat_card_id = turret_post
+required_repeat_count = 3
+required_specialized_branch_id = turret
+required_completed_branch_id = turret
+```
+
+`UpgradeCatalog` проверяет условия. UI, `UpgradeEffectApplier` и `TurretSystem` не дублируют эту логику.
+
+## Турельные боевые значения
+
+До реализации NEXT-09 турельные карточки сохраняют значения в `UpgradeRuntime`:
+
+```text
+turret_damage_bonus
+turret_cooldown_reduction
+turret_range_bonus_ratio
+```
+
+Выбранная специализация сохраняется как specialization ID и domain flag. NEXT-09 должен читать эти значения через публичный upgrade runtime API и применять их в `TurretSystem`, не перемещая владение выбором карточек в боевой домен.
+
+## Сброс забега
+
+В текущем прототипе новый забег создаёт новую игровую сцену. Поэтому полный состав экипажа и открытые объекты возвращаются к начальному состоянию вместе с новыми экземплярами доменных систем.
+
+Дополнительно `UpgradeSystem.reset_for_run()` сбрасывает:
+
+- `UpgradeRuntime`;
+- веса генератора;
+- множитель скорости экипажа;
+- множитель времени замены.
+
+## Обязательные тестовые границы
+
+- предложение содержит уникальные `card_id`;
+- повторяемая карточка не дублируется внутри предложения;
+- первый пост открывает ровно три базовые турельные линии;
+- пост не изменяет вес и прогресс специализации;
+- четвёртая копия поста недоступна;
+- `Добавить защитника` недоступна после пятой копии или достижения восьми защитников;
+- новые защитники регистрируются в `CrewRoleManager`;
+- скорость применяется к существующим и новым защитникам;
+- время будущей замены использует текущий множитель;
+- `4-я турель` требует все три условия;
+- свежая сцена начинает с трёх защитников, нулевого количества турелей и единичных множителей.
+
+## Запрещённые решения
+
+- Хранить число повторов в `UpgradeEffectApplier` или UI.
+- Добавлять защитника напрямую из карточки без `CrewManager`.
+- Изменять скорость отдельных защитников из `UpgradeSystem`.
+- Изменять таймеры замены напрямую из каталога.
+- Хардкодить условия четвёртой турели в UI.
+- Создавать отдельную карточку базового урона `1`.
+- Давать открывающей или общей карточке прогресс специализации.
+- Использовать `technical_upgrade_catalog.tres` или ранний общий каталог как активный игровой каталог.
