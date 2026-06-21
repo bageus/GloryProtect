@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.6.2"
+
 jobs:
   file-size-limit:
     runs-on: ubuntu-latest
@@ -21,3 +27,27 @@ jobs:
 
       - name: Enforce 600-line limit
         run: python tools/check_file_sizes.py
+
+  godot-scenarios:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 0755 \
+            "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            /usr/local/bin/godot
+          godot --version
+
+      - name: Run unit and integration scenarios
+        run: bash tools/run_godot_scenarios.sh
