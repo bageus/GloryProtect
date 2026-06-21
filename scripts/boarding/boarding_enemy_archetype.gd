@@ -1,9 +1,15 @@
 class_name BoardingEnemyArchetype
 extends Resource
 
+enum SpawnRequirement {
+	AVAILABLE_PATH,
+	DAMAGEABLE_ROPE,
+}
+
 @export var archetype_id: StringName = &"basic"
 @export var display_name: String = "Базовый абордажник"
 @export var enemy_scene: PackedScene
+@export_enum("Available Path", "Damageable Rope") var spawn_requirement: int = SpawnRequirement.AVAILABLE_PATH
 
 @export_group("Body")
 @export_range(1, 20, 1) var max_health: int = 1
@@ -44,6 +50,8 @@ func get_weight(normalized_difficulty: float) -> float:
 func is_valid() -> bool:
 	return (
 		archetype_id != &""
+		and spawn_requirement >= SpawnRequirement.AVAILABLE_PATH
+		and spawn_requirement <= SpawnRequirement.DAMAGEABLE_ROPE
 		and max_health > 0
 		and body_radius > 0.0
 		and ground_move_speed > 0.0
