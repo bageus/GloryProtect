@@ -77,13 +77,21 @@ func is_offer_open() -> bool:
 
 
 func choose_card(card_index: int) -> bool:
+	var definition: UpgradeDefinition = _get_offer_definition(card_index)
+	if definition == null:
+		return false
+	return choose_card_by_id(definition.card_id)
+
+
+func choose_card_by_id(card_id: StringName) -> bool:
 	if not _offer_open:
 		return false
 	if _game_flow.state != GameFlowController.RunState.CARD_SELECTION:
 		return false
-	var definition: UpgradeDefinition = _get_offer_definition(card_index)
-	if definition == null:
+	var offer_index: int = _find_offer_index(card_id)
+	if offer_index < 0:
 		return false
+	var definition: UpgradeDefinition = _current_offer[offer_index]
 	if not catalog.is_available(definition, _runtime):
 		return false
 	if not _effect_applier.can_apply(definition):
@@ -101,7 +109,7 @@ func choose_card(card_index: int) -> bool:
 		return false
 
 	_completed_purchases += 1
-	card_selected.emit(card_index, offer_number, cost)
+	card_selected.emit(offer_index, offer_number, cost)
 	card_selected_by_id.emit(definition.card_id, offer_number, cost)
 
 	if _economy.can_afford(get_current_cost()):
@@ -174,6 +182,15 @@ func _get_offer_definition(card_index: int) -> UpgradeDefinition:
 	if card_index < 0 or card_index >= _current_offer.size():
 		return null
 	return _current_offer[card_index]
+
+
+func _find_offer_index(card_id: StringName) -> int:
+	if card_id == &"":
+		return -1
+	for index: int in range(_current_offer.size()):
+		if _current_offer[index].card_id == card_id:
+			return index
+	return -1
 
 
 func _on_coins_changed(
