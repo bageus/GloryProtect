@@ -66,6 +66,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if not _game_flow.is_world_simulation_active():
 		return
+	if _enemy.is_stunned():
+		return
 
 	_melee.tick(delta)
 	match state:
