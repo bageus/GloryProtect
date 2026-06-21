@@ -2,6 +2,14 @@
 
 Run from the repository root with Godot 4.6.2 stable.
 
+## Full suite
+
+```bash
+bash tools/run_godot_scenarios.sh
+```
+
+The runner imports the project first so a fresh checkout builds the global script-class cache before individual scenarios execute.
+
 ## Rope durability and recovery
 
 ```bash
@@ -23,10 +31,20 @@ godot --headless --path . --script res://tests/integration/rope_saboteur_scenari
 
 The catalog scenario verifies the unlock threshold, specialized archetype and weighted selection. The integration scenario verifies target locking, retargeting, pause behavior, turret targeting, rope-only damage and reward rules.
 
-These Godot scenarios are not part of the current GitHub Actions workflow yet. They must be executed locally or added to CI before the pull request is merged.
+## Upgrade UI and diagnostics
+
+```bash
+godot --headless --path . --script res://tests/unit/upgrade_presentation_scenarios.gd
+godot --headless --path . --script res://tests/unit/upgrade_specialization_view_scenarios.gd
+godot --headless --path . --script res://tests/integration/upgrade_ui_scenarios.gd
+```
+
+The presentation scenarios verify branch/type labels, effect summaries, prerequisite status, repeat counters, diagnostic reason text and specialization lock warnings. The UI integration scenario verifies three-card rendering, diagnostics, continuous card-selection pause and rejection of stale repeated selections.
 
 ## Project guard
 
 ```bash
 python tools/check_file_sizes.py
 ```
+
+GitHub Actions runs both the file-size guard and the complete Godot scenario suite for pull requests targeting `main`.
