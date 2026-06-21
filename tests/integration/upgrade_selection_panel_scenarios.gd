@@ -17,11 +17,15 @@ func _run_scenarios() -> void:
 
 func _test_three_cards_and_stale_command_rejection() -> void:
 	var catalog := UpgradeCatalog.new()
-	catalog.definitions = [
-		_make_card(&"same_branch_a", UpgradeDefinition.CardType.BASIC, &"turret"),
-		_make_card(&"same_branch_b", UpgradeDefinition.CardType.BASIC, &"turret"),
-		_make_card(&"same_branch_c", UpgradeDefinition.CardType.BASIC, &"turret"),
-	]
+	catalog.definitions.append(
+		_make_card(&"same_branch_a", UpgradeDefinition.CardType.BASIC, &"turret")
+	)
+	catalog.definitions.append(
+		_make_card(&"same_branch_b", UpgradeDefinition.CardType.BASIC, &"turret")
+	)
+	catalog.definitions.append(
+		_make_card(&"same_branch_c", UpgradeDefinition.CardType.BASIC, &"turret")
+	)
 	var game: Node2D = await _spawn_game(catalog)
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
@@ -52,10 +56,12 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 
 func _test_offer_with_fewer_than_three_cards() -> void:
 	var catalog := UpgradeCatalog.new()
-	catalog.definitions = [
-		_make_card(&"general_a", UpgradeDefinition.CardType.GENERAL, &""),
-		_make_card(&"general_b", UpgradeDefinition.CardType.GENERAL, &""),
-	]
+	catalog.definitions.append(
+		_make_card(&"general_a", UpgradeDefinition.CardType.GENERAL, &"")
+	)
+	catalog.definitions.append(
+		_make_card(&"general_b", UpgradeDefinition.CardType.GENERAL, &"")
+	)
 	var game: Node2D = await _spawn_game(catalog)
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
@@ -148,7 +154,7 @@ func _remove_game(game: Node2D) -> void:
 
 func _make_card(
 	card_id: StringName,
-	card_type: UpgradeDefinition.CardType,
+	card_type: int,
 	branch_id: StringName
 ) -> UpgradeDefinition:
 	var definition := UpgradeDefinition.new()
