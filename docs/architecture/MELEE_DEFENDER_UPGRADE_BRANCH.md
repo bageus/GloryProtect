@@ -9,11 +9,11 @@ Issue #23 adds run-scoped melee upgrades without moving combat state into the UI
 - `apply_melee_scalar()`;
 - `apply_melee_flag()`.
 
-The manager reapplies the shared runtime to every current defender and passes it to newly added or replacement defenders.
+The manager reapplies the shared runtime to every current defender and passes it to newly added or replacement defenders. `MeleeDefenderUpgradeRuntime.can_apply_effect()` validates domain targets and prevents duplicate or cross-specialization flags before mutation.
 
 ## Modular catalog
 
-`melee_defender_upgrade_catalog.tres` contains only the melee branch. `active_game_upgrade_catalog.tres` composes it with the existing common and turret catalog through `UpgradeCatalog.included_catalogs`.
+`melee_defender_upgrade_catalog.tres` contains only the melee branch. `active_game_upgrade_catalog.tres` composes it with the canonical `game_upgrade_catalog.tres` through `UpgradeCatalog.included_catalogs`; the provisional common-pool fixture is not used by the live scene.
 
 Draw generation, specialization events and diagnostics read `get_all_definitions()`, so branch catalogs can remain below the project file-size limit and retain stable card IDs.
 
@@ -22,7 +22,7 @@ Draw generation, specialization events and diagnostics read `get_all_definitions
 The branch contains three independent basic-to-advanced pairs:
 
 - sword damage `+1`, then another `+1`;
-- attack cooldown `×0.85`, then another `×0.85`;
+- attack cooldown `−15%`, then another `−15%`, for a cumulative `−30%`;
 - maximum health `+1`, then another `+1`.
 
 Individual cards remain unavailable until at least one advanced melee card has been selected.
@@ -32,7 +32,7 @@ Individual cards remain unavailable until at least one advanced melee card has b
 `DefenderDurabilityComponent` owns armor and the one-use lethal guard. Incoming damage is resolved in this order:
 
 1. armor absorbs as much damage as possible;
-2. a ready lethal guard can reduce lethal health damage so the defender remains at `1` health;
+2. a ready lethal guard reduces any lethal health damage so the defender remains at `1` health, including a hit received while already at `1` health;
 3. remaining damage is applied through `HealthComponent`;
 4. `depleted` is emitted only after the previous steps.
 
@@ -51,15 +51,17 @@ The lethal guard is life-scoped. Buying unrelated cards after it has been consum
 
 ### Duelist
 
-- attack cooldown `×0.75`;
+- attack cooldown `−25%` in addition to the base-line reductions;
 - optional isolated-target bonus damage;
-- optional second hit against the same locked target;
+- optional second attack against the same locked target;
 - optional immediate counterattack after melee damage, including a hit absorbed entirely by armor.
+
+The double attack is modeled as a second windup and completion against the same locked target. It is not an immediate duplicate damage call, does not retarget, and starts normal cooldown only after the sequence ends.
 
 ### Assault
 
 - splash damage to up to three enemies behind the primary target;
-- optional extra forward hit and one rear hit when surrounded;
+- optional extra forward hit and one rear hit only when a rear enemy is actually present;
 - optional one-use lethal guard.
 
 ## Locked actions
@@ -73,6 +75,7 @@ The existing combat controller remains the authority for role eligibility, local
 ## Tests
 
 - `tests/unit/defender_durability_scenarios.gd`;
+- `tests/unit/melee_attack_follow_up_scenarios.gd`;
 - `tests/unit/melee_defender_upgrade_runtime_scenarios.gd`;
 - `tests/unit/melee_defender_catalog_scenarios.gd`;
 - `tests/unit/active_upgrade_catalog_scenarios.gd`;
