@@ -96,6 +96,10 @@ func is_on_platform() -> bool:
 	return controller.is_on_platform()
 
 
+func is_turret_targetable() -> bool:
+	return controller.is_turret_targetable()
+
+
 func force_board_at(local_x: float) -> void:
 	controller.force_board_at(local_x)
 
