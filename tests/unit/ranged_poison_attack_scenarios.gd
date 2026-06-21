@@ -17,6 +17,7 @@ func _run_scenarios() -> void:
 
 func _test_locked_ranged_target_and_pause() -> void:
 	var flow := GameFlowController.new()
+	flow.name = "GameFlowController"
 	root.add_child(flow)
 	await process_frame
 	flow.state = GameFlowController.RunState.RUNNING
@@ -53,18 +54,21 @@ func _test_locked_ranged_target_and_pause() -> void:
 
 func _test_poison_damage_pause_and_death() -> void:
 	var flow := GameFlowController.new()
+	flow.name = "GameFlowController"
 	root.add_child(flow)
 	await process_frame
 	flow.state = GameFlowController.RunState.RUNNING
 
 	var target_node := Node2D.new()
+	target_node.name = "PoisonTarget"
 	root.add_child(target_node)
 	var health := HealthComponent.new()
+	health.name = "HealthComponent"
 	target_node.add_child(health)
 	health.configure(2)
 	var status := StatusEffectComponent.new()
 	status.health_path = NodePath("../HealthComponent")
-	status.game_flow_path = status.get_path_to(flow)
+	status.game_flow_path = NodePath("../../GameFlowController")
 	target_node.add_child(status)
 	await process_frame
 
