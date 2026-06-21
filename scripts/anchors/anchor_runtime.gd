@@ -20,6 +20,7 @@ var side: int
 var state: int = State.STOWED
 var operation_progress: float = 0.0
 var overload_progress: float = 0.0
+var rope_durability: float = 0.0
 var attached_platform_x: float = 0.0
 var target_orb_id: int = -1
 var target_ground_point: Vector2 = Vector2.ZERO
