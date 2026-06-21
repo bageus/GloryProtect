@@ -10,6 +10,7 @@ func _init() -> void:
 func _run_scenarios() -> void:
 	await _test_duelist_double_attack_is_sequential()
 	await _test_assault_hits_forward_group_and_rear_enemy()
+	await _test_heavy_fifth_hit_bashes_two_enemies()
 	print("Melee specialization combat scenarios passed")
 	quit()
 
@@ -64,6 +65,40 @@ func _test_assault_hits_forward_group_and_rear_enemy() -> void:
 	assert(behind_three.health.current_health == 2)
 	assert(behind_four.health.current_health == 3)
 	assert(rear.health.current_health == 2)
+
+	game.queue_free()
+	await process_frame
+
+
+func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
+	var game: Node2D = await _create_stable_game()
+	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+	assert(crew.apply_melee_flag(&"melee_specialization_heavy"))
+	assert(crew.apply_melee_flag(&"melee_heavy_shield_bash"))
+	var defender: Defender = crew.get_defender(0)
+	defender.teleport_to(0.0)
+	assert(defender.blocks_enemy_jump())
+
+	var primary: BoardingEnemy = _spawn_boarded_enemy(director, 12.0)
+	var behind_one: BoardingEnemy = _spawn_boarded_enemy(director, 24.0)
+	var behind_two: BoardingEnemy = _spawn_boarded_enemy(director, 36.0)
+	var behind_three: BoardingEnemy = _spawn_boarded_enemy(director, 48.0)
+	primary.health.configure(20)
+	var behind_one_start: float = behind_one.controller.get_platform_local_x()
+	var behind_two_start: float = behind_two.controller.get_platform_local_x()
+
+	for _hit: int in range(5):
+		assert(bool(defender.combat.call("_try_start_attack", primary)))
+		defender.melee.tick(0.4)
+		defender.melee.tick(defender.melee.get_cooldown_duration())
+
+	assert(defender.combat.get_completed_hit_count() == 5)
+	assert(behind_one.health.current_health == 2)
+	assert(behind_two.health.current_health == 2)
+	assert(behind_three.health.current_health == 3)
+	assert(behind_one.controller.get_platform_local_x() > behind_one_start)
+	assert(behind_two.controller.get_platform_local_x() > behind_two_start)
 
 	game.queue_free()
 	await process_frame
