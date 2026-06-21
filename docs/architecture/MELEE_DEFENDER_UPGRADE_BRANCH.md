@@ -4,73 +4,53 @@ Issue #23 adds run-scoped melee upgrades without moving combat state into the UI
 
 ## Ownership
 
-`CrewManager` owns one `MeleeDefenderUpgradeRuntime` for the current run. Upgrade effects with a `melee_` target ID are routed through the public crew-domain API:
+`CrewManager` owns one `MeleeDefenderUpgradeRuntime` for the current run. Upgrade effects with a `melee_` target ID are routed through `apply_melee_scalar()` and `apply_melee_flag()`.
 
-- `apply_melee_scalar()`;
-- `apply_melee_flag()`.
+The manager reapplies the shared runtime to current defenders and passes it to newly added or replacement defenders. The runtime validates domain targets and rejects duplicate or cross-specialization flags before mutation.
 
-The manager reapplies the shared runtime to every current defender and passes it to newly added or replacement defenders. `MeleeDefenderUpgradeRuntime.can_apply_effect()` validates domain targets and prevents duplicate or cross-specialization flags before mutation.
+## Catalog
 
-## Modular catalog
-
-`melee_defender_upgrade_catalog.tres` contains only the melee branch. `active_game_upgrade_catalog.tres` composes it with the canonical `game_upgrade_catalog.tres` through `UpgradeCatalog.included_catalogs`; the provisional common-pool fixture is not used by the live scene.
-
-Draw generation, specialization events and diagnostics read `get_all_definitions()`, so branch catalogs can remain below the project file-size limit and retain stable card IDs.
+`melee_defender_upgrade_catalog.tres` contains the melee branch. `active_game_upgrade_catalog.tres` combines it with the canonical `game_upgrade_catalog.tres`. The provisional common-pool fixture is not used by the live scene.
 
 ## Base lines
-
-The branch contains three independent basic-to-advanced pairs:
 
 - sword damage `+1`, then another `+1`;
 - attack cooldown `-15%`, then another `-15%`, for a cumulative `-30%`;
 - maximum health `+1`, then another `+1`.
 
-Individual cards remain unavailable until at least one advanced melee card has been selected.
+Individual cards require at least one completed basic-to-advanced melee line.
 
 ## Durability
 
-`DefenderDurabilityComponent` owns armor and the one-use lethal guard. Incoming damage is resolved in this order:
+`DefenderDurabilityComponent` owns armor and the one-use lethal guard. Damage resolves through armor, then the lethal guard, then health. The guard leaves the defender at `1` health even when the hit begins at `1` health.
 
-1. armor absorbs as much damage as possible;
-2. a ready lethal guard reduces lethal health damage so the defender remains at `1` health, including a hit received while already at `1` health;
-3. remaining damage is applied through `HealthComponent`;
-4. `depleted` is emitted only after the previous steps.
-
-Ordinary healing calls only `HealthComponent.heal()` and never restores armor. Increasing maximum armor adds only newly granted armor and does not refill previously lost armor.
-
-The lethal guard is life-scoped. Buying unrelated cards after it has been consumed does not restore it. A replacement defender receives a fresh guard, and a new run resets all life-scoped state.
+Healing restores health only. Increasing maximum armor adds newly granted armor without refilling previously lost armor. A replacement defender receives fresh life-scoped armor and guard state.
 
 ## Heavy specialization
 
 - maximum health `+1`;
-- only heavy defenders block enemy jump plans through themselves;
+- blocks enemy jump plans through that defender;
 - optional shield grants `+2` armor;
-- optional fifth shield hit damages up to two enemies behind the primary target and knocks survivors back.
+- optional fifth shield hit damages up to two enemies behind the main target and knocks survivors back by one body diameter.
 
 ## Duelist specialization
 
-- attack cooldown `-25%` in addition to the base-line reductions;
-- optional isolated-target bonus damage;
+- attack cooldown `-25%` in addition to base-line reductions;
+- optional isolated-target bonus damage within the existing melee range;
 - optional second attack against the same locked target;
-- optional immediate counterattack after melee damage, including a hit absorbed entirely by armor.
+- optional immediate counterattack after melee damage, including a hit absorbed by armor.
 
-The double attack is modeled as a second windup and completion against the same locked target. It is not an immediate duplicate damage call, does not retarget, and starts normal cooldown only after the sequence ends.
-
-Melee damage carries the attacking node through `HealthComponent.damage_received`, so a counterattack targets the enemy that actually completed the hit rather than a different nearby enemy.
+The second attack has its own windup and completion. Normal cooldown begins after the sequence. Melee damage includes the attacking node, so counterattack targets the enemy that completed the hit instead of another nearby enemy.
 
 ## Assault specialization
 
-- splash damage to up to three enemies behind the primary target;
-- optional extra forward hit and one rear hit only when a rear enemy is actually present;
+- splash damage to up to three enemies behind the main target;
+- optional extra forward hit and one rear hit only when a rear enemy exists;
 - optional one-use lethal guard.
 
 ## Locked actions
 
-`DefenderCombatController` stores the enemy instance when a normal melee windup starts. Secondary effects resolve against that same primary target and never retarget the begun attack. The stored instance remains valid through deferred enemy removal, allowing splash and rear effects to resolve even if the primary hit was lethal.
-
-## Pause and roles
-
-The existing combat controller remains the authority for role eligibility, local combat zones, moving assignments and world-pause checks. Specialization resolution runs only from a completed normal melee hit or a tagged incoming melee hit.
+`DefenderCombatController` stores the enemy instance when a melee windup starts. Follow-up effects use that same target and do not retarget the begun action.
 
 ## Tests
 
@@ -82,4 +62,5 @@ The existing combat controller remains the authority for role eligibility, local
 - `tests/unit/active_upgrade_catalog_scenarios.gd`;
 - `tests/integration/melee_defender_replacement_scenarios.gd`;
 - `tests/integration/melee_counterattack_scenarios.gd`;
+- `tests/integration/melee_isolated_damage_scenarios.gd`;
 - `tests/integration/melee_specialization_combat_scenarios.gd`.
