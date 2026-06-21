@@ -25,6 +25,7 @@ func _ready() -> void:
 	_medical.upgrades_changed.connect(_on_upgrades_changed)
 	_medical.healing_started.connect(_on_healing_started)
 	_medical.healing_stopped.connect(_on_healing_stopped)
+	_crew.defender_died.connect(_on_defender_died)
 	_crew.defender_replaced.connect(_on_defender_replaced)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	call_deferred("_refresh")
@@ -224,6 +225,21 @@ func _on_healing_stopped(medic_id: int, _target_id: int) -> void:
 	var defender: Defender = _crew.get_defender(medic_id)
 	if defender != null:
 		defender.set_medic_healing_action_active(false)
+
+
+func _on_defender_died(defender_id: int) -> void:
+	if defender_id != _active_medic_id:
+		return
+	var defender: Defender = _crew.get_defender(defender_id)
+	if defender != null and is_instance_valid(defender):
+		defender.take_medic_role_health_pool()
+		defender.durability.take_role_armor_pool()
+		defender.set_medic_role_modifiers(false, false, 0, 1.0)
+	_stored_health_segments = _known_health_bonus
+	_stored_armor_segments = _known_armor_bonus
+	_active_medic_id = -1
+	_applied_health_bonus = 0
+	_applied_armor_bonus = 0
 
 
 func _on_defender_replaced(_defender_id: int, _defender: Defender) -> void:
