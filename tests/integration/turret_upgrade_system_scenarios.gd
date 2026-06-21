@@ -21,9 +21,13 @@ func _run_scenarios() -> void:
 	var turrets: TurretUpgradeSystem = game.get_node("World/TurretSystem")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
 	assert(turrets != null)
-	assert(upgrades.catalog.resource_path.ends_with("game_upgrade_catalog.tres"))
+	assert(upgrades.catalog.resource_path.ends_with(
+		"turret_branch_upgrade_catalog.tres"
+	))
 	_test_live_domain_effects(turrets, upgrades)
 	await _test_piercing_hits_every_enemy_on_line(game)
+	await _test_heavy_explosive_fifth_shot(game)
+	await _test_electric_orb_fifth_volley(game)
 	await _test_chain_and_pause_safe_stun(game, flow)
 	print("Turret upgrade integration scenarios passed")
 	quit()
@@ -81,6 +85,73 @@ func _test_piercing_hits_every_enemy_on_line(game: Node) -> void:
 	assert(not primary.health.is_alive())
 	assert(not second.health.is_alive())
 	assert(not third.health.is_alive())
+	await process_frame
+
+
+func _test_heavy_explosive_fifth_shot(game: Node) -> void:
+	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"brute")
+	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(48.0, &"brute")
+	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(96.0, &"brute")
+	var origin := Vector2(primary.global_position.x - 120.0, primary.global_position.y)
+	var runtime := TurretUpgradeRuntime.new()
+	assert(runtime.apply_flag(TurretUpgradeRuntime.HEAVY))
+	assert(runtime.apply_flag(&"turret_heavy_explosive_fifth"))
+	var resolver := TurretCombatResolver.new()
+	resolver.configure(BALANCE, 11)
+	assert(resolver.resolve_shot(
+		primary,
+		origin,
+		500.0,
+		registry,
+		runtime,
+		1,
+		true,
+		false
+	) == 3)
+	assert(not primary.health.is_alive())
+	assert(nearby.health.current_health == 2)
+	assert(outside.health.current_health == 3)
+	nearby.kill(&"test_cleanup")
+	outside.kill(&"test_cleanup")
+	await process_frame
+
+
+func _test_electric_orb_fifth_volley(game: Node) -> void:
+	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"brute")
+	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(72.0, &"brute")
+	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(120.0, &"brute")
+	primary.health.configure(6)
+	nearby.health.configure(6)
+	outside.health.configure(6)
+	var origin := Vector2(primary.global_position.x - 120.0, primary.global_position.y)
+	var runtime := TurretUpgradeRuntime.new()
+	assert(runtime.apply_flag(TurretUpgradeRuntime.ELECTRIC))
+	assert(runtime.apply_flag(&"turret_electric_orb_fifth"))
+	var resolver := TurretCombatResolver.new()
+	resolver.configure(BALANCE, 12)
+	assert(resolver.resolve_shot(
+		primary,
+		origin,
+		500.0,
+		registry,
+		runtime,
+		1,
+		false,
+		true
+	) == 2)
+	assert(primary.health.current_health == 2)
+	assert(nearby.health.current_health == 2)
+	assert(outside.health.current_health == 6)
+	assert(primary.is_stunned())
+	assert(nearby.is_stunned())
+	assert(not outside.is_stunned())
+	primary.kill(&"test_cleanup")
+	nearby.kill(&"test_cleanup")
+	outside.kill(&"test_cleanup")
 	await process_frame
 
 
