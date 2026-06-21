@@ -7,7 +7,9 @@ Status: implemented on `feature/rope-saboteur-enemy`; stacked on `feature/rope-d
 - Shared `BoardingEnemyBehavior` contract for specialized physical enemies.
 - Dedicated `RopeSaboteurArchetype`, scene, controller and diagnostic visual.
 - Data-driven scene selection through `BoardingEnemyArchetype.enemy_scene`.
+- Data-driven spawn requirement `DAMAGEABLE_ROPE`.
 - Catalog unlock at normalized difficulty `0.25`.
+- Automatic spawn excludes the saboteur when every open rope is already destroyed.
 - Nearest damageable rope selection with target locking.
 - Retarget only when the path closes or the rope reaches zero durability.
 - Ground-only movement and separation; no climbing, platform boarding or melee.
@@ -30,4 +32,4 @@ godot --headless --path . --script res://tests/integration/rope_saboteur_scenari
 python tools/check_file_sizes.py
 ```
 
-The current GitHub Actions workflow runs only the file-size guard. Godot scenarios require local execution or a CI extension.
+The stacked PR targets a feature branch, while the current workflow listens only to pull requests targeting `main`; therefore no GitHub Actions run is expected until the PR is retargeted after #41. Godot scenarios still require local execution or CI extension.
