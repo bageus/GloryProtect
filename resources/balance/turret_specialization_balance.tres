@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="TurretUpgradeBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+piercing_lane_half_height = 24.0
+explosive_radius = 72.0
+stun_min_seconds = 1.0
+stun_max_seconds = 2.0
+chain_damage = 1
+chain_range = 140.0
+electric_orb_radius = 90.0
+electric_orb_damage = 4
