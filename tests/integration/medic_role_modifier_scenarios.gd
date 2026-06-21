@@ -49,6 +49,12 @@ func _run_scenario() -> void:
 	assert(first.durability.get_role_max_armor() == 2)
 	assert(first.durability.get_role_current_armor() == 2)
 
+	assert(crew.apply_melee_scalar(&"melee_health_bonus", 1.0))
+	await process_frame
+	var base_with_melee: int = crew.balance.defender_max_health + 1
+	assert(first.health.max_health == base_with_melee + 2)
+	assert(first.health.current_health == first.health.max_health)
+
 	first.health.apply_damage(1, &"test")
 	assert(first.health.current_health == first.health.max_health)
 	assert(first.durability.get_role_current_armor() == 1)
@@ -56,7 +62,7 @@ func _run_scenario() -> void:
 	roles.request_assignment(first.defender_id, CrewRole.Id.FREE_FIGHTER)
 	await _wait_for_role(roles, first.defender_id, CrewRole.Id.FREE_FIGHTER)
 	await process_frame
-	assert(first.health.max_health == crew.balance.defender_max_health)
+	assert(first.health.max_health == base_with_melee)
 	assert(first.durability.get_role_max_armor() == 0)
 	assert(controller.get_stored_armor_segments() == 1)
 
@@ -65,7 +71,7 @@ func _run_scenario() -> void:
 	await _wait_for_role(roles, second.defender_id, CrewRole.Id.MEDIC)
 	await process_frame
 	assert(controller.get_active_medic_id() == second.defender_id)
-	assert(second.health.max_health == crew.balance.defender_max_health + 2)
+	assert(second.health.max_health == base_with_melee + 2)
 	assert(second.health.current_health == second.health.max_health)
 	assert(second.durability.get_role_max_armor() == 2)
 	assert(second.durability.get_role_current_armor() == 1)
