@@ -16,6 +16,7 @@ var defender_id: int = -1
 var _balance: CrewBalance
 var _body_color: Color = Color(0.45, 0.8, 1.0)
 var _melee_upgrades: MeleeDefenderUpgradeRuntime
+var _configured_once: bool = false
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var durability: DefenderDurabilityComponent = get_node(durability_path)
@@ -86,8 +87,16 @@ func _apply_configuration() -> void:
 		lethal_guard = _melee_upgrades.assault_lethal_guard
 		damage = _melee_upgrades.get_damage(damage)
 		cooldown = _melee_upgrades.get_cooldown(cooldown)
-	health.configure(max_health)
-	durability.configure(armor, lethal_guard)
+	if _configured_once:
+		health.set_max_health(max_health, true)
+		durability.set_max_armor(armor)
+		durability.set_lethal_guard_available(
+			lethal_guard or durability.has_lethal_guard()
+		)
+	else:
+		health.configure(max_health)
+		durability.configure(armor, lethal_guard)
+		_configured_once = true
 	melee.configure(damage, 0.4, cooldown)
 	movement.configure(_balance.defender_move_speed)
 	visual.configure(_balance.defender_body_radius, _body_color)
