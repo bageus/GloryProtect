@@ -9,7 +9,7 @@ var _platform: PlatformController
 var _roles: CrewRoleManager
 var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
-var _locked_enemy_id: int = -1
+var _locked_enemy: BoardingEnemy
 var _completed_hits: int = 0
 var _resolver := MeleeDefenderCombatResolver.new()
 
@@ -115,7 +115,7 @@ func is_action_active() -> bool:
 
 
 func cancel() -> void:
-	_locked_enemy_id = -1
+	_locked_enemy = null
 	if _melee != null:
 		_melee.cancel()
 
@@ -142,7 +142,7 @@ func _try_start_attack(target: BoardingEnemy) -> bool:
 		return false
 	if not _melee.try_start(target.health):
 		return false
-	_locked_enemy_id = target.enemy_id
+	_locked_enemy = target
 	return true
 
 
@@ -150,8 +150,8 @@ func _on_attack_landed(
 	_target_health: HealthComponent,
 	damage: int
 ) -> void:
-	var primary: BoardingEnemy = _enemies.get_enemy(_locked_enemy_id)
-	if primary == null:
+	var primary: BoardingEnemy = _locked_enemy
+	if primary == null or not is_instance_valid(primary):
 		return
 	_completed_hits += 1
 	var upgrades: MeleeDefenderUpgradeRuntime = (
