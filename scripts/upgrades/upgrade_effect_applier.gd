@@ -46,9 +46,15 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
-				return _turrets != null
+				return (
+					_turrets != null
+					and _turrets.can_apply_upgrade_effect(effect)
+				)
 			if _is_melee_effect(effect):
-				return _crew != null
+				return (
+					_crew != null
+					and _crew.get_melee_upgrades().can_apply_effect(effect)
+				)
 			return _runtime != null
 	return false
 
