@@ -21,10 +21,12 @@ Godot **4.6.2 stable**, строго типизированный GDScript.
 
 ## Текущая версия
 
-**Prototype 2.0** содержит:
+**Prototype 2.1 foundation** содержит:
 
 - горизонтальную платформу и ветер силы 1–3;
 - четыре якоря с конечной длиной троса;
+- независимую runtime-прочность каждого из четырёх тросов;
+- публичный API урона тросу, snapshots и события разрушения;
 - пять наземных шаров и секций щита;
 - три защитника, роли, замены и ближний бой;
 - физический абордаж через якоря;
@@ -35,6 +37,22 @@ Godot **4.6.2 stable**, строго типизированный GDScript.
 - медицинский пост и несколько независимых турелей;
 - мышиную панель выбора экипажа и назначения ролей;
 - две одинаковые карточки-заглушки без эффектов.
+
+Нулевая прочность троса пока только публикует доменное событие. Физический обрыв, закрытие пути, падение врагов и возврат якоря относятся к следующей отдельной задаче.
+
+## Прочность тросов
+
+Максимальная прочность задаётся в `AnchorBalance`. Текущее значение хранится отдельно у каждого `AnchorRuntime`, а изменяет его только `AnchorRopeDurability`.
+
+Внешние системы используют `AnchorSystem`:
+
+```text
+apply_rope_damage(anchor_id, amount, source)
+get_rope_snapshot(anchor_id)
+get_all_rope_snapshots()
+```
+
+Новая успешная установка полностью восстанавливает прочность соответствующего троса. Повреждение прочности не заменяет и не изменяет механику перегрузки ветром.
 
 ## Типы физических врагов
 
@@ -152,7 +170,7 @@ resources/enemies/boarding_enemy_catalog.tres
 5, 10, 15, …, 100, 200, 400, 800
 ```
 
-Обе карточки пока одинаковы и не применяют улучшение.
+Обе карточки пока одинаковы и не применяют улучшение. Переход на новую систему трёх карточек реализуется отдельными issues upgrade foundation.
 
 ## Управление прототипом
 
@@ -172,9 +190,11 @@ resources/enemies/boarding_enemy_catalog.tres
 - `F10` — диагностическая панель;
 - `Enter` — новый забег после поражения.
 
-## Тесты Prototype 2.0
+## Тесты Prototype 2.1 foundation
 
 ```bash
+godot --headless --path . --script res://tests/unit/anchor_rope_durability_scenarios.gd
+godot --headless --path . --script res://tests/integration/anchor_rope_durability_scenarios.gd
 godot --headless --path . --script res://tests/unit/boarding_enemy_catalog_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_enemy_archetype_scenarios.gd
 godot --headless --path . --script res://tests/integration/boarding_separation_scenarios.gd
@@ -183,4 +203,4 @@ godot --headless --path . --script res://tests/integration/crew_command_panel_sc
 python tools/check_file_sizes.py
 ```
 
-Следующая механическая итерация — прочность тросов и маленький враг, который добегает до установленного троса и взрывается возле него.
+Следующая механическая итерация — маленький враг-взрыватель, который выбирает установленный трос и наносит урон через публичный API прочности. После него физический обрыв будет связан с закрытием пути, падением врагов и возвратом якоря.
