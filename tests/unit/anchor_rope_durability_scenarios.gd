@@ -7,6 +7,7 @@ var _destroyed_sources: Array[StringName] = []
 func _init() -> void:
 	_test_independent_durability_and_snapshots()
 	_test_invalid_damage_is_rejected()
+	_test_damage_eligibility_by_anchor_state()
 	_test_destroyed_event_is_emitted_once()
 	_test_new_attachment_restores_full_durability()
 	_test_reset_restores_all_anchors()
@@ -47,6 +48,39 @@ func _test_invalid_damage_is_rejected() -> void:
 		50.0
 	))
 	assert(durability.get_snapshot(99) == null)
+
+
+func _test_damage_eligibility_by_anchor_state() -> void:
+	var context: Dictionary = _create_context(50.0)
+	var store: AnchorRuntimeStore = context.store
+	var durability: AnchorRopeDurability = context.durability
+
+	assert(not durability.apply_damage(0, 10.0, &"stowed"))
+	store.set_queued(0)
+	assert(not durability.apply_damage(0, 10.0, &"queued"))
+	store.begin_install(0)
+	assert(not durability.apply_damage(0, 10.0, &"installing"))
+
+	store.attach(0, 0.0)
+	assert(durability.apply_damage(0, 10.0, &"attached"))
+	assert(is_equal_approx(
+		durability.get_snapshot(0).current_durability,
+		40.0
+	))
+
+	store.begin_overload(0)
+	assert(durability.apply_damage(0, 10.0, &"overloaded"))
+	assert(is_equal_approx(
+		durability.get_snapshot(0).current_durability,
+		30.0
+	))
+
+	store.begin_return(0)
+	assert(not durability.apply_damage(0, 10.0, &"returning"))
+	assert(is_equal_approx(
+		durability.get_snapshot(0).current_durability,
+		30.0
+	))
 
 
 func _test_destroyed_event_is_emitted_once() -> void:
