@@ -31,7 +31,6 @@ func is_valid() -> bool:
 			return target_id != &"" and not is_zero_approx(scalar_value)
 		EffectType.ADD_DEFENDER:
 			return integer_value > 0
-		EffectType.CREW_MOVE_SPEED_MULTIPLIER,
-		EffectType.CREW_RESPAWN_MULTIPLIER:
+		EffectType.CREW_MOVE_SPEED_MULTIPLIER, EffectType.CREW_RESPAWN_MULTIPLIER:
 			return scalar_value > 0.0
 	return false
