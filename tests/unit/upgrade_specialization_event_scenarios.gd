@@ -11,6 +11,7 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	_test_branch_progress_and_three_choices()
+	_test_two_basic_picks_also_trigger_event()
 	_test_opening_and_general_do_not_count()
 	_test_selection_locks_alternatives_and_opens_extras()
 	_test_multiple_ready_branches_are_preserved()
@@ -34,6 +35,19 @@ func _test_branch_progress_and_three_choices() -> void:
 	for definition: UpgradeDefinition in offer:
 		assert(definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION)
 		assert(definition.branch_id == &"turret")
+
+
+func _test_two_basic_picks_also_trigger_event() -> void:
+	var runtime := UpgradeRuntime.new()
+	var generator := UpgradeSpecializationEventGenerator.new()
+	generator.configure(CATALOG, runtime, 19)
+	assert(runtime.record_card(CATALOG.get_definition(&"tech_unlock_turret")))
+	var basic: UpgradeDefinition = CATALOG.get_definition(&"tech_turret_basic")
+	assert(runtime.record_card(basic))
+	assert(runtime.record_card(basic))
+	assert(runtime.get_branch_progress(&"turret") == 2)
+	assert(runtime.is_branch_ready_for_specialization(&"turret"))
+	assert(generator.generate_event_offer(&"turret").size() == 3)
 
 
 func _test_opening_and_general_do_not_count() -> void:
