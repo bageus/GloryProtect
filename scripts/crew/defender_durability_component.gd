@@ -39,12 +39,19 @@ func resolve_incoming_damage(
 	return remaining
 
 
-func add_armor(amount: int) -> void:
-	if amount <= 0:
+func set_max_armor(new_max_armor: int) -> void:
+	var resolved: int = maxi(0, new_max_armor)
+	if resolved == _max_armor:
 		return
-	_max_armor += amount
-	_current_armor += amount
+	if resolved > _max_armor:
+		_current_armor += resolved - _max_armor
+	_max_armor = resolved
+	_current_armor = mini(_current_armor, _max_armor)
 	armor_changed.emit(_current_armor, _max_armor)
+
+
+func set_lethal_guard_available(available: bool) -> void:
+	_lethal_guard_available = available
 
 
 func restore_armor(amount: int) -> void:
