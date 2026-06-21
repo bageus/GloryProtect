@@ -52,10 +52,14 @@ func _test_explosion_damages_only_target_rope_and_pauses() -> void:
 	assert(saboteur.is_grounded_for_limit())
 	assert(not saboteur.is_climbing())
 	assert(not saboteur.is_on_platform())
+	assert(not saboteur.is_turret_targetable())
 	var behavior: RopeSaboteurController = saboteur.controller as RopeSaboteurController
 	var definition: RopeSaboteurArchetype = saboteur.archetype as RopeSaboteurArchetype
 	var rope_damage: float = definition.rope_damage
 	assert(await _wait_until(func() -> bool: return behavior.is_arming(), 600))
+	assert(saboteur.is_turret_targetable())
+	var selector := TurretTargetSelector.new()
+	assert(selector.is_still_targetable(saboteur))
 	var target_anchor_id: int = behavior.get_selected_anchor_id()
 	assert(target_anchor_id >= 0)
 	var target_before: AnchorRopeSnapshot = anchors.get_rope_snapshot(
