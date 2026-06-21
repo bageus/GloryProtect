@@ -100,7 +100,9 @@ func _rebuild_card_buttons() -> void:
 
 	for card_index: int in range(_upgrades.get_card_count()):
 		var card_id: StringName = _upgrades.get_card_id(card_index)
-		var definition: UpgradeDefinition = _upgrades.catalog.get_definition(card_id)
+		var definition: UpgradeDefinition = _upgrades.get_card_definition(
+			card_index
+		)
 		if definition == null:
 			continue
 		var button := Button.new()
@@ -179,7 +181,7 @@ func _refresh_diagnostics() -> void:
 	var lines := PackedStringArray([
 		"ДИАГНОСТИКА ДОСТУПНОСТИ",
 	])
-	for definition: UpgradeDefinition in _upgrades.catalog.definitions:
+	for definition: UpgradeDefinition in _upgrades.get_all_card_definitions():
 		var reason: StringName = _upgrades.get_card_unavailability_reason(
 			definition.card_id
 		)
