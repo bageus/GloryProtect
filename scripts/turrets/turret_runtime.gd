@@ -38,9 +38,15 @@ func finish_shot(cooldown: float) -> bool:
 	if volley_shots_remaining > 0:
 		cooldown_remaining = 0.0
 		return false
-	completed_volleys += 1
-	cooldown_remaining = maxf(0.0, cooldown)
+	_complete_volley(cooldown)
 	return true
+
+
+func close_volley(cooldown: float) -> void:
+	if volley_shots_remaining <= 0:
+		return
+	volley_shots_remaining = 0
+	_complete_volley(cooldown)
 
 
 func cancel_shot() -> void:
@@ -70,3 +76,8 @@ func is_next_shot_fifth() -> bool:
 
 func is_next_volley_fifth() -> bool:
 	return (completed_volleys + 1) % 5 == 0
+
+
+func _complete_volley(cooldown: float) -> void:
+	completed_volleys += 1
+	cooldown_remaining = maxf(0.0, cooldown)
