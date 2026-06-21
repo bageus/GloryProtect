@@ -101,6 +101,12 @@ func get_state() -> int:
 	return controller.get_state()
 
 
+func get_selected_anchor_id() -> int:
+	if behavior != null:
+		return behavior.get_selected_anchor_id()
+	return controller.get_selected_anchor_id()
+
+
 func is_on_platform() -> bool:
 	if behavior != null:
 		return behavior.is_counted_as_boarded()

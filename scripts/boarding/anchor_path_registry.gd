@@ -42,7 +42,10 @@ func get_available_paths() -> Array[AnchorPathSnapshot]:
 	return _anchors.get_active_path_snapshots()
 
 
-func choose_nearest_path(world_x: float) -> AnchorPathSnapshot:
+func choose_nearest_path(
+	world_x: float,
+	excluded_anchor_ids: Array[int] = []
+) -> AnchorPathSnapshot:
 	var paths: Array[AnchorPathSnapshot] = get_available_paths()
 	if paths.is_empty():
 		return null
@@ -50,6 +53,8 @@ func choose_nearest_path(world_x: float) -> AnchorPathSnapshot:
 	var nearest_distance: float = INF
 	var candidates: Array[AnchorPathSnapshot] = []
 	for path: AnchorPathSnapshot in paths:
+		if excluded_anchor_ids.has(path.anchor_id):
+			continue
 		var distance: float = absf(path.ground_point.x - world_x)
 		if distance + balance.path_tie_epsilon < nearest_distance:
 			nearest_distance = distance
@@ -58,6 +63,8 @@ func choose_nearest_path(world_x: float) -> AnchorPathSnapshot:
 		elif absf(distance - nearest_distance) <= balance.path_tie_epsilon:
 			candidates.append(path)
 
+	if candidates.is_empty():
+		return null
 	if candidates.size() == 1:
 		return candidates[0]
 	return candidates[_rng.randi_range(0, candidates.size() - 1)]

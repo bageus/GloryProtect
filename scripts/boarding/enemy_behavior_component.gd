@@ -18,7 +18,14 @@ enum TargetDomain {
 
 var enemy: BoardingEnemy
 var game_flow: GameFlowController
+var context: EnemyBehaviorContext
 var active: bool = false
+
+
+func set_context(new_context: EnemyBehaviorContext) -> void:
+	assert(not active, "Enemy behavior context must be set before activation")
+	assert(new_context != null, "Enemy behavior context is required")
+	context = new_context
 
 
 func configure(
@@ -54,6 +61,10 @@ func is_counted_as_climbing() -> bool:
 
 func is_counted_as_boarded() -> bool:
 	return active and counts_as_boarded
+
+
+func get_selected_anchor_id() -> int:
+	return -1
 
 
 func publish_visual_state(state_id: StringName) -> void:

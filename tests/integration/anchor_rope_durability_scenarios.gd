@@ -50,13 +50,19 @@ func _run_scenarios() -> void:
 	assert(anchors.apply_rope_damage(2, maximum, &"integration_destroy"))
 	assert(_destroyed_ids == [2])
 	assert(anchors.get_rope_snapshot(2).is_destroyed)
-	assert(anchors.is_path_available(2))
+	assert(not anchors.is_path_available(2))
+	assert(anchors.get_anchor_state(2) == AnchorRuntime.State.RETURNING)
 
+	assert(await _wait_until(
+		func() -> bool:
+			return anchors.get_anchor_state(2) == AnchorRuntime.State.STOWED,
+		180
+	))
 	anchors.toggle_anchor(2)
-	await _wait_physics_frames(120)
-	anchors.toggle_anchor(2)
-	await _wait_physics_frames(120)
-	assert(anchors.is_path_available(2))
+	assert(await _wait_until(
+		func() -> bool: return anchors.is_path_available(2),
+		240
+	))
 	assert(is_equal_approx(
 		anchors.get_rope_snapshot(2).current_durability,
 		maximum
@@ -64,6 +70,14 @@ func _run_scenarios() -> void:
 
 	print("Anchor rope durability integration scenarios passed")
 	quit()
+
+
+func _wait_until(predicate: Callable, maximum_frames: int) -> bool:
+	for _frame: int in range(maximum_frames):
+		if predicate.call():
+			return true
+		await physics_frame
+	return predicate.call()
 
 
 func _wait_physics_frames(frame_count: int) -> void:
