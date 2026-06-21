@@ -8,10 +8,50 @@ func _init() -> void:
 
 
 func _run_scenarios() -> void:
+	await _test_automatic_spawn_requires_damageable_rope()
 	await _test_explosion_damages_only_target_rope_and_pauses()
 	await _test_invalid_target_retargets_and_combat_kill_is_rewarded()
 	print("Rope saboteur integration scenarios passed")
 	quit()
+
+
+func _test_automatic_spawn_requires_damageable_rope() -> void:
+	var game: Node = GAME_SCENE.instantiate()
+	root.add_child(game)
+	await process_frame
+
+	var game_flow: GameFlowController = game.get_node("GameFlowController")
+	var wind: WindSystem = game.get_node("WindSystem")
+	var platform: PlatformController = game.get_node("World/Platform")
+	var anchors: AnchorSystem = game.get_node("World/AnchorSystem")
+	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+
+	director.set_physics_process(false)
+	_configure_stable_world(game_flow, wind, platform)
+	assert(director.spawn_now() == null)
+	await _install_anchor(anchors, 2)
+
+	var snapshot: AnchorRopeSnapshot = anchors.get_rope_snapshot(2)
+	assert(anchors.apply_rope_damage(
+		2,
+		snapshot.maximum_durability,
+		&"test_setup"
+	))
+	assert(anchors.get_rope_snapshot(2).is_destroyed)
+	assert(anchors.is_path_available(2))
+
+	var saboteur: BoardingEnemyArchetype = director.enemy_catalog.get_archetype(
+		&"rope_saboteur"
+	)
+	var saboteur_only := BoardingEnemyCatalog.new()
+	var definitions: Array[BoardingEnemyArchetype] = [saboteur]
+	saboteur_only.archetypes = definitions
+	assert(saboteur_only.validate())
+	director.enemy_catalog = saboteur_only
+	assert(director.spawn_now() == null)
+
+	game.queue_free()
+	await process_frame
 
 
 func _test_explosion_damages_only_target_rope_and_pauses() -> void:
@@ -87,12 +127,12 @@ func _test_explosion_damages_only_target_rope_and_pauses() -> void:
 		target_after.current_durability,
 		target_before.current_durability - rope_damage
 	))
-	for snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
-		if snapshot.anchor_id == target_anchor_id:
+	for rope_snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
+		if rope_snapshot.anchor_id == target_anchor_id:
 			continue
 		assert(is_equal_approx(
-			snapshot.current_durability,
-			snapshot.maximum_durability
+			rope_snapshot.current_durability,
+			rope_snapshot.maximum_durability
 		))
 	assert(anchors.is_path_available(target_anchor_id))
 	assert(economy.get_coins() == starting_coins)
@@ -166,17 +206,17 @@ func _test_invalid_target_retargets_and_combat_kill_is_rewarded() -> void:
 	assert(anchors.is_path_available(second_target))
 
 	var durability_before: Array[float] = []
-	for snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
-		durability_before.append(snapshot.current_durability)
+	for rope_snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
+		durability_before.append(rope_snapshot.current_durability)
 	var starting_coins: int = economy.get_coins()
 	saboteur.health.apply_damage(1)
 	await process_frame
 	assert(registry.get_archetype_count(&"rope_saboteur") == 0)
 	assert(economy.get_coins() == starting_coins + 1)
-	for snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
+	for rope_snapshot: AnchorRopeSnapshot in anchors.get_all_rope_snapshots():
 		assert(is_equal_approx(
-			snapshot.current_durability,
-			durability_before[snapshot.anchor_id]
+			rope_snapshot.current_durability,
+			durability_before[rope_snapshot.anchor_id]
 		))
 
 	game.queue_free()
