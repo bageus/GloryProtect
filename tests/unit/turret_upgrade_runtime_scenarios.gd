@@ -1,7 +1,10 @@
 extends SceneTree
 
 const CATALOG: UpgradeCatalog = preload(
-	"res://resources/upgrades/game_upgrade_catalog.tres"
+	"res://resources/upgrades/turret_branch_upgrade_catalog.tres"
+)
+const BALANCE: TurretUpgradeBalance = preload(
+	"res://resources/balance/turret_specialization_balance.tres"
 )
 
 
@@ -10,7 +13,8 @@ func _init() -> void:
 	_test_specializations()
 	_test_catalog_prerequisites()
 	_test_independent_shot_and_volley_counters()
-	_test_undefined_area_cards_are_not_active()
+	_test_area_cards_are_active()
+	_test_provisional_area_balance()
 	print("Turret upgrade runtime scenarios passed")
 	quit()
 
@@ -34,7 +38,9 @@ func _test_specializations() -> void:
 	assert(heavy.apply_flag(TurretUpgradeRuntime.HEAVY))
 	assert(heavy.get_damage(1) == 2)
 	assert(heavy.apply_flag(&"turret_heavy_piercing"))
+	assert(heavy.apply_flag(&"turret_heavy_explosive_fifth"))
 	assert(heavy.piercing_enabled)
+	assert(heavy.heavy_explosive_fifth_enabled)
 	assert(not heavy.apply_flag(TurretUpgradeRuntime.HEAVY))
 
 	var rapid := TurretUpgradeRuntime.new()
@@ -57,7 +63,9 @@ func _test_specializations() -> void:
 	assert(electric.apply_flag(TurretUpgradeRuntime.ELECTRIC))
 	assert(electric.stun_enabled)
 	assert(electric.apply_flag(&"turret_electric_chain"))
+	assert(electric.apply_flag(&"turret_electric_orb_fifth"))
 	assert(electric.chain_enabled)
+	assert(electric.electric_orb_fifth_enabled)
 	assert(not electric.apply_flag(&"turret_heavy_piercing"))
 
 
@@ -79,8 +87,12 @@ func _test_catalog_prerequisites() -> void:
 		CATALOG.get_definition(&"turret_heavy_piercing"),
 		runtime
 	))
+	assert(CATALOG.is_available(
+		CATALOG.get_definition(&"turret_heavy_explosive_fifth"),
+		runtime
+	))
 	assert(not CATALOG.is_available(
-		CATALOG.get_definition(&"turret_rapid_double_shot"),
+		CATALOG.get_definition(&"turret_electric_orb_fifth"),
 		runtime
 	))
 
@@ -99,6 +111,14 @@ func _test_independent_shot_and_volley_counters() -> void:
 	assert(second.completed_volleys == 0)
 
 
-func _test_undefined_area_cards_are_not_active() -> void:
-	assert(CATALOG.get_definition(&"turret_heavy_explosive_fifth") == null)
-	assert(CATALOG.get_definition(&"turret_electric_orb_fifth") == null)
+func _test_area_cards_are_active() -> void:
+	assert(CATALOG.get_definition(&"turret_heavy_explosive_fifth") != null)
+	assert(CATALOG.get_definition(&"turret_electric_orb_fifth") != null)
+
+
+func _test_provisional_area_balance() -> void:
+	assert(BALANCE.is_valid())
+	assert(BALANCE.heavy_explosion_damage == 1)
+	assert(is_equal_approx(BALANCE.heavy_explosion_radius, 64.0))
+	assert(BALANCE.electric_orb_damage == 4)
+	assert(is_equal_approx(BALANCE.electric_orb_radius, 96.0))
