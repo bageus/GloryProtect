@@ -22,7 +22,7 @@ Draw generation, specialization events and diagnostics read `get_all_definitions
 The branch contains three independent basic-to-advanced pairs:
 
 - sword damage `+1`, then another `+1`;
-- attack cooldown `−15%`, then another `−15%`, for a cumulative `−30%`;
+- attack cooldown `-15%`, then another `-15%`, for a cumulative `-30%`;
 - maximum health `+1`, then another `+1`.
 
 Individual cards remain unavailable until at least one advanced melee card has been selected.
@@ -32,33 +32,33 @@ Individual cards remain unavailable until at least one advanced melee card has b
 `DefenderDurabilityComponent` owns armor and the one-use lethal guard. Incoming damage is resolved in this order:
 
 1. armor absorbs as much damage as possible;
-2. a ready lethal guard reduces any lethal health damage so the defender remains at `1` health, including a hit received while already at `1` health;
+2. a ready lethal guard reduces lethal health damage so the defender remains at `1` health, including a hit received while already at `1` health;
 3. remaining damage is applied through `HealthComponent`;
 4. `depleted` is emitted only after the previous steps.
 
-Ordinary healing calls only `HealthComponent.heal()` and never restores armor. Increasing maximum armor adds only the newly granted armor and does not refill previously lost armor.
+Ordinary healing calls only `HealthComponent.heal()` and never restores armor. Increasing maximum armor adds only newly granted armor and does not refill previously lost armor.
 
 The lethal guard is life-scoped. Buying unrelated cards after it has been consumed does not restore it. A replacement defender receives a fresh guard, and a new run resets all life-scoped state.
 
-## Specializations
-
-### Heavy
+## Heavy specialization
 
 - maximum health `+1`;
 - only heavy defenders block enemy jump plans through themselves;
 - optional shield grants `+2` armor;
 - optional fifth shield hit damages up to two enemies behind the primary target and knocks survivors back.
 
-### Duelist
+## Duelist specialization
 
-- attack cooldown `−25%` in addition to the base-line reductions;
+- attack cooldown `-25%` in addition to the base-line reductions;
 - optional isolated-target bonus damage;
 - optional second attack against the same locked target;
 - optional immediate counterattack after melee damage, including a hit absorbed entirely by armor.
 
 The double attack is modeled as a second windup and completion against the same locked target. It is not an immediate duplicate damage call, does not retarget, and starts normal cooldown only after the sequence ends.
 
-### Assault
+Melee damage carries the attacking node through `HealthComponent.damage_received`, so a counterattack targets the enemy that actually completed the hit rather than a different nearby enemy.
+
+## Assault specialization
 
 - splash damage to up to three enemies behind the primary target;
 - optional extra forward hit and one rear hit only when a rear enemy is actually present;
@@ -76,7 +76,10 @@ The existing combat controller remains the authority for role eligibility, local
 
 - `tests/unit/defender_durability_scenarios.gd`;
 - `tests/unit/melee_attack_follow_up_scenarios.gd`;
+- `tests/unit/melee_damage_source_scenarios.gd`;
 - `tests/unit/melee_defender_upgrade_runtime_scenarios.gd`;
 - `tests/unit/melee_defender_catalog_scenarios.gd`;
 - `tests/unit/active_upgrade_catalog_scenarios.gd`;
-- `tests/integration/melee_defender_replacement_scenarios.gd`.
+- `tests/integration/melee_defender_replacement_scenarios.gd`;
+- `tests/integration/melee_counterattack_scenarios.gd`;
+- `tests/integration/melee_specialization_combat_scenarios.gd`.
