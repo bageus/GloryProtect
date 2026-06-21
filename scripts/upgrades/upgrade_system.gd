@@ -12,7 +12,7 @@ signal progress_reset
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("BuildableInventory") var buildable_inventory_path: NodePath = NodePath("../BuildableInventory")
 @export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath("../World/Platform/CrewManager")
-@export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../World/CrewReplacementController")
+@export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../CrewReplacementController")
 @export var balance: UpgradeBalance
 @export var catalog: UpgradeCatalog = preload("res://resources/upgrades/technical_upgrade_catalog.tres")
 @export var draw_balance: UpgradeDrawBalance = preload("res://resources/upgrades/upgrade_draw_balance.tres")
