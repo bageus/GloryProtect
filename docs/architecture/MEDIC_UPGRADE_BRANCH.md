@@ -99,4 +99,4 @@ Integration scenarios:
 - `tests/integration/medic_station_relocation_scenarios.gd`;
 - `tests/integration/medic_run_reset_scenarios.gd`.
 
-The runner discovers all `*_scenarios.gd` files automatically. The complete Godot 4.6.2 suite and file-size guard remain unexecuted because repository issue #83 prevents GitHub Actions from creating workflow steps.
+The runner discovers all `*_scenarios.gd` files automatically. These scenarios have been added and statically reviewed, but they have not executed because repository issue #83 prevents GitHub Actions from creating workflow steps. The same blocker applies to the file-size guard.
