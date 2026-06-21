@@ -46,7 +46,10 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
-				return _turrets != null
+				return (
+					_turrets != null
+					and _turrets.can_apply_upgrade_effect(effect)
+				)
 			return _runtime != null
 	return false
 
