@@ -149,7 +149,7 @@ func _get_selected_path_or_reset() -> AnchorPathSnapshot:
 	):
 		_reset_target()
 		return null
-	var path: AnchorPathSnapshot = context.paths.get_path(selected_anchor_id)
+	var path: AnchorPathSnapshot = context.paths.get_anchor_path(selected_anchor_id)
 	if path == null:
 		_reset_target()
 	return path

@@ -37,12 +37,14 @@ Godot **4.6.2 stable**, строго типизированный GDScript.
 - физический абордаж через якоря;
 - data-driven каталог физических врагов;
 - подключаемые специальные поведения врагов;
+- летающего врага, который атакует без использования якорей;
+- отдельные компоненты дальней атаки и периодического яда;
 - состав абордажа, меняющийся с ростом сложности;
 - стратегические волны и миникарту;
 - экономику, статистику и итоговый экран;
 - медицинский пост и несколько независимых турелей;
 - мышиную панель выбора экипажа и назначения ролей;
-- две одинаковые карточки-заглушки без эффектов.
+- data-driven runtime улучшений, общий и повторяемый пул, взвешенные предложения из трёх карточек, события специализации и диагностический UI.
 
 При нулевой прочности путь закрывается синхронно, враги на разрушенном тросе погибают через общий `anchor_path_closed` flow, а уже поднявшиеся на платформу продолжают бой. Якорь автоматически возвращается и после новой установки получает полный трос.
 
@@ -183,7 +185,13 @@ resources/enemies/boarding_enemy_catalog.tres
 5, 10, 15, …, 100, 200, 400, 800
 ```
 
-Обе карточки пока одинаковы и не применяют улучшение. Переход на новую систему трёх карточек реализуется отдельными issues upgrade foundation.
+`UpgradeSystem` формирует data-driven предложение максимум из трёх уникальных карточек, принимает выбранный стабильный `card_id`, применяет эффект через публичный domain API и записывает выбор в `UpgradeRuntime`. Веса веток, prerequisites, repeat limits и причины недоступности вычисляются вне UI.
+
+После двух засчитываемых карточек ветки система может открыть отдельное событие с тремя специализациями этой ветки. Выбранная специализация сохраняется на текущий забег, а альтернативы блокируются.
+
+Общий пул и повторяемые карточки поддерживают лимиты экипажа и турелей. Экран выбора показывает тип, ветку, требования, прогресс повторов и причины недоступности, не перенося правила фильтрации или применения эффектов в UI.
+
+Следующий этап — подключение полноценных игровых веток #22–#28 к готовой upgrade foundation.
 
 ## Управление прототипом
 
@@ -206,17 +214,6 @@ resources/enemies/boarding_enemy_catalog.tres
 ## Основные тесты
 
 ```bash
-godot --headless --path . --script res://tests/unit/anchor_rope_durability_scenarios.gd
-godot --headless --path . --script res://tests/integration/anchor_rope_durability_scenarios.gd
-godot --headless --path . --script res://tests/integration/rope_break_recovery_scenarios.gd
-godot --headless --path . --script res://tests/unit/boarding_enemy_catalog_scenarios.gd
-godot --headless --path . --script res://tests/integration/rope_saboteur_scenarios.gd
-godot --headless --path . --script res://tests/integration/boarding_enemy_archetype_scenarios.gd
-godot --headless --path . --script res://tests/integration/boarding_separation_scenarios.gd
-godot --headless --path . --script res://tests/integration/boarding_jump_scenarios.gd
-godot --headless --path . --script res://tests/integration/crew_command_panel_scenarios.gd
-godot --headless --path . --script res://tests/integration/special_enemy_behavior_scenarios.gd
+bash tools/run_godot_scenarios.sh
 python tools/check_file_sizes.py
 ```
-
-Godot-сценарии необходимо выполнить локально или подключить к CI перед слиянием. Текущий GitHub Actions может проверять только отдельные статические ограничения проекта.

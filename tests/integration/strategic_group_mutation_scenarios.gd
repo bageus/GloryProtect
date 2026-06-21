@@ -94,11 +94,11 @@ func _run_scenarios() -> void:
 
 	var check_before_pause: float = mutations.get_check_remaining()
 	game_flow.begin_card_selection()
-	assert(get_tree().paused)
+	assert(paused)
 	await _wait_physics_frames(5)
 	assert(is_equal_approx(mutations.get_check_remaining(), check_before_pause))
 	game_flow.finish_card_selection()
-	assert(not get_tree().paused)
+	assert(not paused)
 
 	print("Strategic group mutation scenarios passed")
 	quit()
