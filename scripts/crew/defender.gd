@@ -5,6 +5,7 @@ signal destination_reached(defender_id: int)
 signal died(defender_id: int)
 
 @export_node_path("HealthComponent") var health_path: NodePath
+@export_node_path("StatusEffectComponent") var status_effects_path: NodePath
 @export_node_path("DefenderMovement") var movement_path: NodePath
 @export_node_path("DefenderVisual") var visual_path: NodePath
 @export_node_path("MeleeAttackComponent") var melee_path: NodePath
@@ -15,6 +16,7 @@ var _balance: CrewBalance
 var _body_color: Color = Color(0.45, 0.8, 1.0)
 
 @onready var health: HealthComponent = get_node(health_path)
+@onready var status_effects: StatusEffectComponent = get_node(status_effects_path)
 @onready var movement: DefenderMovement = get_node(movement_path)
 @onready var visual: DefenderVisual = get_node(visual_path)
 @onready var melee: MeleeAttackComponent = get_node(melee_path)
@@ -71,6 +73,7 @@ func _on_destination_reached() -> void:
 
 
 func _on_depleted() -> void:
+	status_effects.clear_poison()
 	movement.stop()
 	combat.cancel()
 	visible = false

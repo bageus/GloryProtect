@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RangedAttackProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/combat/ranged_attack_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+damage = 1
+windup_duration = 0.6
+cooldown_duration = 1.0
+projectile_speed = 420.0
+maximum_range = 360.0
