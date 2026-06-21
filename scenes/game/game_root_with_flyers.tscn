@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -6,12 +6,21 @@
 [ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="4_boarding"]
 [ext_resource type="Resource" path="res://resources/enemies/flying_enemy_profile.tres" id="5_profile"]
 [ext_resource type="Resource" path="res://resources/upgrades/common_repeatable_upgrade_catalog.tres" id="6_upgrades"]
+[ext_resource type="Script" path="res://scripts/upgrades/turret_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
+[ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
+[ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
 [node name="UpgradeSystem" parent="."]
+script = ExtResource("7_upgrade_coordinator")
 catalog = ExtResource("6_upgrades")
 replacement_controller_path = NodePath("../CrewReplacementController")
+turret_system_path = NodePath("../World/TurretSystem")
+
+[node name="TurretSystem" parent="World"]
+script = ExtResource("8_turret_system")
+upgrade_balance = ExtResource("9_turret_balance")
 
 [node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
 script = ExtResource("2_director")

@@ -5,13 +5,15 @@ var _buildables: BuildableInventory
 var _crew: CrewManager
 var _replacements: CrewReplacementController
 var _runtime: UpgradeRuntime
+var _turrets: TurretUpgradeSystem
 
 
 func configure(
 	buildables: BuildableInventory,
 	runtime: UpgradeRuntime,
 	crew: CrewManager = null,
-	replacements: CrewReplacementController = null
+	replacements: CrewReplacementController = null,
+	turrets: TurretUpgradeSystem = null
 ) -> void:
 	assert(buildables != null)
 	assert(runtime != null)
@@ -19,6 +21,7 @@ func configure(
 	_runtime = runtime
 	_crew = crew
 	_replacements = replacements
+	_turrets = turrets
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
@@ -38,9 +41,12 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 			return _crew != null
 		UpgradeEffectDefinition.EffectType.CREW_RESPAWN_MULTIPLIER:
 			return _replacements != null
-		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE,
+		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
+			return _runtime != null
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+			if _is_turret_effect(effect):
+				return _turrets != null
 			return _runtime != null
 	return false
 
@@ -73,10 +79,17 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			_runtime.set_domain_flag(effect.target_id, true)
 			return true
-		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
-			_runtime.set_domain_flag(effect.target_id, true)
-			return true
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+			if _is_turret_effect(effect):
+				return _turrets.apply_upgrade_effect(effect)
+			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
+				_runtime.set_domain_flag(effect.target_id, true)
+				return true
 			_runtime.add_domain_scalar(effect.target_id, effect.scalar_value)
 			return true
 	return false
+
+
+func _is_turret_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("turret_")

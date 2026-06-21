@@ -76,6 +76,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if not game_flow.is_world_simulation_active():
 		return
+	if enemy != null and enemy.is_stunned():
+		return
 	_tick_behavior(maxf(0.0, delta))
 
 
