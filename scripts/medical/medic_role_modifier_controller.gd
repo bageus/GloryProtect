@@ -99,16 +99,7 @@ func _detach_current_medic() -> void:
 	var defender: Defender = _crew.get_defender(_active_medic_id)
 	if defender != null and is_instance_valid(defender):
 		var died: bool = not defender.health.is_alive()
-		var underlying_max: int = maxi(
-			1,
-			defender.health.max_health - _applied_health_bonus
-		)
-		var role_health_remaining: int = clampi(
-			defender.health.current_health - underlying_max,
-			0,
-			_applied_health_bonus
-		)
-		defender.health.set_max_health(underlying_max, false)
+		var role_health_remaining: int = defender.take_medic_role_health_pool()
 		var role_armor_remaining: int = defender.durability.take_role_armor_pool()
 		_stored_health_segments = (
 			_known_health_bonus if died else role_health_remaining
@@ -131,11 +122,9 @@ func _attach_medic(defender_id: int) -> void:
 	_active_medic_id = defender_id
 	_applied_health_bonus = _known_health_bonus
 	_applied_armor_bonus = _known_armor_bonus
-	var base_max: int = defender.health.max_health
-	var base_current: int = defender.health.current_health
-	defender.health.set_max_health(base_max + _applied_health_bonus, false)
-	defender.health.set_health(
-		base_current + mini(_stored_health_segments, _applied_health_bonus)
+	defender.set_medic_role_health_pool(
+		_applied_health_bonus,
+		mini(_stored_health_segments, _applied_health_bonus)
 	)
 	defender.durability.set_role_armor_pool(
 		_applied_armor_bonus,
@@ -154,27 +143,13 @@ func _apply_capacity_change_to_active() -> void:
 	if defender == null or not defender.health.is_alive():
 		return
 	if _applied_health_bonus != _known_health_bonus:
-		var underlying_max: int = maxi(
-			1,
-			defender.health.max_health - _applied_health_bonus
-		)
-		var underlying_current: int = mini(
-			defender.health.current_health,
-			underlying_max
-		)
-		var role_current: int = clampi(
-			defender.health.current_health - underlying_max,
-			0,
-			_applied_health_bonus
-		)
+		var role_health: int = defender.get_medic_role_health_current()
 		if _known_health_bonus > _applied_health_bonus:
-			role_current += _known_health_bonus - _applied_health_bonus
-		role_current = mini(role_current, _known_health_bonus)
-		defender.health.set_max_health(
-			underlying_max + _known_health_bonus,
-			false
+			role_health += _known_health_bonus - _applied_health_bonus
+		defender.set_medic_role_health_pool(
+			_known_health_bonus,
+			mini(role_health, _known_health_bonus)
 		)
-		defender.health.set_health(underlying_current + role_current)
 		_applied_health_bonus = _known_health_bonus
 	if _applied_armor_bonus != _known_armor_bonus:
 		var role_armor: int = defender.durability.get_role_current_armor()
