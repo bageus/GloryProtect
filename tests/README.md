@@ -13,6 +13,8 @@ The unit scenario verifies independent durability, validation, clamping, one-sho
 
 The integration scenario verifies the public `AnchorSystem` API against the full game scene. Reaching zero intentionally leaves the boarding path active until issue #16 implements physical destruction and recovery.
 
+These Godot scenarios are not part of the current GitHub Actions workflow yet. They must be executed locally or added to CI before PR #41 is merged.
+
 ## Project guard
 
 ```bash
