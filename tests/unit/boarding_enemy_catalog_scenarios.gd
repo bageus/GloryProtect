@@ -25,6 +25,10 @@ func _init() -> void:
 	assert(brute.max_health == 3)
 	assert(brute.body_radius > basic.body_radius)
 	assert(saboteur.enemy_scene != null)
+	assert(
+		saboteur.spawn_requirement
+		== BoardingEnemyArchetype.SpawnRequirement.DAMAGEABLE_ROPE
+	)
 	assert((saboteur as RopeSaboteurArchetype).rope_damage > 0.0)
 
 	assert(basic.get_weight(0.0) > 0.0)
@@ -39,6 +43,30 @@ func _init() -> void:
 	rng.seed = 19473
 	for _index: int in range(100):
 		assert(catalog.choose_archetype(rng, 0.0).archetype_id == &"basic")
+
+	var path_only: Array[int] = [
+		BoardingEnemyArchetype.SpawnRequirement.AVAILABLE_PATH,
+	]
+	rng.seed = 7331
+	for _index: int in range(1000):
+		var chosen_without_rope: BoardingEnemyArchetype = (
+			catalog.choose_archetype(rng, 1.0, path_only)
+		)
+		assert(chosen_without_rope != null)
+		assert(chosen_without_rope.archetype_id != &"rope_saboteur")
+
+	var saboteur_only := BoardingEnemyCatalog.new()
+	var saboteur_definitions: Array[BoardingEnemyArchetype] = [saboteur]
+	saboteur_only.archetypes = saboteur_definitions
+	assert(saboteur_only.validate())
+	assert(saboteur_only.choose_archetype(rng, 1.0, path_only) == null)
+	var damageable_only: Array[int] = [
+		BoardingEnemyArchetype.SpawnRequirement.DAMAGEABLE_ROPE,
+	]
+	assert(
+		saboteur_only.choose_archetype(rng, 1.0, damageable_only)
+		== saboteur
+	)
 
 	var counts: Dictionary[StringName, int] = {
 		&"basic": 0,
