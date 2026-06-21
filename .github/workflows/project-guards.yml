@@ -28,9 +28,31 @@ jobs:
       - name: Enforce 600-line limit
         run: python tools/check_file_sizes.py
 
-  godot-scenarios:
+  discover-scenarios:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    outputs:
+      scenarios: ${{ steps.discover.outputs.scenarios }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Discover Godot scenarios
+        id: discover
+        shell: bash
+        run: |
+          scenarios="$(find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort | jq -R -s -c 'split("\n")[:-1]')"
+          echo "scenarios=${scenarios}" >> "${GITHUB_OUTPUT}"
+
+  godot-scenario:
+    needs: discover-scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: ${{ fromJSON(needs.discover-scenarios.outputs.scenarios) }}
+    name: Godot — ${{ matrix.scenario }}
 
     steps:
       - name: Checkout repository
@@ -49,5 +71,5 @@ jobs:
             /usr/local/bin/godot
           godot --version
 
-      - name: Run unit and integration scenarios
-        run: bash tools/run_godot_scenarios.sh
+      - name: Run scenario
+        run: godot --headless --path . --script "res://${{ matrix.scenario }}"
