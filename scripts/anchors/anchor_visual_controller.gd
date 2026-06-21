@@ -5,21 +5,30 @@ var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
 var _balance: AnchorBalance
 var _is_operator_available: Callable
+var _is_simulation_active: Callable
+var _warning_elapsed: float = 0.0
 
 
 func configure(
 	store: AnchorRuntimeStore,
 	geometry: AnchorGeometry,
 	balance: AnchorBalance,
-	is_operator_available: Callable
+	is_operator_available: Callable,
+	is_simulation_active: Callable
 ) -> void:
 	_store = store
 	_geometry = geometry
 	_balance = balance
 	_is_operator_available = is_operator_available
+	_is_simulation_active = is_simulation_active
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if (
+		_is_simulation_active.is_valid()
+		and bool(_is_simulation_active.call())
+	):
+		_warning_elapsed += maxf(0.0, delta)
 	queue_redraw()
 
 
@@ -69,13 +78,60 @@ func _draw_attached_anchor(
 	platform_point: Vector2,
 	ground_point: Vector2
 ) -> void:
-	var rope_color := Color(0.92, 0.75, 0.36)
+	var durability_ratio: float = _get_durability_ratio(anchor)
+	var rope_color: Color = Color(0.92, 0.75, 0.36)
+	if durability_ratio <= _balance.rope_critical_ratio:
+		var critical_pulse: float = 0.5 + 0.5 * sin(
+			_warning_elapsed * _balance.rope_warning_pulse_speed
+		)
+		rope_color = Color(1.0, 0.08, 0.04).lerp(
+			Color(1.0, 0.65, 0.12),
+			critical_pulse
+		)
+	elif durability_ratio <= _balance.rope_damaged_ratio:
+		rope_color = Color(1.0, 0.42, 0.08)
+
 	if anchor.state == AnchorRuntime.State.OVERLOADED:
-		var flash := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.015)
-		rope_color = Color(1.0, 0.12 + flash * 0.25, 0.08)
+		var overload_pulse: float = 0.5 + 0.5 * sin(
+			_warning_elapsed * _balance.rope_warning_pulse_speed * 1.4
+		)
+		rope_color = Color(1.0, 0.05, 0.03).lerp(
+			Color(1.0, 0.35, 0.08),
+			overload_pulse
+		)
 
 	draw_line(platform_point, ground_point, rope_color, 4.0)
 	draw_circle(ground_point, 10.0, rope_color)
+	_draw_durability_meter(
+		platform_point.lerp(ground_point, 0.5),
+		durability_ratio,
+		rope_color
+	)
+
+
+func _draw_durability_meter(
+	center: Vector2,
+	ratio: float,
+	fill_color: Color
+) -> void:
+	var bar_size := Vector2(44.0, 6.0)
+	var bar_rect := Rect2(center - bar_size * 0.5, bar_size)
+	draw_rect(bar_rect.grow(2.0), Color(0.08, 0.06, 0.05, 0.9), true)
+	draw_rect(
+		Rect2(bar_rect.position, Vector2(bar_size.x * ratio, bar_size.y)),
+		fill_color,
+		true
+	)
+	draw_rect(bar_rect, Color(1.0, 0.92, 0.72, 0.8), false, 1.0)
+	draw_string(
+		ThemeDB.fallback_font,
+		center + Vector2(-16.0, -8.0),
+		"%d%%" % roundi(ratio * 100.0),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1.0,
+		12,
+		Color.WHITE
+	)
 
 
 func _draw_returning_anchor(
@@ -109,4 +165,14 @@ func _draw_silhouette(anchor: AnchorRuntime, ground_point: Vector2) -> void:
 		ground_point + Vector2(9.0, 15.0),
 		silhouette_color,
 		4.0
+	)
+
+
+func _get_durability_ratio(anchor: AnchorRuntime) -> float:
+	if _balance.rope_max_durability <= 0.0:
+		return 0.0
+	return clampf(
+		anchor.rope_durability / _balance.rope_max_durability,
+		0.0,
+		1.0
 	)
