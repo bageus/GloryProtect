@@ -61,7 +61,8 @@ func configure(
 	melee.configure(
 		archetype.attack_damage,
 		archetype.attack_windup,
-		archetype.attack_cooldown
+		archetype.attack_cooldown,
+		self
 	)
 	visual.configure(archetype)
 	controller.configure(
