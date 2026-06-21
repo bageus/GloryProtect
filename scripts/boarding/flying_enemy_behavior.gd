@@ -84,7 +84,7 @@ func _get_separation_velocity() -> Vector2:
 	for other: BoardingEnemy in registry.get_all_enemies():
 		if other == enemy or other.behavior == null:
 			continue
-		if not other.behavior is FlyingEnemyBehavior:
+		if not (other.behavior is FlyingEnemyBehavior):
 			continue
 		var offset: Vector2 = enemy.global_position - other.global_position
 		var distance: float = offset.length()
