@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/crew/defender.gd" id="1_defender"]
 [ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="2_health"]
@@ -7,10 +7,12 @@
 [ext_resource type="Script" path="res://scripts/combat/melee_attack_component.gd" id="5_melee"]
 [ext_resource type="Script" path="res://scripts/crew/defender_combat_controller.gd" id="6_combat"]
 [ext_resource type="Script" path="res://scripts/combat/status_effect_component.gd" id="7_status"]
+[ext_resource type="Script" path="res://scripts/crew/defender_durability_component.gd" id="8_durability"]
 
 [node name="Defender" type="Node2D"]
 script = ExtResource("1_defender")
 health_path = NodePath("HealthComponent")
+durability_path = NodePath("DefenderDurabilityComponent")
 status_effects_path = NodePath("StatusEffectComponent")
 movement_path = NodePath("DefenderMovement")
 visual_path = NodePath("DefenderVisual")
@@ -20,6 +22,9 @@ combat_path = NodePath("DefenderCombatController")
 [node name="HealthComponent" type="Node" parent="."]
 script = ExtResource("2_health")
 max_health = 3
+
+[node name="DefenderDurabilityComponent" type="Node" parent="."]
+script = ExtResource("8_durability")
 
 [node name="StatusEffectComponent" type="Node" parent="."]
 script = ExtResource("7_status")
