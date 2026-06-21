@@ -39,15 +39,7 @@ func can_apply_effect(effect: UpgradeEffectDefinition) -> bool:
 				&"turret_range_bonus_ratio",
 			]
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
-			return effect.target_id in [
-				HEAVY,
-				RAPID,
-				ELECTRIC,
-				&"turret_heavy_piercing",
-				&"turret_rapid_double_shot",
-				&"turret_rapid_extra_fifth",
-				&"turret_electric_chain",
-			]
+			return _can_apply_flag(effect.target_id)
 	return false
 
 
@@ -70,40 +62,31 @@ func apply_scalar(target_id: StringName, value: float) -> bool:
 
 
 func apply_flag(target_id: StringName) -> bool:
+	if not _can_apply_flag(target_id):
+		return false
 	match target_id:
 		HEAVY:
-			if not _select_specialization(HEAVY):
-				return false
+			specialization_id = HEAVY
 			damage_bonus += 1
 			return true
 		RAPID:
-			if not _select_specialization(RAPID):
-				return false
+			specialization_id = RAPID
 			cooldown_reduction = minf(0.95, cooldown_reduction + 0.5)
 			return true
 		ELECTRIC:
-			if not _select_specialization(ELECTRIC):
-				return false
+			specialization_id = ELECTRIC
 			stun_enabled = true
 			return true
 		&"turret_heavy_piercing":
-			if specialization_id != HEAVY:
-				return false
 			piercing_enabled = true
 			return true
 		&"turret_rapid_double_shot":
-			if specialization_id != RAPID:
-				return false
 			double_shot_enabled = true
 			return true
 		&"turret_rapid_extra_fifth":
-			if specialization_id != RAPID:
-				return false
 			extra_fifth_volley_shot_enabled = true
 			return true
 		&"turret_electric_chain":
-			if specialization_id != ELECTRIC:
-				return false
 			chain_enabled = true
 			return true
 	return false
@@ -128,8 +111,19 @@ func get_shots_per_next_volley(runtime: TurretRuntime) -> int:
 	return result
 
 
-func _select_specialization(value: StringName) -> bool:
-	if specialization_id != &"" and specialization_id != value:
-		return false
-	specialization_id = value
-	return true
+func _can_apply_flag(target_id: StringName) -> bool:
+	match target_id:
+		HEAVY, RAPID, ELECTRIC:
+			return specialization_id == &""
+		&"turret_heavy_piercing":
+			return specialization_id == HEAVY and not piercing_enabled
+		&"turret_rapid_double_shot":
+			return specialization_id == RAPID and not double_shot_enabled
+		&"turret_rapid_extra_fifth":
+			return (
+				specialization_id == RAPID
+				and not extra_fifth_volley_shot_enabled
+			)
+		&"turret_electric_chain":
+			return specialization_id == ELECTRIC and not chain_enabled
+	return false
