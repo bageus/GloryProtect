@@ -18,12 +18,19 @@ var _phase: int = Phase.READY
 var _remaining_time: float = 0.0
 var _locked_target: HealthComponent = null
 var _follow_up_queued: bool = false
+var _damage_source: Node = null
 
 
-func configure(damage: int, windup_duration: float, cooldown_duration: float) -> void:
+func configure(
+	damage: int,
+	windup_duration: float,
+	cooldown_duration: float,
+	damage_source: Node = null
+) -> void:
 	_damage = maxi(1, damage)
 	_windup_duration = maxf(0.01, windup_duration)
 	_cooldown_duration = maxf(0.01, cooldown_duration)
+	_damage_source = damage_source
 
 
 func get_damage() -> int:
@@ -99,7 +106,7 @@ func _resolve_locked_attack() -> void:
 		return
 	if not _locked_target.is_alive():
 		return
-	_locked_target.apply_damage(_damage, &"melee")
+	_locked_target.apply_damage(_damage, &"melee", _damage_source)
 	attack_landed.emit(_locked_target, _damage)
 
 
