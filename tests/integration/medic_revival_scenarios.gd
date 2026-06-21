@@ -35,30 +35,49 @@ func _run_scenario() -> void:
 		&"medic_stimulant_revival"
 	)))
 
-	crew.get_defender(0).health.set_health(0)
-	crew.get_defender(1).health.set_health(0)
-	assert(crew.get_living_count() == 1)
-	var last_id: int = 2
-	crew.get_defender(last_id).health.set_health(0)
+	var ordinary_id: int = 0
+	crew.get_defender(ordinary_id).health.set_health(0)
 	assert(flow.state == GameFlowController.RunState.RUNNING)
+	assert(revival.is_revival_scheduled(ordinary_id))
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
 	await process_frame
-
-	var replacement: Defender = crew.get_defender(last_id)
-	assert(replacement != null and replacement.health.is_alive())
-	assert(crew.get_living_count() == 1)
-	assert(not replacements.is_replacement_pending(last_id))
-	var assignment: CrewAssignmentRuntime = roles.get_assignment(last_id)
-	assert(assignment.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(assignment.current_role == CrewRole.Id.FREE_FIGHTER)
-	assert(flow.state == GameFlowController.RunState.RUNNING)
+	var ordinary_replacement: Defender = crew.get_defender(ordinary_id)
+	assert(ordinary_replacement != null and ordinary_replacement.health.is_alive())
+	assert(not replacements.is_replacement_pending(ordinary_id))
+	var ordinary_assignment: CrewAssignmentRuntime = roles.get_assignment(ordinary_id)
+	assert(ordinary_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
+	assert(ordinary_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(crew.get_living_count() == 3)
 
 	flow.toggle_manual_pause()
 	revival.call("_physics_process", 30.0)
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
 	flow.toggle_manual_pause()
 
-	replacement.health.set_health(0)
+	ordinary_replacement.health.set_health(0)
+	crew.get_defender(1).health.set_health(0)
+	assert(crew.get_living_count() == 1)
+	assert(not revival.is_revival_scheduled())
+	revival.call("_physics_process", 60.0)
+	assert(is_equal_approx(revival.get_cooldown_remaining(), 0.0))
+
+	var last_id: int = 2
+	crew.get_defender(last_id).health.set_health(0)
+	assert(flow.state == GameFlowController.RunState.RUNNING)
+	assert(revival.is_revival_scheduled(last_id))
+	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
+	await process_frame
+
+	var last_replacement: Defender = crew.get_defender(last_id)
+	assert(last_replacement != null and last_replacement.health.is_alive())
+	assert(crew.get_living_count() == 1)
+	assert(not replacements.is_replacement_pending(last_id))
+	var last_assignment: CrewAssignmentRuntime = roles.get_assignment(last_id)
+	assert(last_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
+	assert(last_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(flow.state == GameFlowController.RunState.RUNNING)
+
+	last_replacement.health.set_health(0)
 	assert(flow.state == GameFlowController.RunState.GAME_OVER)
 	assert(crew.get_living_count() == 0)
 
