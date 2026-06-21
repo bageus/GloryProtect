@@ -21,6 +21,7 @@ var _scheduled_defender_id: int = -1
 
 
 func _ready() -> void:
+	_crew.defender_died.connect(_on_defender_died)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 
 
@@ -39,6 +40,12 @@ func can_revive() -> bool:
 		and _cooldown_remaining <= 0.0
 		and _scheduled_defender_id < 0
 	)
+
+
+func is_revival_scheduled(defender_id: int = -1) -> bool:
+	if defender_id < 0:
+		return _scheduled_defender_id >= 0
+	return _scheduled_defender_id == defender_id
 
 
 func try_schedule_revival(defender_id: int) -> bool:
@@ -63,12 +70,18 @@ func _perform_scheduled_revival() -> void:
 	_scheduled_defender_id = -1
 	if defender_id < 0:
 		return
+	if _game_flow.state == GameFlowController.RunState.GAME_OVER:
+		return
 	var current: Defender = _crew.get_defender(defender_id)
 	if current != null and current.health.is_alive():
 		return
 	var replacement: Defender = _replacements.complete_replacement_now(defender_id)
 	if replacement != null:
 		revival_completed.emit(defender_id, replacement)
+
+
+func _on_defender_died(defender_id: int) -> void:
+	try_schedule_revival(defender_id)
 
 
 func _on_run_state_changed(previous_state: int, new_state: int) -> void:
