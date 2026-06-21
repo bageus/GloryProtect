@@ -40,7 +40,7 @@ A healing cycle stores its calculated duration when it begins. A later upgrade, 
 - Global melee health and medic-role health are composed independently.
 - Ordinary reassignment transfers only the remaining medic health and armor pools.
 - Reassigning the post cannot refill spent role armor.
-- A medic death creates a fresh life-scoped role reserve for the next operator.
+- A medic death synchronously snapshots the old operator before deferred replacement and creates a fresh life-scoped role reserve for the next operator.
 - A new run clears the active operator and all hidden stored pools.
 
 `DefenderDurabilityComponent` resolves incoming damage in this order:
@@ -58,7 +58,7 @@ Ordinary healing does not restore any armor layer.
 
 `MedicAttackDefinition` explicitly defines the weapon as `MELEE_SWORD`. The specialization grants `+15%` movement speed to the active medic. The combat card enables the existing `MeleeAttackComponent` and adds `+1` damage on top of ordinary melee upgrades.
 
-An active healing cycle remains indivisible and temporarily blocks the field-medic melee exception. The emergency card applies the provisional `0.5` interval multiplier when the locked target begins the cycle at `1 HP`.
+An active healing cycle remains indivisible and temporarily blocks the field-medic melee exception. A melee attack that already started finishes before healing can begin, and an active healing cycle blocks a new attack. The emergency card applies the provisional `0.5` interval multiplier when the locked target begins the cycle at `1 HP`.
 
 ## Combat stimulant
 
@@ -92,6 +92,7 @@ Integration scenarios:
 - `tests/integration/medic_upgrade_system_scenarios.gd`;
 - `tests/integration/medic_role_modifier_scenarios.gd`;
 - `tests/integration/medic_field_combat_scenarios.gd`;
+- `tests/integration/medic_field_action_priority_scenarios.gd`;
 - `tests/integration/medic_emergency_cycle_scenarios.gd`;
 - `tests/integration/medic_stimulant_scenarios.gd`;
 - `tests/integration/medic_protective_healing_scenarios.gd`;
