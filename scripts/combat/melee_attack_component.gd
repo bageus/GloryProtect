@@ -85,5 +85,5 @@ func _resolve_locked_attack() -> void:
 		return
 	if not _locked_target.is_alive():
 		return
-	_locked_target.apply_damage(_damage)
+	_locked_target.apply_damage(_damage, &"melee")
 	attack_landed.emit(_locked_target, _damage)
