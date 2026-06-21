@@ -4,6 +4,7 @@ extends Node
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
+@export_node_path("AnchorSystem") var anchor_system_path: NodePath
 @export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export_node_path("BoardingMovementResolver") var movement_resolver_path: NodePath
@@ -21,6 +22,7 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
 @onready var _platform: PlatformController = get_node(platform_path)
+@onready var _anchors: AnchorSystem = get_node(anchor_system_path)
 @onready var _paths: AnchorPathRegistry = get_node(path_registry_path)
 @onready var _registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
 @onready var _movement_resolver: BoardingMovementResolver = get_node(
@@ -125,7 +127,10 @@ func _spawn_enemy(
 ) -> BoardingEnemy:
 	if archetype == null:
 		return null
-	var enemy: BoardingEnemy = enemy_scene.instantiate() as BoardingEnemy
+	var scene: PackedScene = enemy_scene
+	if archetype.enemy_scene != null:
+		scene = archetype.enemy_scene
+	var enemy: BoardingEnemy = scene.instantiate() as BoardingEnemy
 	assert(enemy != null, "Boarding enemy scene root must use BoardingEnemy")
 	_container.add_child(enemy)
 	enemy.configure(
@@ -137,7 +142,8 @@ func _spawn_enemy(
 		_crew,
 		_orbs,
 		_movement_resolver,
-		_jump_planner
+		_jump_planner,
+		_anchors
 	)
 	_registry.register_enemy(enemy)
 	var preferred_x: float = (
