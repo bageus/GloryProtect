@@ -40,11 +40,7 @@ func get_active_count() -> int:
 func get_ground_count() -> int:
 	var count: int = 0
 	for enemy: BoardingEnemy in get_all_enemies():
-		var enemy_state: int = enemy.get_state()
-		if (
-			enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
-			or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
-		):
+		if enemy.is_counted_as_ground():
 			count += 1
 	return count
 
@@ -52,7 +48,7 @@ func get_ground_count() -> int:
 func get_climbing_count() -> int:
 	var count: int = 0
 	for enemy: BoardingEnemy in get_all_enemies():
-		if enemy.get_state() == BoardingEnemyController.State.CLIMBING:
+		if enemy.is_counted_as_climbing():
 			count += 1
 	return count
 
@@ -64,7 +60,15 @@ func get_boarded_count() -> int:
 func get_boarded_enemies() -> Array[BoardingEnemy]:
 	var result: Array[BoardingEnemy] = []
 	for enemy: BoardingEnemy in get_all_enemies():
-		if enemy.is_on_platform() and enemy.health.is_alive():
+		if enemy.is_counted_as_boarded() and enemy.health.is_alive():
+			result.append(enemy)
+	return result
+
+
+func get_turret_targets() -> Array[BoardingEnemy]:
+	var result: Array[BoardingEnemy] = []
+	for enemy: BoardingEnemy in get_all_enemies():
+		if enemy.is_targetable_by_turret():
 			result.append(enemy)
 	return result
 
