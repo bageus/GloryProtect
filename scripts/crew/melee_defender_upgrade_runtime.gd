@@ -42,9 +42,9 @@ func apply_scalar(target_id: StringName, value: float) -> bool:
 			damage_bonus += roundi(value)
 			return true
 		&"melee_cooldown_multiplier":
-			if value <= 0.0:
+			if value <= 0.0 or value > 1.0:
 				return false
-			cooldown_multiplier *= value
+			_apply_cooldown_reduction(1.0 - value)
 			return true
 		&"melee_health_bonus":
 			health_bonus += roundi(value)
@@ -70,7 +70,7 @@ func apply_flag(target_id: StringName) -> bool:
 			return true
 		&"melee_specialization_duelist":
 			specialization_id = DUELIST
-			cooldown_multiplier *= 0.75
+			_apply_cooldown_reduction(0.25)
 			return true
 		&"melee_duelist_isolated_damage":
 			duelist_isolated_damage = true
@@ -104,3 +104,7 @@ func get_cooldown(base_cooldown: float) -> float:
 
 func get_max_health(base_health: int) -> int:
 	return maxi(1, base_health + health_bonus)
+
+
+func _apply_cooldown_reduction(reduction: float) -> void:
+	cooldown_multiplier = maxf(0.01, cooldown_multiplier - maxf(0.0, reduction))
