@@ -2,6 +2,7 @@ class_name HealthComponent
 extends Node
 
 signal health_changed(current_health: int, max_health: int)
+signal damage_received(requested_amount: int, health_damage: int)
 signal damage_applied(amount: int, current_health: int)
 signal depleted
 
@@ -53,6 +54,7 @@ func apply_damage(amount: int) -> void:
 			amount,
 			current_health
 		)
+	damage_received.emit(amount, resolved_amount)
 	if resolved_amount <= 0:
 		return
 	var previous_health: int = current_health
