@@ -4,11 +4,5 @@
 
 [resource]
 script = ExtResource("1_balance")
-piercing_lane_half_height = 24.0
-explosive_radius = 72.0
 stun_min_seconds = 1.0
 stun_max_seconds = 2.0
-chain_damage = 1
-chain_range = 140.0
-electric_orb_radius = 90.0
-electric_orb_damage = 4
