@@ -3,6 +3,7 @@ extends Resource
 
 @export var archetype_id: StringName = &"basic"
 @export var display_name: String = "Базовый абордажник"
+@export var enemy_scene: PackedScene
 
 @export_group("Body")
 @export_range(1, 20, 1) var max_health: int = 1
