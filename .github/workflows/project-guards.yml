@@ -71,6 +71,9 @@ jobs:
             /usr/local/bin/godot
           godot --version
 
+      - name: Import project and build script class cache
+        run: godot --headless --path . --import
+
       - name: Run scenario
         shell: bash
         run: |
