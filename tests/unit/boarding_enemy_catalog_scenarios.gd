@@ -11,17 +11,29 @@ func _init() -> void:
 	var basic: BoardingEnemyArchetype = catalog.get_archetype(&"basic")
 	var runner: BoardingEnemyArchetype = catalog.get_archetype(&"runner")
 	var brute: BoardingEnemyArchetype = catalog.get_archetype(&"brute")
-	assert(basic != null and runner != null and brute != null)
+	var saboteur: BoardingEnemyArchetype = catalog.get_archetype(
+		&"rope_saboteur"
+	)
+	assert(
+		basic != null
+		and runner != null
+		and brute != null
+		and saboteur is RopeSaboteurArchetype
+	)
 	assert(basic.max_health == 1)
 	assert(runner.ground_move_speed > basic.ground_move_speed)
 	assert(brute.max_health == 3)
 	assert(brute.body_radius > basic.body_radius)
+	assert(saboteur.enemy_scene != null)
+	assert((saboteur as RopeSaboteurArchetype).rope_damage > 0.0)
 
 	assert(basic.get_weight(0.0) > 0.0)
 	assert(is_zero_approx(runner.get_weight(0.14)))
 	assert(runner.get_weight(0.5) > 0.0)
 	assert(is_zero_approx(brute.get_weight(0.44)))
 	assert(brute.get_weight(1.0) > 0.0)
+	assert(is_zero_approx(saboteur.get_weight(0.24)))
+	assert(saboteur.get_weight(1.0) > 0.0)
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 19473
@@ -32,9 +44,10 @@ func _init() -> void:
 		&"basic": 0,
 		&"runner": 0,
 		&"brute": 0,
+		&"rope_saboteur": 0,
 	}
 	rng.seed = 92741
-	for _index: int in range(1000):
+	for _index: int in range(2000):
 		var chosen: BoardingEnemyArchetype = catalog.choose_archetype(rng, 1.0)
 		assert(chosen != null)
 		var previous_count: int = counts[chosen.archetype_id]
@@ -42,6 +55,7 @@ func _init() -> void:
 	assert(counts[&"basic"] > 0)
 	assert(counts[&"runner"] > 0)
 	assert(counts[&"brute"] > 0)
+	assert(counts[&"rope_saboteur"] > 0)
 
 	print("Boarding enemy catalog scenarios passed")
 	quit()
