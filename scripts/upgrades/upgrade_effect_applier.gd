@@ -3,23 +3,22 @@ extends RefCounted
 
 var _buildables: BuildableInventory
 var _crew: CrewManager
+var _replacements: CrewReplacementController
 var _runtime: UpgradeRuntime
 
 
 func configure(
 	buildables: BuildableInventory,
 	runtime: UpgradeRuntime,
-	crew: CrewManager = null
+	crew: CrewManager = null,
+	replacements: CrewReplacementController = null
 ) -> void:
 	assert(buildables != null)
 	assert(runtime != null)
 	_buildables = buildables
 	_runtime = runtime
 	_crew = crew
-
-
-func set_crew_manager(crew: CrewManager) -> void:
-	_crew = crew
+	_replacements = replacements
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
@@ -30,13 +29,15 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 		return true
 	match effect.effect_type:
 		UpgradeEffectDefinition.EffectType.UNLOCK_BUILDABLE:
-			if _buildables == null:
-				return false
 			var current: int = _buildables.get_unlocked_count(effect.buildable_type_id)
 			var maximum: int = _buildables.balance.get_max_count(effect.buildable_type_id)
 			return current < maximum and effect.integer_value > 0
 		UpgradeEffectDefinition.EffectType.ADD_DEFENDER:
 			return _crew != null and _crew.can_add_defender()
+		UpgradeEffectDefinition.EffectType.CREW_MOVE_SPEED_MULTIPLIER:
+			return _crew != null
+		UpgradeEffectDefinition.EffectType.CREW_RESPAWN_MULTIPLIER:
+			return _replacements != null
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE,
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
@@ -65,6 +66,10 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 					break
 				added += 1
 			return added > 0
+		UpgradeEffectDefinition.EffectType.CREW_MOVE_SPEED_MULTIPLIER:
+			return _crew.multiply_movement_speed(effect.scalar_value)
+		UpgradeEffectDefinition.EffectType.CREW_RESPAWN_MULTIPLIER:
+			return _replacements.multiply_respawn_time(effect.scalar_value)
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			_runtime.set_domain_flag(effect.target_id, true)
 			return true
