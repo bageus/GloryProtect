@@ -7,6 +7,9 @@ enum EffectType {
 	UNLOCK_ROLE,
 	DOMAIN_FLAG,
 	DOMAIN_SCALAR,
+	ADD_DEFENDER,
+	CREW_MOVE_SPEED_MULTIPLIER,
+	CREW_RESPAWN_MULTIPLIER,
 }
 
 @export var effect_type: EffectType = EffectType.NONE
@@ -26,4 +29,9 @@ func is_valid() -> bool:
 			return target_id != &""
 		EffectType.DOMAIN_SCALAR:
 			return target_id != &"" and not is_zero_approx(scalar_value)
+		EffectType.ADD_DEFENDER:
+			return integer_value > 0
+		EffectType.CREW_MOVE_SPEED_MULTIPLIER,
+		EffectType.CREW_RESPAWN_MULTIPLIER:
+			return scalar_value > 0.0
 	return false
