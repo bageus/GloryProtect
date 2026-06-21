@@ -5,11 +5,14 @@ signal crew_initialized
 signal defender_spawned(defender_id: int, defender: Defender)
 signal defender_died(defender_id: int)
 signal defender_replaced(defender_id: int, defender: Defender)
+signal crew_size_changed(previous_size: int, current_size: int)
+signal movement_speed_multiplier_changed(multiplier: float)
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
 
 var _defenders: Dictionary[int, Defender] = {}
+var _movement_speed_multiplier: float = 1.0
 
 
 func _ready() -> void:
@@ -34,6 +37,58 @@ func get_all_defenders() -> Array[Defender]:
 	for defender_id: int in ids:
 		result.append(_defenders[defender_id])
 	return result
+
+
+func get_total_count() -> int:
+	return _defenders.size()
+
+
+func can_add_defender() -> bool:
+	return get_total_count() < balance.maximum_defender_count
+
+
+func add_defender(spawn_local_x: float = NAN) -> Defender:
+	if not can_add_defender():
+		return null
+	var defender_id: int = 0
+	while _defenders.has(defender_id):
+		defender_id += 1
+	if defender_id >= balance.maximum_defender_count:
+		return null
+	var resolved_x: float = (
+		balance.replacement_door_local_x
+		if is_nan(spawn_local_x)
+		else spawn_local_x
+	)
+	var previous_size: int = get_total_count()
+	var defender: Defender = _spawn_defender(defender_id, resolved_x)
+	crew_size_changed.emit(previous_size, get_total_count())
+	return defender
+
+
+func multiply_movement_speed(multiplier: float) -> bool:
+	if multiplier <= 0.0:
+		return false
+	_movement_speed_multiplier *= multiplier
+	for defender: Defender in get_all_defenders():
+		defender.movement.configure(get_current_movement_speed())
+	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
+	return true
+
+
+func get_movement_speed_multiplier() -> float:
+	return _movement_speed_multiplier
+
+
+func get_current_movement_speed() -> float:
+	return balance.defender_move_speed * _movement_speed_multiplier
+
+
+func reset_run_modifiers() -> void:
+	_movement_speed_multiplier = 1.0
+	for defender: Defender in get_all_defenders():
+		defender.movement.configure(get_current_movement_speed())
+	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 
 
 func get_living_defenders() -> Array[Defender]:
@@ -90,6 +145,7 @@ func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	defender.configure(defender_id, balance, _get_defender_color(defender_id))
 	defender.name = "Defender%d" % (defender_id + 1)
 	add_child(defender)
+	defender.movement.configure(get_current_movement_speed())
 	defender.teleport_to(spawn_local_x)
 	defender.died.connect(_on_defender_died)
 	_defenders[defender_id] = defender

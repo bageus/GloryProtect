@@ -3,6 +3,7 @@ extends Node
 
 signal replacement_started(defender_id: int, duration_seconds: float)
 signal replacement_completed(defender_id: int, defender: Defender)
+signal respawn_multiplier_changed(multiplier: float)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
@@ -10,6 +11,7 @@ signal replacement_completed(defender_id: int, defender: Defender)
 @export var balance: CrewBalance
 
 var _pending: Dictionary[int, CrewReplacementRuntime] = {}
+var _respawn_time_multiplier: float = 1.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
@@ -38,6 +40,27 @@ func _physics_process(delta: float) -> void:
 
 	for defender_id: int in completed_ids:
 		_complete_replacement(defender_id)
+
+
+func multiply_respawn_time(multiplier: float) -> bool:
+	if multiplier <= 0.0:
+		return false
+	_respawn_time_multiplier *= multiplier
+	respawn_multiplier_changed.emit(_respawn_time_multiplier)
+	return true
+
+
+func get_respawn_time_multiplier() -> float:
+	return _respawn_time_multiplier
+
+
+func get_current_respawn_delay() -> float:
+	return balance.replacement_delay_seconds * _respawn_time_multiplier
+
+
+func reset_run_modifiers() -> void:
+	_respawn_time_multiplier = 1.0
+	respawn_multiplier_changed.emit(_respawn_time_multiplier)
 
 
 func is_replacement_pending(defender_id: int) -> bool:
@@ -76,7 +99,7 @@ func _on_defender_died(defender_id: int) -> void:
 		return
 	var runtime: CrewReplacementRuntime = CrewReplacementRuntime.new(
 		defender_id,
-		balance.replacement_delay_seconds
+		get_current_respawn_delay()
 	)
 	_pending[defender_id] = runtime
 	replacement_started.emit(defender_id, runtime.remaining_seconds)

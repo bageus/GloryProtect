@@ -87,6 +87,17 @@ func get_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 		return &"invalid_definition"
 	if definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION:
 		return &"specialization_event_only"
+	if not _catalog.is_available(definition, _runtime):
+		return _get_catalog_reason(definition)
+	if (
+		definition.card_type == UpgradeDefinition.CardType.INDIVIDUAL
+		and not _has_completed_line(definition.branch_id)
+	):
+		return &"branch_line_not_completed"
+	return &""
+
+
+func _get_catalog_reason(definition: UpgradeDefinition) -> StringName:
 	if _runtime.get_repeat_count(definition.card_id) >= definition.repeat_limit:
 		return &"repeat_limit_reached"
 	if _runtime.is_specialization_closed(definition.card_id):
@@ -94,15 +105,15 @@ func get_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 	for prerequisite_id: StringName in definition.prerequisite_card_ids:
 		if not _runtime.has_card(prerequisite_id):
 			return &"missing_prerequisite"
+	if definition.required_repeat_count > 0:
+		return &"missing_repeat_count"
 	if definition.required_specialization_id != &"":
-		if _runtime.get_specialization(definition.branch_id) != definition.required_specialization_id:
-			return &"wrong_specialization"
-	if (
-		definition.card_type == UpgradeDefinition.CardType.INDIVIDUAL
-		and not _has_completed_line(definition.branch_id)
-	):
+		return &"wrong_specialization"
+	if definition.required_specialized_branch_id != &"":
+		return &"branch_not_specialized"
+	if definition.required_completed_branch_id != &"":
 		return &"branch_line_not_completed"
-	return &""
+	return &"unavailable"
 
 
 func _build_pools() -> Dictionary[StringName, Array]:

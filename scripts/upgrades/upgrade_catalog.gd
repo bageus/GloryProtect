@@ -43,8 +43,30 @@ func is_available(
 	for prerequisite_id: StringName in definition.prerequisite_card_ids:
 		if not runtime.has_card(prerequisite_id):
 			return false
+	if definition.required_repeat_count > 0:
+		if runtime.get_repeat_count(definition.required_repeat_card_id) < definition.required_repeat_count:
+			return false
 	if definition.required_specialization_id != &"":
-		var selected: StringName = runtime.get_specialization(definition.branch_id)
-		if selected != definition.required_specialization_id:
+		if runtime.get_specialization(definition.branch_id) != definition.required_specialization_id:
+			return false
+	if definition.required_specialized_branch_id != &"":
+		if not runtime.has_specialization(definition.required_specialized_branch_id):
+			return false
+	if definition.required_completed_branch_id != &"":
+		if not _has_completed_line(definition.required_completed_branch_id, runtime):
 			return false
 	return true
+
+
+func _has_completed_line(
+	branch_id: StringName,
+	runtime: UpgradeRuntime
+) -> bool:
+	for definition: UpgradeDefinition in definitions:
+		if definition.branch_id != branch_id:
+			continue
+		if definition.card_type != UpgradeDefinition.CardType.ADVANCED:
+			continue
+		if runtime.has_card(definition.card_id):
+			return true
+	return false
