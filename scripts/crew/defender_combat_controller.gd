@@ -11,6 +11,7 @@ var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
 var _locked_enemy: BoardingEnemy
 var _completed_hits: int = 0
+var _double_attack_follow_up_active: bool = false
 var _resolver := MeleeDefenderCombatResolver.new()
 
 
@@ -116,6 +117,7 @@ func is_action_active() -> bool:
 
 func cancel() -> void:
 	_locked_enemy = null
+	_double_attack_follow_up_active = false
 	if _melee != null:
 		_melee.cancel()
 
@@ -143,6 +145,7 @@ func _try_start_attack(target: BoardingEnemy) -> bool:
 	if not _melee.try_start(target.health):
 		return false
 	_locked_enemy = target
+	_double_attack_follow_up_active = false
 	return true
 
 
@@ -153,6 +156,9 @@ func _on_attack_landed(
 	var primary: BoardingEnemy = _locked_enemy
 	if primary == null or not is_instance_valid(primary):
 		return
+	var was_follow_up: bool = _double_attack_follow_up_active
+	if was_follow_up:
+		_double_attack_follow_up_active = false
 	_completed_hits += 1
 	var upgrades: MeleeDefenderUpgradeRuntime = (
 		_defender.get_melee_upgrades()
@@ -168,6 +174,13 @@ func _on_attack_landed(
 		damage,
 		_balance.defender_attack_range
 	)
+	if (
+		upgrades.duelist_double_attack
+		and not was_follow_up
+		and primary.health.is_alive()
+		and _melee.queue_follow_up_same_target()
+	):
+		_double_attack_follow_up_active = true
 
 
 func _on_damage_received(
