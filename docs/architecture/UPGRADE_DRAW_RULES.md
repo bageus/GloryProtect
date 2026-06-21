@@ -12,6 +12,8 @@ For every card slot:
 
 This prevents branches with larger catalogs from gaining hidden weight. The same branch may fill all three slots, while a repeatable card cannot appear twice in one offer.
 
+If fewer than three unique valid cards remain, the generator returns every remaining card without duplicates.
+
 ## Availability
 
 The generator checks stable IDs against `UpgradeRuntime` and returns diagnostic reason IDs for invalid definitions, exhausted repeat limits, missing prerequisites, closed specialization lines, wrong specialization, and individual cards whose branch has no completed basic-to-advanced line.
@@ -27,3 +29,7 @@ A fixed seed produces the same offer for the same catalog and runtime state. Pro
 ## Ownership
 
 The generator only filters and draws definitions. It never spends coins or applies effects. `UpgradeSystem` remains responsible for purchase orchestration, while `UpgradeRuntime` remains the owner of selected-card state.
+
+## Test boundary
+
+`tests/unit/upgrade_draw_generator_scenarios.gd` covers deterministic offers, unique IDs, three cards from one branch, fewer-than-three fallback, weight relationships, minimum weight clamping, reset, and diagnostic reasons.
