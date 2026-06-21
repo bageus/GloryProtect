@@ -22,14 +22,14 @@ func _run_scenarios() -> void:
 	assert(crew.apply_melee_flag(&"melee_assault_lethal_guard"))
 
 	for defender: Defender in crew.get_all_defenders():
-		_assert_upgraded_defender(defender)
+		_assert_upgraded_defender(defender, crew.balance)
 
 	var original: Defender = crew.get_defender(0)
 	original.health.apply_damage(2)
 	assert(original.health.current_health == original.health.max_health - 1)
 	var replacement: Defender = crew.replace_defender(0, 0.0)
 	assert(replacement != null)
-	_assert_upgraded_defender(replacement)
+	_assert_upgraded_defender(replacement, crew.balance)
 	assert(replacement.health.current_health == replacement.health.max_health)
 
 	crew.reset_run_modifiers()
@@ -43,7 +43,10 @@ func _run_scenarios() -> void:
 	quit()
 
 
-func _assert_upgraded_defender(defender: Defender) -> void:
-	assert(defender.health.max_health == defender._balance.defender_max_health + 2)
+func _assert_upgraded_defender(
+	defender: Defender,
+	balance: CrewBalance
+) -> void:
+	assert(defender.health.max_health == balance.defender_max_health + 2)
 	assert(defender.durability.get_max_armor() == 1)
 	assert(defender.durability.has_lethal_guard())
