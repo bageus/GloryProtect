@@ -17,8 +17,12 @@ func _ready() -> void:
 	_game_flow.run_state_changed.connect(_on_upgrade_run_state_changed)
 
 
+func can_apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
+	return upgrades.can_apply_effect(effect)
+
+
 func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
-	if effect == null:
+	if not can_apply_upgrade_effect(effect):
 		return false
 	match effect.effect_type:
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
@@ -31,8 +35,7 @@ func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
 func reset_upgrade_runtime() -> void:
 	upgrades.reset()
 	for runtime: TurretRuntime in _runtimes.values():
-		runtime.cooldown_remaining = 0.0
-		runtime.completed_volleys = 0
+		runtime.reset_combat_state()
 
 
 func get_current_damage() -> int:
@@ -72,9 +75,7 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 		return
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(operator_id)
-	if assignment == null:
-		return
-	if assignment.state != CrewAssignmentRuntime.State.ACTIVE:
+	if assignment == null or assignment.state != CrewAssignmentRuntime.State.ACTIVE:
 		return
 	if runtime.cooldown_remaining > 0.0:
 		return
@@ -87,8 +88,13 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 		TurretGeometry.get_world_pivot(_platform, snapshot, balance),
 		get_current_range()
 	)
-	if target != null:
-		_begin_shot(runtime, target)
+	if target == null:
+		if runtime.is_volley_active():
+			runtime.close_volley(get_current_cooldown())
+		return
+	if not runtime.is_volley_active():
+		runtime.begin_volley(upgrades.get_shots_per_next_volley(runtime))
+	_begin_shot(runtime, target)
 
 
 func _complete_shot(runtime: TurretRuntime) -> void:
@@ -108,9 +114,9 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 			hit = _combat_resolver.resolve_shot(
 				target,
 				origin,
+				get_current_range(),
 				_enemies,
 				upgrades,
-				runtime,
 				balance.turret_damage
 			) > 0
 	_roles.set_external_role_action_active(
