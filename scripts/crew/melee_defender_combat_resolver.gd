@@ -22,8 +22,6 @@ func resolve_primary_hit(
 		and _is_isolated_target(primary, registry, attack_range)
 	):
 		primary.health.apply_damage(1, &"melee_extra")
-	if upgrades.duelist_double_attack and primary.health.is_alive():
-		primary.health.apply_damage(base_damage, &"melee_extra")
 	if upgrades.assault_splash:
 		_apply_targets_behind_primary(
 			defender,
