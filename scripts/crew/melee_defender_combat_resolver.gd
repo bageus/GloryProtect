@@ -21,7 +21,7 @@ func resolve_primary_hit(
 		and primary.health.is_alive()
 		and _is_isolated_target(primary, registry, attack_range)
 	):
-		primary.health.apply_damage(1, &"melee_extra")
+		primary.health.apply_damage(1, &"melee_extra", defender)
 	if upgrades.assault_splash:
 		_apply_targets_behind_primary(
 			defender,
@@ -40,8 +40,8 @@ func resolve_primary_hit(
 		)
 		if rear != null:
 			if primary.health.is_alive():
-				primary.health.apply_damage(base_damage, &"melee_extra")
-			rear.health.apply_damage(base_damage, &"melee_extra")
+				primary.health.apply_damage(base_damage, &"melee_extra", defender)
+			rear.health.apply_damage(base_damage, &"melee_extra", defender)
 	if upgrades.heavy_shield_bash and completed_hits % 5 == 0:
 		_apply_targets_behind_primary(
 			defender,
@@ -55,20 +55,20 @@ func resolve_primary_hit(
 
 func resolve_counterattack(
 	defender: Defender,
-	registry: BoardingEnemyRegistry,
+	attacker: BoardingEnemy,
 	upgrades: MeleeDefenderUpgradeRuntime,
 	attack_range: float,
 	damage: int
 ) -> bool:
 	if not upgrades.duelist_counterattack:
 		return false
-	var target: BoardingEnemy = registry.get_nearest_boarded_enemy(
-		defender.global_position,
-		attack_range
-	)
-	if target == null:
+	if attacker == null or not is_instance_valid(attacker):
 		return false
-	target.health.apply_damage(damage, &"counterattack")
+	if not attacker.health.is_alive():
+		return false
+	if defender.global_position.distance_to(attacker.global_position) > attack_range:
+		return false
+	attacker.health.apply_damage(damage, &"counterattack", defender)
 	return true
 
 
@@ -111,7 +111,7 @@ func _apply_targets_behind_primary(
 	)
 	for index: int in range(mini(maximum_targets, candidates.size())):
 		var enemy: BoardingEnemy = candidates[index]
-		enemy.health.apply_damage(damage, &"melee_splash")
+		enemy.health.apply_damage(damage, &"melee_splash", defender)
 		if knockback and enemy.health.is_alive():
 			enemy.apply_platform_knockback(
 				HEAVY_BASH_KNOCKBACK,
