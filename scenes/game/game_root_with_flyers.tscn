@@ -9,7 +9,7 @@
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
-[node name="UpgradeSystem" parent="." index="2"]
+[node name="UpgradeSystem" parent="."]
 catalog = ExtResource("6_upgrades")
 replacement_controller_path = NodePath("../CrewReplacementController")
 
