@@ -1,75 +1,81 @@
 # Turret Upgrade Branch
 
-Issue #22 connects the canonical turret branch to the existing independent turret runtimes.
+## Scope
 
-## Ownership
+The turret branch connects the canonical card definitions from
+`resources/upgrades/game_upgrade_catalog.tres` to the existing turret domain.
+The card system records purchases and prerequisites; it does not own turret
+combat state.
 
-`TurretUpgradeSystem` is the public turret-domain API used by upgrade cards. It extends the existing `TurretSystem` without moving offer generation or UI rules into combat code.
+## Runtime ownership
 
-`TurretUpgradeRuntime` owns run-scoped turret modifiers:
-
-- shared damage bonus;
-- cooldown multiplier;
-- range multiplier;
-- selected specialization;
-- specialization feature flags.
-
-The runtime resets when a new run enters `START_DELAY`. Base values remain in `BuildableBalance` and are never mutated by cards.
+- `UpgradeRuntime` owns selected card IDs, branch progress and specialization choice.
+- `TurretUpgradeRuntime` owns the effective turret modifiers for the current run.
+- `TurretRuntime` owns target, windup, cooldown, shot count and volley count for one placed turret.
+- `TurretUpgradeSystem` is the public turret-domain API used by `UpgradeEffectApplier`.
+- `TurretCombatResolver` applies direct, piercing and chained damage through enemy `HealthComponent`.
+- `BoardingEnemy` owns its stun timer. Ordinary and special behaviors only read `is_stunned()`.
 
 ## Base lines
 
-The production catalog contains three independent basic-to-advanced lines:
+The canonical effects are additive relative to the base balance:
 
-- damage `+1`, then another `+1`;
-- cooldown `×0.85`, then another `×0.85`;
-- range `×1.2`, then another `×1.2`.
+```text
+damage:   +1, then +1
+cooldown: -15%, then -15% = -30%
+range:    +20%, then +20% = +40%
+```
 
-Each advanced card requires its matching basic card. The repeatable turret-post card remains an opening card and does not count toward specialization progress.
+`BuildableBalance` remains unchanged. A new run resets the turret runtime to
+base values.
 
 ## Specializations
 
 ### Heavy
 
-The specialization adds `+1` damage. Optional specialization cards enable:
-
-- one additional target behind the primary target;
-- an area hit every fifth volley.
+The specialization adds `+1` damage. `turret_heavy_piercing` damages every
+eligible enemy behind the primary target whose body intersects the geometric
+shot ray and remains inside the turret's current range. No separate invented
+lane width is stored in balance.
 
 ### Rapid
 
-The specialization multiplies cooldown by `0.5`. Optional cards enable:
-
-- two damage applications per volley;
-- one additional damage application every fifth volley.
+The specialization adds `-50%` cooldown. `turret_rapid_double_shot` creates two
+separate shots in one volley. `turret_rapid_extra_fifth` adds a third separate
+shot to every fifth volley. Every shot has its own target acquisition, windup,
+completion signal and damage resolution. Cooldown begins only after the volley
+ends.
 
 ### Electric
 
-The specialization stuns the primary target for a random duration from the typed `TurretUpgradeBalance` range. Optional cards enable:
+The specialization stuns a hit enemy for a random duration in the canonical
+`1–2` second range. The stun timer freezes whenever world simulation is paused.
+`turret_electric_chain` applies the same current turret damage and stun to the
+nearest second eligible enemy that is still inside the firing turret's normal
+range.
 
-- a chain hit on the nearest second target;
-- an electric area hit every fifth volley dealing 4 damage.
+## Per-turret counters
 
-## Independent runtimes
+Each `TurretRuntime` stores independent `completed_shots` and
+`completed_volleys`. Moving a turret preserves its runtime. Removing a turret
+removes that runtime. New-run reset clears both counters.
 
-Every placed turret keeps its own `TurretRuntime`, target, cooldown and `completed_volleys` counter. Shared branch modifiers are read when that turret acquires a target and completes a shot. Moving or demolishing a turret keeps the existing buildable and operator rules.
+## Deferred cards
 
-## Damage and rewards
+The following catalog entries are intentionally not active yet:
 
-`TurretCombatResolver` applies all direct, piercing, chain and area damage through each enemy's shared `HealthComponent`. Enemy death still flows through `BoardingEnemy.kill()`, `BoardingEnemyRegistry` and `BoardingRewardController`, so a target can only produce one death/removal event even when several effects overlap.
+- heavy fifth-shot explosion;
+- electric fifth-volley orb.
 
-## Stun
-
-Stun is stored on `BoardingEnemy`. While the timer is active:
-
-- the standard boarding controller does not move or attack;
-- special behavior components do not tick;
-- the timer advances only while world simulation is active.
-
-This keeps manual pause and card-selection pause authoritative.
+The design sources specify the event and electric-orb damage `4`, but do not
+specify the area radii or the ordinary heavy-explosion damage. Project rules
+forbid inventing missing card values. These two cards should be added after the
+missing values are recorded in issue #22 / the canonical branch catalog.
 
 ## Tests
 
-- `tests/unit/turret_upgrade_runtime_scenarios.gd`
-- `tests/integration/turret_upgrade_system_scenarios.gd`
-
-The scenarios cover base modifiers, specialization flags, prerequisites, specialization exclusion, independent fifth-volley counters and run reset.
+```bash
+godot --headless --path . --script res://tests/unit/turret_upgrade_runtime_scenarios.gd
+godot --headless --path . --script res://tests/integration/turret_upgrade_system_scenarios.gd
+python tools/check_file_sizes.py
+```
