@@ -158,7 +158,7 @@ func _update_running_to_anchor(delta: float) -> void:
 		state = State.WAITING_WITHOUT_PATH
 		return
 
-	var path: AnchorPathSnapshot = _paths.get_path(selected_anchor_id)
+	var path: AnchorPathSnapshot = _paths.get_anchor_path(selected_anchor_id)
 	if path == null:
 		selected_anchor_id = -1
 		state = State.WAITING_WITHOUT_PATH
@@ -200,12 +200,12 @@ func _update_running_to_anchor(delta: float) -> void:
 
 func _update_climbing(delta: float) -> void:
 	if not _paths.is_path_available(selected_anchor_id):
-		_enemy.kill(&"anchor_path_closed")
+		_enemy.call(&"kill", &"anchor_path_closed")
 		return
 
-	var path: AnchorPathSnapshot = _paths.get_path(selected_anchor_id)
+	var path: AnchorPathSnapshot = _paths.get_anchor_path(selected_anchor_id)
 	if path == null:
-		_enemy.kill(&"anchor_path_closed")
+		_enemy.call(&"kill", &"anchor_path_closed")
 		return
 
 	var rope_length: float = maxf(
