@@ -37,29 +37,23 @@ func can_apply_effect(effect: UpgradeEffectDefinition) -> bool:
 		return false
 	match effect.effect_type:
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
-			return effect.target_id in [
-				&"turret_damage_bonus",
-				&"turret_cooldown_reduction",
-				&"turret_range_bonus_ratio",
-			]
+			return _can_apply_scalar(effect.target_id, effect.scalar_value)
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 			return _can_apply_flag(effect.target_id)
 	return false
 
 
 func apply_scalar(target_id: StringName, value: float) -> bool:
+	if not _can_apply_scalar(target_id, value):
+		return false
 	match target_id:
 		&"turret_damage_bonus":
 			damage_bonus += roundi(value)
 			return true
 		&"turret_cooldown_reduction":
-			if value <= 0.0:
-				return false
 			cooldown_reduction = minf(0.95, cooldown_reduction + value)
 			return true
 		&"turret_range_bonus_ratio":
-			if value <= 0.0:
-				return false
 			range_bonus_ratio += value
 			return true
 	return false
@@ -119,6 +113,17 @@ func get_shots_per_next_volley(runtime: TurretRuntime) -> int:
 	if extra_fifth_volley_shot_enabled and runtime.is_next_volley_fifth():
 		result += 1
 	return result
+
+
+func _can_apply_scalar(target_id: StringName, value: float) -> bool:
+	match target_id:
+		&"turret_damage_bonus":
+			return value >= 1.0 and is_equal_approx(value, float(roundi(value)))
+		&"turret_cooldown_reduction":
+			return value > 0.0 and value < 1.0
+		&"turret_range_bonus_ratio":
+			return value > 0.0
+	return false
 
 
 func _can_apply_flag(target_id: StringName) -> bool:
