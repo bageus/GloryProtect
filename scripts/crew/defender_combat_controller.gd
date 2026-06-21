@@ -33,9 +33,7 @@ func configure(
 	_melee = melee
 	if not _melee.attack_landed.is_connected(_on_attack_landed):
 		_melee.attack_landed.connect(_on_attack_landed)
-	if not _defender.health.damage_received.is_connected(
-		_on_damage_received
-	):
+	if not _defender.health.damage_received.is_connected(_on_damage_received):
 		_defender.health.damage_received.connect(_on_damage_received)
 	_configured = true
 
@@ -186,9 +184,13 @@ func _on_attack_landed(
 func _on_damage_received(
 	_requested_amount: int,
 	_health_damage: int,
-	source_id: StringName
+	source_id: StringName,
+	source_node: Node
 ) -> void:
 	if source_id != &"melee" or not _defender.health.is_alive():
+		return
+	var attacker: BoardingEnemy = source_node as BoardingEnemy
+	if attacker == null:
 		return
 	var upgrades: MeleeDefenderUpgradeRuntime = (
 		_defender.get_melee_upgrades()
@@ -197,7 +199,7 @@ func _on_damage_received(
 		return
 	_resolver.resolve_counterattack(
 		_defender,
-		_enemies,
+		attacker,
 		upgrades,
 		_balance.defender_attack_range,
 		_melee.get_damage()
