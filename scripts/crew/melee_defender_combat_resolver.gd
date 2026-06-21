@@ -34,8 +34,6 @@ func resolve_primary_hit(
 			false
 		)
 	if upgrades.assault_back_attack:
-		if primary.health.is_alive():
-			primary.health.apply_damage(base_damage, &"melee_extra")
 		var rear: BoardingEnemy = _get_nearest_enemy_on_opposite_side(
 			defender,
 			primary,
@@ -43,6 +41,8 @@ func resolve_primary_hit(
 			attack_range
 		)
 		if rear != null:
+			if primary.health.is_alive():
+				primary.health.apply_damage(base_damage, &"melee_extra")
 			rear.health.apply_damage(base_damage, &"melee_extra")
 	if upgrades.heavy_shield_bash and completed_hits % 5 == 0:
 		_apply_targets_behind_primary(
