@@ -25,6 +25,14 @@ func configure(damage: int, windup_duration: float, cooldown_duration: float) ->
 	_cooldown_duration = maxf(0.01, cooldown_duration)
 
 
+func get_damage() -> int:
+	return _damage
+
+
+func get_cooldown_duration() -> float:
+	return _cooldown_duration
+
+
 func tick(delta: float) -> void:
 	if _phase == Phase.READY:
 		return
