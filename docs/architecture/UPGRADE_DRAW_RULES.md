@@ -20,7 +20,7 @@ The generator checks stable IDs against `UpgradeRuntime` and returns diagnostic 
 
 ## Weights
 
-`UpgradeDrawBalance` stores seven branch rules, the constant general-pool weight, `+3 / +1 / -1` deltas, and the minimum branch weight. Opening and general cards do not modify branch weights. `reset_for_run()` restores every branch to its configured starting weight.
+`UpgradeDrawBalance` stores seven branch rules, the constant general-pool weight, `+3 / +1 / -1` deltas, and the minimum branch weight. Opening and general cards do not modify branch weights. The general-pool weight remains constant for the whole run. `reset_for_run()` restores every branch to its configured starting weight.
 
 ## Determinism
 
@@ -32,4 +32,4 @@ The generator only filters and draws definitions. It never spends coins or appli
 
 ## Test boundary
 
-`tests/unit/upgrade_draw_generator_scenarios.gd` covers deterministic offers, unique IDs, three cards from one branch, fewer-than-three fallback, weight relationships, minimum weight clamping, reset, and diagnostic reasons.
+`tests/unit/upgrade_draw_generator_scenarios.gd` covers deterministic offers, unique IDs, three cards from one branch, fewer-than-three fallback, weight relationships, minimum weight clamping, opening/general weight exclusions, reset, and diagnostic reasons.
