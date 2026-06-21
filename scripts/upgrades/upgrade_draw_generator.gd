@@ -9,7 +9,6 @@ var _runtime: UpgradeRuntime
 var _rng := RandomNumberGenerator.new()
 var _branch_weights: Dictionary[StringName, int] = {}
 
-
 func configure(
 	balance: UpgradeDrawBalance,
 	catalog: UpgradeCatalog,
@@ -28,7 +27,6 @@ func configure(
 		_rng.seed = seed
 	reset_for_run()
 
-
 func reset_for_run() -> void:
 	_branch_weights.clear()
 	if _balance == null:
@@ -36,14 +34,11 @@ func reset_for_run() -> void:
 	for rule: UpgradeBranchWeightRule in _balance.branch_rules:
 		_branch_weights[rule.branch_id] = rule.starting_weight
 
-
 func set_seed(seed: int) -> void:
 	_rng.seed = seed
 
-
 func get_branch_weight(branch_id: StringName) -> int:
 	return int(_branch_weights.get(branch_id, 0))
-
 
 func generate_offer() -> Array[UpgradeDefinition]:
 	var pools: Dictionary[StringName, Array] = _build_pools()
@@ -63,7 +58,6 @@ func generate_offer() -> Array[UpgradeDefinition]:
 		offer.append(definition)
 	return offer
 
-
 func apply_selected_card(definition: UpgradeDefinition) -> void:
 	if definition == null:
 		return
@@ -81,7 +75,6 @@ func apply_selected_card(definition: UpgradeDefinition) -> void:
 	for branch_id: StringName in rule.opposing_branch_ids:
 		_change_weight(branch_id, -_balance.opposing_branch_penalty)
 
-
 func get_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 	if definition == null or not definition.is_valid():
 		return &"invalid_definition"
@@ -95,7 +88,6 @@ func get_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 	):
 		return &"branch_line_not_completed"
 	return &""
-
 
 func _get_catalog_reason(definition: UpgradeDefinition) -> StringName:
 	if _runtime.get_repeat_count(definition.card_id) >= definition.repeat_limit:
@@ -115,10 +107,9 @@ func _get_catalog_reason(definition: UpgradeDefinition) -> StringName:
 		return &"branch_line_not_completed"
 	return &"unavailable"
 
-
 func _build_pools() -> Dictionary[StringName, Array]:
 	var pools: Dictionary[StringName, Array] = {}
-	for definition: UpgradeDefinition in _catalog.definitions:
+	for definition: UpgradeDefinition in _catalog.get_all_definitions():
 		if get_unavailability_reason(definition) != &"":
 			continue
 		var pool_id: StringName = (
@@ -130,7 +121,6 @@ func _build_pools() -> Dictionary[StringName, Array]:
 		pool.append(definition)
 		pools[pool_id] = pool
 	return pools
-
 
 func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 	var ids: Array[StringName] = []
@@ -163,9 +153,8 @@ func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 			return pool_id
 	return &""
 
-
 func _has_completed_line(branch_id: StringName) -> bool:
-	for definition: UpgradeDefinition in _catalog.definitions:
+	for definition: UpgradeDefinition in _catalog.get_all_definitions():
 		if definition.branch_id != branch_id:
 			continue
 		if definition.card_type != UpgradeDefinition.CardType.ADVANCED:
@@ -173,7 +162,6 @@ func _has_completed_line(branch_id: StringName) -> bool:
 		if _runtime.has_card(definition.card_id):
 			return true
 	return false
-
 
 func _change_weight(branch_id: StringName, delta: int) -> void:
 	if not _branch_weights.has(branch_id):
