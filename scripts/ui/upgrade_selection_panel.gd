@@ -40,7 +40,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	var card_index: int = key_event.keycode - KEY_1
 	if card_index >= _upgrades.get_card_count():
 		return
-	_submit_card(_upgrades.get_card_id(card_index))
+	_submit_card(
+		_upgrades.get_card_id(card_index),
+		_upgrades.get_current_offer_number()
+	)
 	get_viewport().set_input_as_handled()
 
 
@@ -98,6 +101,7 @@ func _rebuild_card_buttons() -> void:
 		_cards_container.remove_child(child)
 		child.queue_free()
 
+	var offer_number: int = _upgrades.get_current_offer_number()
 	for card_index: int in range(_upgrades.get_card_count()):
 		var card_id: StringName = _upgrades.get_card_id(card_index)
 		var definition: UpgradeDefinition = _upgrades.get_card_definition(
@@ -111,7 +115,9 @@ func _rebuild_card_buttons() -> void:
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.text = _build_card_text(card_index, definition)
 		button.disabled = _selection_pending
-		button.pressed.connect(_submit_card.bind(card_id))
+		button.pressed.connect(
+			_submit_card.bind(card_id, offer_number)
+		)
 		_cards_container.add_child(button)
 
 
@@ -154,12 +160,18 @@ func _build_card_text(
 	return "\n".join(lines)
 
 
-func _submit_card(card_id: StringName) -> void:
+func _submit_card(
+	card_id: StringName,
+	offer_number: int
+) -> void:
 	if _selection_pending or card_id == &"":
 		return
 	_selection_pending = true
 	_set_buttons_disabled(true)
-	var accepted: bool = _upgrades.choose_card_by_id(card_id)
+	var accepted: bool = _upgrades.choose_card_for_offer(
+		card_id,
+		offer_number
+	)
 	if accepted:
 		return
 	_selection_pending = false
