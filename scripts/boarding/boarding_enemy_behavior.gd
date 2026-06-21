@@ -70,5 +70,9 @@ func is_fighting() -> bool:
 	return false
 
 
+func is_turret_targetable() -> bool:
+	return false
+
+
 func force_board_at(_local_x: float) -> void:
 	pass
