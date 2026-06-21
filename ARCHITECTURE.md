@@ -64,7 +64,7 @@ GameRoot
     └── GameOverPanel
 ```
 
-`BoardingSpawnDirector` получает каталог типов косвенно через `BoardingBalance`. Сцена не перечисляет конкретные архетипы.
+`BoardingSpawnDirector` получает каталог типов косвенно через `BoardingBalance`. Сцена `GameRoot` не перечисляет конкретные архетипы или специализированные сцены врагов.
 
 ## 4. Владельцы состояния
 
@@ -85,8 +85,10 @@ GameRoot
 | Боевой runtime турели | `TurretSystem` через `TurretRuntime` |
 | Визуальные эффекты турели | `TurretVisualController` |
 | Активные физические враги | `BoardingEnemyRegistry` |
-| Состояние конкретного врага | его `BoardingEnemyController` |
-| Неизменяемые характеристики типа врага | `BoardingEnemyArchetype` |
+| Состояние конкретного врага | конкретный наследник `BoardingEnemyBehavior` |
+| Состояние обычного абордажника | `BoardingEnemyController` |
+| Цель и подготовка подрывника | `RopeSaboteurController` |
+| Неизменяемые характеристики типа врага | `BoardingEnemyArchetype` или его специализированный наследник |
 | Доступный набор и веса типов | `BoardingEnemyCatalog` |
 | Стратегические группы | `StrategicWaveSystem` |
 | Статистика забега | `RunStatistics` |
@@ -211,6 +213,7 @@ set_external_role_action_active(defender_id, role_id, active)
 
 ```text
 BoardingEnemyArchetype
+RopeSaboteurArchetype
 BoardingEnemyCatalog
 BoardingBalance
 resources/enemies/*.tres
@@ -218,11 +221,12 @@ resources/enemies/*.tres
 
 ### BoardingEnemyArchetype
 
-Один ресурс описывает один тип и является единственным источником:
+Базовый ресурс описывает общие неизменяемые свойства физического типа:
 
 ```text
 archetype_id
 display_name
+enemy_scene
 max_health
 body_radius
 body_color
@@ -239,13 +243,26 @@ weight_at_unlock
 weight_at_max_difficulty
 ```
 
+`enemy_scene` необязателен. Если поле пустое, `BoardingSpawnDirector` использует стандартную сцену обычного абордажника. Специализированный тип может предоставить собственную сцену, сохраняя общий корень `BoardingEnemy`.
+
 Ресурс не хранит изменяемое состояние экземпляра.
+
+### RopeSaboteurArchetype
+
+Наследует базовые поля и добавляет:
+
+```text
+rope_damage
+arming_duration
+```
+
+Определение не выбирает цель и не наносит урон. Оно только предоставляет данные `RopeSaboteurController`.
 
 ### BoardingEnemyCatalog
 
 Каталог:
 
-- хранит типизированный массив архетипов;
+- хранит типизированный массив базовых и специализированных архетипов;
 - проверяет уникальность `archetype_id`;
 - возвращает архетип по ID;
 - рассчитывает вес для текущей нормализованной сложности;
@@ -256,23 +273,27 @@ weight_at_max_difficulty
 ### Текущие определения
 
 ```text
-basic  — доступен с 0.00
-runner — доступен с 0.15
-brute  — доступен с 0.45
+basic          — доступен с 0.00
+runner         — доступен с 0.15
+rope_saboteur  — доступен с 0.25
+brute          — доступен с 0.45
 ```
 
-`BoardingBalance` владеет только общими правилами спавна, разделения, прыжка и боя защитников. Поля группы `Legacy Base Enemy Defaults` временно сохранены для совместимости старых тестовых сценариев и не читаются runtime врага.
+`BoardingBalance` владеет только общими правилами спавна, разделения, прыжка и боя защитников. Специализированные параметры подрывника находятся в его архетипе.
 
 ## 13. BoardingEnemyRuntimeDomain
 
 ```text
 BoardingEnemy
+BoardingEnemyBehavior
 BoardingEnemyController
+RopeSaboteurController
 BoardingEnemyRegistry
 BoardingSpawnDirector
 BoardingMovementResolver
 BoardingJumpPlanner
 BoardingEnemyVisual
+RopeSaboteurVisual
 ```
 
 ### Создание экземпляра
@@ -280,28 +301,46 @@ BoardingEnemyVisual
 ```text
 BoardingSpawnDirector
 → BoardingEnemyCatalog.choose_archetype(difficulty)
+→ выбрать archetype.enemy_scene или стандартную сцену
 → instantiate BoardingEnemy
 → BoardingEnemy.configure(archetype, ...)
 → BoardingEnemyRegistry.register_enemy(enemy)
 ```
 
-Конфигурация происходит до регистрации, поэтому подписчики `enemy_registered` всегда видят настроенный архетип.
+Конфигурация происходит до регистрации, поэтому подписчики `enemy_registered` всегда видят настроенный архетип и конкретное поведение.
 
 ### BoardingEnemy
 
-Хранит ссылку на неизменяемый `archetype` и предоставляет:
+Общий корень хранит:
+
+- ссылку на неизменяемый `archetype`;
+- `HealthComponent`;
+- общий поток смерти;
+- ссылку на выбранный `BoardingEnemyBehavior`;
+- совместимые запросы registry, movement и turret systems.
+
+`BoardingEnemy` не проверяет `archetype_id` и не выбирает специализированную логику.
+
+### BoardingEnemyBehavior
+
+Это общий контракт поведения, а не вторая машина состояний. Он предоставляет запросы:
 
 ```text
-get_archetype_id()
-get_archetype_name()
-get_body_radius()
+get_selected_anchor_id()
+get_climb_progress()
+get_platform_occupancy_x()
+is_grounded_for_limit()
+is_climbing()
+is_on_platform()
+is_fighting()
+is_turret_targetable()
 ```
 
-Здоровье остаётся у `HealthComponent`, атака — у `MeleeAttackComponent`, движение и состояния — у `BoardingEnemyController`.
+Registry, movement resolver, visuals и turret selector используют контракт вместо предположения, что каждый враг является обычным абордажником.
 
 ### BoardingEnemyController
 
-Общая машина состояний:
+Обычная машина состояний:
 
 ```text
 WAITING_WITHOUT_PATH
@@ -315,9 +354,34 @@ DEAD
 
 Контроллер не проверяет конкретные ID типов. Он читает скорость и параметры атаки из назначенного архетипа.
 
+### RopeSaboteurController
+
+Отдельная машина состояний:
+
+```text
+WAITING_WITHOUT_PATH
+RUNNING_TO_ROPE
+ARMING
+DEAD
+```
+
+Правила:
+
+- выбирает ближайший доступный путь через `AnchorPathRegistry`;
+- фиксирует `anchor_id` до закрытия выбранного пути;
+- при закрытии сбрасывает подготовку и выбирает новую цель;
+- участвует в наземном разделении;
+- не входит в состояние `CLIMBING`;
+- не выходит на платформу и не использует melee;
+- во время `ARMING` становится допустимой целью турелей;
+- после завершения подготовки вызывает только `AnchorSystem.apply_rope_damage(...)`;
+- после успешного урона умирает с причиной `rope_sabotage`.
+
+Controller не изменяет runtime троса напрямую и не выполняет последствия его разрушения.
+
 ### BoardingSpawnDirector
 
-Директор владеет только таймером спавна и RNG. Он не хранит копии характеристик типов.
+Директор владеет только таймером спавна и RNG. Он не хранит копии характеристик типов и не содержит условной ветки подрывника.
 
 Для тестов доступны:
 
@@ -325,6 +389,8 @@ DEAD
 spawn_debug_archetype(archetype_id, side)
 spawn_debug_on_platform(local_x, archetype_id)
 ```
+
+`spawn_debug_on_platform` предназначен для поведений, поддерживающих принудительный выход на платформу. Подрывник эту операцию не использует.
 
 ### BoardingMovementResolver
 
@@ -334,42 +400,44 @@ spawn_debug_on_platform(local_x, archetype_id)
 max(global_minimum_spacing, first.radius + second.radius)
 ```
 
-Правило применяется на земле, тросе, платформе и при поиске свободной точки. Разделение врага и защитника равно сумме их радиусов.
+Правило применяется на земле, тросе, платформе и при поиске свободной точки. Тип положения определяется через behavior-контракт. Подрывник участвует только в наземном разделении.
 
 ### BoardingJumpPlanner
 
 Использует радиус прыгающего врага, радиус блокирующего врага и индивидуальную дальность атаки архетипа. Точка приземления резервируется через обычный movement resolver.
 
-### BoardingEnemyVisual
+### Presentation
 
-Временная векторная графика читает цвет, акцент и радиус архетипа. Она не участвует в выборе типа, движении, атаке или награде.
+`BoardingEnemyVisual` рисует обычных абордажников. `RopeSaboteurVisual` рисует компактный корпус, фитиль и кольцо подготовки.
+
+Оба компонента только читают состояние. Визуал подрывника не обновляет таймер и не наносит урон.
 
 ### Награды
 
-Все текущие архетипы проходят общий поток смерти:
+Все физические типы проходят общий поток смерти:
 
 ```text
-HealthComponent.depleted
+HealthComponent.depleted или domain action
 → BoardingEnemy.kill(reason)
 → BoardingEnemyRegistry.enemy_removed
 → BoardingRewardController
 → RunEconomy / RunStatistics
 ```
 
-Prototype 2.0 выдаёт одинаковую базовую награду всем физическим типам.
+Причины:
+
+- `combat` — награждаемое физическое убийство;
+- `anchor_path_closed` — награждаемое удаление обычного врага с троса;
+- `rope_sabotage` — самоподрыв, не выдаёт монеты и не увеличивает счёт убийств игрока.
 
 ## 14. TurretDomain
 
 Каждая турель имеет отдельный `TurretRuntime`, конкретный пост `TURRET/buildable_id`, оператора, цель, windup и cooldown.
 
-`TurretTargetSelector` атакует физического врага в состояниях:
+`TurretTargetSelector` читает `enemy.is_turret_targetable()`:
 
-```text
-CLIMBING
-ON_PLATFORM
-FIGHTING
-JUMPING
-```
+- обычный абордажник доступен на тросе и платформе;
+- подрывник доступен только во время `ARMING` у наземной точки троса.
 
 `TurretSystem` наносит урон только через `HealthComponent.apply_damage(1)` и не начисляет монеты напрямую.
 
@@ -379,10 +447,12 @@ JUMPING
 
 Во время `CARD_SELECTION` и `MANUAL_PAUSE` мировые таймеры не изменяются.
 
-- при карточках `CrewCommandPanel` скрыт;
-- при ручной паузе панель видима, но команды отключены;
 - спавн и движение врагов остановлены;
-- лечение, атаки, flash и tracer заморожены.
+- лечение и атаки заморожены;
+- подготовка взрыва подрывника заморожена;
+- flash, tracer и диагностическое кольцо не продвигают gameplay;
+- при карточках `CrewCommandPanel` скрыт;
+- при ручной паузе панель видима, но команды отключены.
 
 ## 16. AnchorRopeDurabilityDomain
 
@@ -413,13 +483,46 @@ get_all_rope_snapshots()
 - новая успешная установка восстанавливает трос до полной прочности;
 - перегрузка ветром и повреждение прочности являются независимыми механизмами;
 - при достижении нуля публикуется `rope_destroyed(anchor_id, source)` ровно один раз;
-- в рамках issue #14 нулевая прочность сама не меняет состояние якоря и не закрывает путь;
+- нулевая прочность сама пока не меняет состояние якоря и не закрывает путь;
 - переход в возврат, уничтожение пути, падение врагов и визуальный обрыв принадлежат issue #16;
-- UI и враги получают только snapshots и отправляют команды через публичный API.
+- UI и враги получают snapshots или вызывают публичные команды, но не меняют runtime.
 
-`AnchorRopeSnapshot` является read-only DTO для UI, diagnostics и тестов. Он содержит текущее значение, максимум, нормализованную долю и признак разрушения.
+`RopeSaboteurController` является первым клиентом API урона и передаёт источник `rope_saboteur`.
 
-## 17. Обязательные тестовые границы
+## 17. RopeSaboteurDomain
+
+```text
+RopeSaboteurArchetype
+rope_saboteur_enemy.tscn
+RopeSaboteurController
+RopeSaboteurVisual
+AnchorPathRegistry
+AnchorSystem public API
+```
+
+Поток:
+
+```text
+catalog выбирает rope_saboteur
+→ director создаёт специализированную сцену
+→ controller выбирает ближайший путь
+→ бежит к ground_point
+→ ARMING
+→ apply_rope_damage
+→ kill(rope_sabotage)
+```
+
+Граница ответственности:
+
+- каталог и архетип определяют вероятность и параметры;
+- controller владеет целью и прогрессом подготовки;
+- path registry предоставляет доступные пути;
+- anchor domain принимает урон;
+- registry и reward controller обрабатывают смерть;
+- visual только отображает подготовку;
+- issue #16 обрабатывает физическое разрушение троса.
+
+## 18. Обязательные тестовые границы
 
 ### Rope durability
 
@@ -431,6 +534,21 @@ get_all_rope_snapshots()
 - reset забега восстанавливает все четыре шкалы;
 - snapshot не даёт внешнему коду изменять runtime;
 - достижение нуля до реализации #16 не снимает путь автоматически.
+
+### Rope saboteur
+
+- без доступного пути автоматический spawn не создаёт врага;
+- специализированный archetype создаёт специализированную сцену;
+- ближайший путь фиксируется как цель;
+- новый более близкий путь сам по себе не меняет цель;
+- закрытие цели вызывает повторный выбор;
+- враг не поднимается и не выходит на платформу;
+- подготовка замораживается паузой;
+- во время подготовки враг доступен турели;
+- взрыв повреждает только выбранный трос;
+- щит, платформа, экипаж и остальные тросы не меняются;
+- `rope_sabotage` не выдаёт награду;
+- убийство через `HealthComponent` до взрыва выдаёт обычную награду.
 
 ### Enemy catalog
 
@@ -447,7 +565,7 @@ get_all_rope_snapshots()
 - тяжёлый враг имеет три сегмента здоровья;
 - реестр считает типы отдельно;
 - два крупных врага сохраняют расстояние не меньше суммы радиусов;
-- старые сценарии прыжка, боя и тросовой очереди продолжают работать.
+- старые сценарии прыжка, боя, турелей и тросовой очереди продолжают работать.
 
 ### Общие
 
@@ -457,28 +575,33 @@ get_all_rope_snapshots()
 - карточки остаются заглушками;
 - лимит 600 строк не нарушен.
 
-## 18. Следующая итерация
+## 19. Следующая итерация
 
-1. Добавить маленького врага-взрывателя, который выбирает доступный трос.
-2. Взрыв должен вызывать `AnchorSystem.apply_rope_damage(...)`, а не менять runtime напрямую.
-3. Разрушение троса должно закрывать путь, сбрасывать поднимающихся врагов и возвращать якорь.
-4. Добавить предупреждение и диагностическое состояние повреждённого троса.
+1. Подписать recovery-компонент на `rope_destroyed`.
+2. Немедленно закрывать разрушенный путь.
+3. Удалять поднимающихся врагов через общий поток смерти.
+4. Возвращать якорь и сбрасывать его перегрузку и операции.
+5. Добавить повреждённое, критическое и предупреждающее представление троса.
 
 Ассеты и карточки остаются отложенными до готовности соответствующей спецификации.
 
-## 19. Запрещённые решения
+## 20. Запрещённые решения
 
+- Проверки `archetype_id` внутри `BoardingEnemyController`, movement resolver, turret selector или общего `BoardingEnemy`.
+- Добавление логики подрывника как ветки в обычную машину ближнего врага.
 - Прямое изменение `AnchorRuntime.rope_durability` из врага, UI или presentation.
+- Нанесение взрывом урона щиту, платформе или защитникам.
+- Начисление награды за `rope_sabotage`.
+- Второй владелец цели или таймера подготовки подрывника вне `RopeSaboteurController`.
 - Второй владелец прочности троса вне `AnchorRopeDurability`.
 - Автоматическое закрытие пути внутри компонента прочности до реализации #16.
-- Проверки `archetype_id` внутри общей машины движения и ближнего боя.
 - Копирование характеристик архетипа в `BoardingBalance` как активный источник runtime.
 - Случайный выбор типа внутри `BoardingEnemy`.
-- Разные сцены с дублированной логикой для простых вариантов скорости и здоровья.
+- Дублирование общей смерти, registry или health logic в специализированной сцене.
 - Второй владелец выбранного защитника.
 - Прямое изменение `CrewAssignmentRuntime` из UI.
 - Резервирование поста кнопкой интерфейса.
 - Прямое начисление монет из `TurretSystem`.
-- Прямое удаление врага вместо `HealthComponent.apply_damage()`.
+- Прямое удаление врага вместо `HealthComponent.apply_damage()` или общего `kill(reason)`.
 - Выбор цели или нанесение урона из визуального слоя.
 - Архитектурное изменение без обновления этого файла.
