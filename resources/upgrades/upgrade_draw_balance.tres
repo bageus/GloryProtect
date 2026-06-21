@@ -1,0 +1,59 @@
+[gd_resource type="Resource" script_class="UpgradeDrawBalance" load_steps=10 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_draw_balance.gd" id="1_balance"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_branch_weight_rule.gd" id="2_rule"]
+
+[sub_resource type="Resource" id="TurretRule"]
+script = ExtResource("2_rule")
+branch_id = &"turret"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"anchors", &"healer"])
+opposing_branch_ids = Array[StringName]([&"steering"])
+
+[sub_resource type="Resource" id="MeleeRule"]
+script = ExtResource("2_rule")
+branch_id = &"melee"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"healer", &"anchors"])
+
+[sub_resource type="Resource" id="RangedRule"]
+script = ExtResource("2_rule")
+branch_id = &"ranged"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"steering"])
+
+[sub_resource type="Resource" id="HealerRule"]
+script = ExtResource("2_rule")
+branch_id = &"healer"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"melee", &"turret"])
+
+[sub_resource type="Resource" id="SteeringRule"]
+script = ExtResource("2_rule")
+branch_id = &"steering"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"ranged", &"shield_core"])
+opposing_branch_ids = Array[StringName]([&"anchors", &"turret"])
+
+[sub_resource type="Resource" id="AnchorRule"]
+script = ExtResource("2_rule")
+branch_id = &"anchors"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"turret", &"melee"])
+opposing_branch_ids = Array[StringName]([&"steering"])
+
+[sub_resource type="Resource" id="ShieldRule"]
+script = ExtResource("2_rule")
+branch_id = &"shield_core"
+starting_weight = 10
+related_branch_ids = Array[StringName]([&"steering"])
+
+[resource]
+script = ExtResource("1_balance")
+cards_per_offer = 3
+general_pool_weight = 10
+selected_branch_bonus = 3
+related_branch_bonus = 1
+opposing_branch_penalty = 1
+minimum_branch_weight = 2
+branch_rules = Array[ExtResource("2_rule")]([SubResource("TurretRule"), SubResource("MeleeRule"), SubResource("RangedRule"), SubResource("HealerRule"), SubResource("SteeringRule"), SubResource("AnchorRule"), SubResource("ShieldRule")])
