@@ -94,7 +94,8 @@ func spawn_now() -> BoardingEnemy:
 		side = -1
 	var archetype: BoardingEnemyArchetype = enemy_catalog.choose_archetype(
 		_rng,
-		_difficulty.get_normalized()
+		_difficulty.get_normalized(),
+		_get_allowed_spawn_requirements()
 	)
 	return _spawn_enemy(side, archetype)
 
@@ -155,6 +156,27 @@ func _spawn_enemy(
 		_orbs.catalog.ground_y - balance.ground_vertical_offset
 	)
 	return enemy
+
+
+func _get_allowed_spawn_requirements() -> Array[int]:
+	var requirements: Array[int] = [
+		BoardingEnemyArchetype.SpawnRequirement.AVAILABLE_PATH,
+	]
+	if _has_damageable_rope():
+		requirements.append(
+			BoardingEnemyArchetype.SpawnRequirement.DAMAGEABLE_ROPE
+		)
+	return requirements
+
+
+func _has_damageable_rope() -> bool:
+	for path: AnchorPathSnapshot in _paths.get_available_paths():
+		var snapshot: AnchorRopeSnapshot = _anchors.get_rope_snapshot(
+			path.anchor_id
+		)
+		if snapshot != null and not snapshot.is_destroyed:
+			return true
+	return false
 
 
 func _on_run_state_changed(previous_state: int, new_state: int) -> void:
