@@ -21,6 +21,8 @@ var _stored_armor_segments: int = 0
 func _ready() -> void:
 	_roles.assignment_changed.connect(_on_assignment_changed)
 	_medical.upgrades_changed.connect(_on_upgrades_changed)
+	_medical.healing_started.connect(_on_healing_started)
+	_medical.healing_stopped.connect(_on_healing_stopped)
 	_crew.defender_replaced.connect(_on_defender_replaced)
 	call_deferred("_refresh")
 
@@ -46,6 +48,7 @@ func _refresh() -> void:
 		return
 	if _active_medic_id >= 0:
 		_apply_capacity_change_to_active()
+		_apply_action_modifiers_to_active()
 
 
 func _resolve_active_medic_id() -> int:
@@ -113,6 +116,7 @@ func _detach_current_medic() -> void:
 		_stored_armor_segments = (
 			_known_armor_bonus if died else role_armor_remaining
 		)
+		defender.set_medic_role_modifiers(false, false, 0, 1.0)
 	_active_medic_id = -1
 	_applied_health_bonus = 0
 	_applied_armor_bonus = 0
@@ -139,6 +143,10 @@ func _attach_medic(defender_id: int) -> void:
 	)
 	_stored_health_segments = 0
 	_stored_armor_segments = 0
+	_apply_action_modifiers_to_active()
+	defender.set_medic_healing_action_active(
+		_medical.is_healing_cycle_active(defender_id)
+	)
 
 
 func _apply_capacity_change_to_active() -> void:
@@ -179,6 +187,34 @@ func _apply_capacity_change_to_active() -> void:
 		_applied_armor_bonus = _known_armor_bonus
 
 
+func _apply_action_modifiers_to_active() -> void:
+	if _active_medic_id < 0:
+		return
+	var defender: Defender = _crew.get_defender(_active_medic_id)
+	if defender == null or not defender.health.is_alive():
+		return
+	var is_field: bool = (
+		_medical.upgrades.specialization_id == MedicUpgradeRuntime.FIELD
+	)
+	var combat_enabled: bool = is_field and _medical.upgrades.field_combat_enabled
+	var damage_bonus: int = (
+		_medical.upgrade_balance.field_attack.damage_bonus
+		if combat_enabled
+		else 0
+	)
+	var movement_multiplier: float = (
+		1.0 + _medical.upgrade_balance.field_move_speed_bonus_ratio
+		if is_field
+		else 1.0
+	)
+	defender.set_medic_role_modifiers(
+		true,
+		combat_enabled,
+		damage_bonus,
+		movement_multiplier
+	)
+
+
 func _on_assignment_changed(
 	_defender_id: int,
 	_current_role: int,
@@ -190,6 +226,18 @@ func _on_assignment_changed(
 
 func _on_upgrades_changed() -> void:
 	call_deferred("_refresh")
+
+
+func _on_healing_started(medic_id: int, _target_id: int) -> void:
+	var defender: Defender = _crew.get_defender(medic_id)
+	if defender != null:
+		defender.set_medic_healing_action_active(true)
+
+
+func _on_healing_stopped(medic_id: int, _target_id: int) -> void:
+	var defender: Defender = _crew.get_defender(medic_id)
+	if defender != null:
+		defender.set_medic_healing_action_active(false)
 
 
 func _on_defender_replaced(_defender_id: int, _defender: Defender) -> void:
