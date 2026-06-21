@@ -39,7 +39,7 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	assert(panel.visible)
 	assert(panel.get_rendered_card_count() == 3)
 	assert(upgrades.get_card_count() == 3)
-	assert(get_tree().paused)
+	assert(paused)
 
 	var offer_number: int = upgrades.get_current_offer_number()
 	var card_id: StringName = upgrades.get_card_id(0)
@@ -50,7 +50,7 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	assert(economy.get_coins() == coins_before - cost)
 	assert(upgrades.get_completed_purchase_count() == 1)
 	assert(upgrades.is_offer_open())
-	assert(get_tree().paused)
+	assert(paused)
 	await _remove_game(game)
 
 
@@ -147,7 +147,7 @@ func _spawn_game(catalog: UpgradeCatalog) -> Node2D:
 
 
 func _remove_game(game: Node2D) -> void:
-	get_tree().paused = false
+	paused = false
 	game.queue_free()
 	await process_frame
 
