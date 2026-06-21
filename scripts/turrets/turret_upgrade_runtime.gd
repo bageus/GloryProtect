@@ -10,10 +10,12 @@ var cooldown_reduction: float = 0.0
 var range_bonus_ratio: float = 0.0
 var specialization_id: StringName = &""
 var piercing_enabled: bool = false
+var heavy_explosive_fifth_enabled: bool = false
 var double_shot_enabled: bool = false
 var extra_fifth_volley_shot_enabled: bool = false
 var stun_enabled: bool = false
 var chain_enabled: bool = false
+var electric_orb_fifth_enabled: bool = false
 
 
 func reset() -> void:
@@ -22,10 +24,12 @@ func reset() -> void:
 	range_bonus_ratio = 0.0
 	specialization_id = &""
 	piercing_enabled = false
+	heavy_explosive_fifth_enabled = false
 	double_shot_enabled = false
 	extra_fifth_volley_shot_enabled = false
 	stun_enabled = false
 	chain_enabled = false
+	electric_orb_fifth_enabled = false
 
 
 func can_apply_effect(effect: UpgradeEffectDefinition) -> bool:
@@ -80,6 +84,9 @@ func apply_flag(target_id: StringName) -> bool:
 		&"turret_heavy_piercing":
 			piercing_enabled = true
 			return true
+		&"turret_heavy_explosive_fifth":
+			heavy_explosive_fifth_enabled = true
+			return true
 		&"turret_rapid_double_shot":
 			double_shot_enabled = true
 			return true
@@ -88,6 +95,9 @@ func apply_flag(target_id: StringName) -> bool:
 			return true
 		&"turret_electric_chain":
 			chain_enabled = true
+			return true
+		&"turret_electric_orb_fifth":
+			electric_orb_fifth_enabled = true
 			return true
 	return false
 
@@ -117,6 +127,8 @@ func _can_apply_flag(target_id: StringName) -> bool:
 			return specialization_id == &""
 		&"turret_heavy_piercing":
 			return specialization_id == HEAVY and not piercing_enabled
+		&"turret_heavy_explosive_fifth":
+			return specialization_id == HEAVY and not heavy_explosive_fifth_enabled
 		&"turret_rapid_double_shot":
 			return specialization_id == RAPID and not double_shot_enabled
 		&"turret_rapid_extra_fifth":
@@ -126,4 +138,6 @@ func _can_apply_flag(target_id: StringName) -> bool:
 			)
 		&"turret_electric_chain":
 			return specialization_id == ELECTRIC and not chain_enabled
+		&"turret_electric_orb_fifth":
+			return specialization_id == ELECTRIC and not electric_orb_fifth_enabled
 	return false
