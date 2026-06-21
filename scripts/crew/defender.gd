@@ -19,6 +19,7 @@ var _melee_upgrades: MeleeDefenderUpgradeRuntime
 var _configured_once: bool = false
 var _lethal_guard_feature_enabled: bool = false
 var _base_movement_speed: float = 180.0
+var _medic_role_health_bonus: int = 0
 var _medic_role_active: bool = false
 var _medic_combat_enabled: bool = false
 var _medic_healing_action_active: bool = false
@@ -82,6 +83,60 @@ func set_base_movement_speed(speed: float) -> void:
 		_refresh_action_configuration()
 
 
+func set_medic_role_health_pool(
+	max_bonus: int,
+	current_bonus: int
+) -> void:
+	var previous_base_max: int = maxi(
+		1,
+		health.max_health - _medic_role_health_bonus
+	)
+	var base_current: int = mini(health.current_health, previous_base_max)
+	_medic_role_health_bonus = maxi(0, max_bonus)
+	health.set_max_health(
+		_get_configured_base_max_health() + _medic_role_health_bonus,
+		false
+	)
+	health.set_health(
+		base_current + clampi(
+			current_bonus,
+			0,
+			_medic_role_health_bonus
+		)
+	)
+
+
+func take_medic_role_health_pool() -> int:
+	var base_max: int = maxi(
+		1,
+		health.max_health - _medic_role_health_bonus
+	)
+	var remaining: int = clampi(
+		health.current_health - base_max,
+		0,
+		_medic_role_health_bonus
+	)
+	_medic_role_health_bonus = 0
+	health.set_max_health(_get_configured_base_max_health(), false)
+	return remaining
+
+
+func get_medic_role_health_bonus() -> int:
+	return _medic_role_health_bonus
+
+
+func get_medic_role_health_current() -> int:
+	var base_max: int = maxi(
+		1,
+		health.max_health - _medic_role_health_bonus
+	)
+	return clampi(
+		health.current_health - base_max,
+		0,
+		_medic_role_health_bonus
+	)
+
+
 func set_medic_role_modifiers(
 	active: bool,
 	combat_enabled: bool,
@@ -141,11 +196,12 @@ func is_combat_action_active() -> bool:
 func _apply_configuration(reset_life_state: bool) -> void:
 	if _balance == null:
 		return
-	var max_health: int = _balance.defender_max_health
+	var max_health: int = (
+		_get_configured_base_max_health() + _medic_role_health_bonus
+	)
 	var armor: int = 0
 	var lethal_guard: bool = false
 	if _melee_upgrades != null:
-		max_health = _melee_upgrades.get_max_health(max_health)
 		armor = maxi(0, _melee_upgrades.armor_bonus)
 		lethal_guard = _melee_upgrades.assault_lethal_guard
 	if not _configured_once or reset_life_state:
@@ -164,6 +220,15 @@ func _apply_configuration(reset_life_state: bool) -> void:
 	visual.configure(_balance.defender_body_radius, _body_color)
 	position.y = _balance.defender_local_y
 	visible = true
+
+
+func _get_configured_base_max_health() -> int:
+	if _balance == null:
+		return 1
+	var result: int = _balance.defender_max_health
+	if _melee_upgrades != null:
+		result = _melee_upgrades.get_max_health(result)
+	return maxi(1, result)
 
 
 func _refresh_action_configuration() -> void:
