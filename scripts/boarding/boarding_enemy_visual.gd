@@ -2,7 +2,7 @@ class_name BoardingEnemyVisual
 extends Node2D
 
 @export_node_path("HealthComponent") var health_path: NodePath
-@export_node_path("BoardingEnemyController") var controller_path: NodePath
+@export_node_path("BoardingEnemyBehavior") var controller_path: NodePath
 
 var _body_radius: float = 12.0
 var _body_color: Color = Color(0.92, 0.24, 0.2)
@@ -10,7 +10,7 @@ var _accent_color: Color = Color(1.0, 0.72, 0.62)
 var _archetype_id: StringName = &"basic"
 
 @onready var _health: HealthComponent = get_node(health_path)
-@onready var _controller: BoardingEnemyController = get_node(controller_path)
+@onready var _controller: BoardingEnemyBehavior = get_node(controller_path)
 
 
 func _ready() -> void:
@@ -34,9 +34,9 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 
 func _draw() -> void:
 	var body_color: Color = _body_color
-	if _controller.get_state() == BoardingEnemyController.State.CLIMBING:
+	if _controller.is_climbing():
 		body_color = body_color.lightened(0.18)
-	elif _controller.get_state() == BoardingEnemyController.State.FIGHTING:
+	elif _controller.is_fighting():
 		body_color = body_color.darkened(0.12)
 
 	draw_circle(Vector2.ZERO, _body_radius, body_color)
