@@ -6,6 +6,7 @@ var _destroyed_sources: Array[StringName] = []
 
 func _init() -> void:
 	_test_independent_durability_and_snapshots()
+	_test_invalid_damage_is_rejected()
 	_test_destroyed_event_is_emitted_once()
 	_test_new_attachment_restores_full_durability()
 	_test_reset_restores_all_anchors()
@@ -30,6 +31,22 @@ func _test_independent_durability_and_snapshots() -> void:
 	assert(not damaged.is_destroyed)
 	assert(is_equal_approx(untouched.current_durability, 60.0))
 	assert(durability.get_all_snapshots().size() == 4)
+
+
+func _test_invalid_damage_is_rejected() -> void:
+	var context: Dictionary = _create_context(50.0)
+	var store: AnchorRuntimeStore = context.store
+	var durability: AnchorRopeDurability = context.durability
+
+	store.attach(1, 0.0)
+	assert(not durability.apply_damage(1, 0.0, &"zero"))
+	assert(not durability.apply_damage(1, -10.0, &"negative"))
+	assert(not durability.apply_damage(99, 10.0, &"invalid_anchor"))
+	assert(is_equal_approx(
+		durability.get_snapshot(1).current_durability,
+		50.0
+	))
+	assert(durability.get_snapshot(99) == null)
 
 
 func _test_destroyed_event_is_emitted_once() -> void:
