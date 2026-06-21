@@ -79,12 +79,12 @@ func _test_opening_and_general_cards_do_not_change_weights() -> void:
 	var generator := UpgradeDrawGenerator.new()
 	generator.configure(DRAW_BALANCE, CATALOG, runtime, 3901)
 	var turret_weight: int = generator.get_branch_weight(&"turret")
-	var anchor_weight: int = generator.get_branch_weight(&"anchor")
+	var anchor_weight: int = generator.get_branch_weight(&"anchors")
 
 	var post: UpgradeDefinition = CATALOG.get_definition(&"turret_post")
 	generator.apply_selected_card(post)
 	assert(generator.get_branch_weight(&"turret") == turret_weight)
-	assert(generator.get_branch_weight(&"anchor") == anchor_weight)
+	assert(generator.get_branch_weight(&"anchors") == anchor_weight)
 
 	var general: UpgradeDefinition = CATALOG.get_definition(
 		&"common_move_speed_basic"
@@ -93,7 +93,7 @@ func _test_opening_and_general_cards_do_not_change_weights() -> void:
 	generator.apply_selected_card(general)
 	assert(runtime.get_branch_progress(&"turret") == 0)
 	assert(generator.get_branch_weight(&"turret") == turret_weight)
-	assert(generator.get_branch_weight(&"anchor") == anchor_weight)
+	assert(generator.get_branch_weight(&"anchors") == anchor_weight)
 
 
 func _test_offer_has_unique_card_ids() -> void:
