@@ -5,8 +5,8 @@ signal died(enemy_id: int, reason: StringName)
 
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("MeleeAttackComponent") var melee_path: NodePath
-@export_node_path("BoardingEnemyController") var controller_path: NodePath
-@export_node_path("BoardingEnemyVisual") var visual_path: NodePath
+@export_node_path("BoardingEnemyBehavior") var controller_path: NodePath
+@export_node_path("Node2D") var visual_path: NodePath
 
 var enemy_id: int = -1
 var archetype: BoardingEnemyArchetype
@@ -14,8 +14,8 @@ var _dead: bool = false
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var melee: MeleeAttackComponent = get_node(melee_path)
-@onready var controller: BoardingEnemyController = get_node(controller_path)
-@onready var visual: BoardingEnemyVisual = get_node(visual_path)
+@onready var controller: BoardingEnemyBehavior = get_node(controller_path)
+@onready var visual: Node2D = get_node(visual_path)
 
 
 func _ready() -> void:
@@ -36,7 +36,8 @@ func configure(
 	crew: CrewManager,
 	orbs: GroundOrbRegistry,
 	movement_resolver: BoardingMovementResolver,
-	jump_planner: BoardingJumpPlanner
+	jump_planner: BoardingJumpPlanner,
+	anchors: AnchorSystem
 ) -> void:
 	assert(profile != null, "BoardingEnemy requires an archetype")
 	assert(profile.is_valid(), "BoardingEnemy archetype is invalid")
@@ -47,7 +48,7 @@ func configure(
 		archetype.attack_windup,
 		archetype.attack_cooldown
 	)
-	visual.configure(archetype)
+	visual.call("configure", archetype)
 	controller.configure(
 		self,
 		archetype,
@@ -59,7 +60,8 @@ func configure(
 		orbs,
 		movement_resolver,
 		jump_planner,
-		melee
+		melee,
+		anchors
 	)
 
 
@@ -76,6 +78,18 @@ func kill(reason: StringName) -> void:
 
 func get_state() -> int:
 	return controller.get_state()
+
+
+func get_selected_anchor_id() -> int:
+	return controller.get_selected_anchor_id()
+
+
+func is_grounded_for_limit() -> bool:
+	return controller.is_grounded_for_limit()
+
+
+func is_climbing() -> bool:
+	return controller.is_climbing()
 
 
 func is_on_platform() -> bool:
