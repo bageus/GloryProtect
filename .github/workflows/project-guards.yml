@@ -87,3 +87,12 @@ jobs:
             cat /tmp/godot-output.log
           fi
           exit "${status}"
+
+      - name: Upload scenario log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-log-${{ strategy.job-index }}
+          path: /tmp/godot-output.log
+          if-no-files-found: warn
+          retention-days: 3
