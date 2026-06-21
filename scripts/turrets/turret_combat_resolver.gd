@@ -20,22 +20,46 @@ func resolve_shot(
 	maximum_range: float,
 	registry: BoardingEnemyRegistry,
 	upgrades: TurretUpgradeRuntime,
-	base_damage: int
+	base_damage: int,
+	is_fifth_shot: bool = false,
+	is_fifth_volley: bool = false
 ) -> int:
 	if not _is_damageable(primary):
 		return 0
-	var damage: int = upgrades.get_damage(base_damage)
-	var hits: int = _apply_damage(primary, damage)
-	if upgrades.piercing_enabled:
-		hits += _apply_line_piercing(
-			primary,
-			origin,
-			maximum_range,
+	var normal_damage: int = upgrades.get_damage(base_damage)
+	var electric_orb: bool = (
+		upgrades.electric_orb_fifth_enabled
+		and is_fifth_volley
+	)
+	var hits: int = 0
+	if electric_orb:
+		hits += _apply_area_damage(
+			primary.global_position,
+			_balance.electric_orb_radius,
+			_balance.electric_orb_damage,
 			registry,
-			damage
+			true
 		)
-	if upgrades.stun_enabled:
-		_apply_stun(primary)
+	else:
+		hits += _apply_damage(primary, normal_damage)
+		if upgrades.piercing_enabled:
+			hits += _apply_line_piercing(
+				primary,
+				origin,
+				maximum_range,
+				registry,
+				normal_damage
+			)
+		if upgrades.stun_enabled:
+			_apply_stun(primary)
+		if upgrades.heavy_explosive_fifth_enabled and is_fifth_shot:
+			hits += _apply_area_damage(
+				primary.global_position,
+				_balance.heavy_explosion_radius,
+				_balance.heavy_explosion_damage,
+				registry,
+				false
+			)
 	if upgrades.chain_enabled:
 		var secondary: BoardingEnemy = _choose_chain_target(
 			primary,
@@ -43,7 +67,7 @@ func resolve_shot(
 			maximum_range,
 			registry
 		)
-		hits += _apply_damage(secondary, damage)
+		hits += _apply_damage(secondary, normal_damage)
 		if upgrades.stun_enabled:
 			_apply_stun(secondary)
 	return hits
@@ -73,6 +97,26 @@ func _apply_line_piercing(
 		if perpendicular > enemy.get_body_radius():
 			continue
 		hits += _apply_damage(enemy, damage)
+	return hits
+
+
+func _apply_area_damage(
+	center: Vector2,
+	radius: float,
+	damage: int,
+	registry: BoardingEnemyRegistry,
+	stun_targets: bool
+) -> int:
+	var hits: int = 0
+	var radius_squared: float = radius * radius
+	for enemy: BoardingEnemy in registry.get_turret_targets():
+		if not _is_damageable(enemy):
+			continue
+		if center.distance_squared_to(enemy.global_position) > radius_squared:
+			continue
+		hits += _apply_damage(enemy, damage)
+		if stun_targets:
+			_apply_stun(enemy)
 	return hits
 
 
