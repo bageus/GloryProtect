@@ -108,7 +108,7 @@ func reset_run_modifiers() -> void:
 	_movement_speed_multiplier = 1.0
 	_melee_upgrades.reset()
 	for defender: Defender in get_all_defenders():
-		defender.apply_melee_upgrades(_melee_upgrades)
+		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
 		defender.movement.configure(get_current_movement_speed())
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	melee_upgrades_changed.emit()
