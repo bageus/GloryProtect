@@ -32,6 +32,7 @@ upgrade_balance = ExtResource("9_turret_balance")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
 script = ExtResource("10_medic_roles")
+game_flow_path = NodePath("../../GameFlowController")
 crew_manager_path = NodePath("../Platform/CrewManager")
 role_manager_path = NodePath("../Platform/CrewRoleManager")
 medical_system_path = NodePath("../MedicalStationSystem")
