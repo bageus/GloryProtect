@@ -17,6 +17,7 @@ var _cooldown_duration: float = 0.7
 var _phase: int = Phase.READY
 var _remaining_time: float = 0.0
 var _locked_target: HealthComponent = null
+var _follow_up_queued: bool = false
 
 
 func configure(damage: int, windup_duration: float, cooldown_duration: float) -> void:
@@ -44,6 +45,8 @@ func tick(delta: float) -> void:
 	match _phase:
 		Phase.WINDUP:
 			_resolve_locked_attack()
+			if _consume_follow_up():
+				return
 			_phase = Phase.COOLDOWN
 			_remaining_time = _cooldown_duration
 			attack_finished.emit()
@@ -56,9 +59,19 @@ func try_start(target: HealthComponent) -> bool:
 	if not can_start() or target == null or not target.is_alive():
 		return false
 	_locked_target = target
+	_follow_up_queued = false
 	_phase = Phase.WINDUP
 	_remaining_time = _windup_duration
 	attack_started.emit(target)
+	return true
+
+
+func queue_follow_up_same_target() -> bool:
+	if _phase != Phase.WINDUP:
+		return false
+	if not is_instance_valid(_locked_target) or not _locked_target.is_alive():
+		return false
+	_follow_up_queued = true
 	return true
 
 
@@ -78,6 +91,7 @@ func cancel() -> void:
 	_phase = Phase.READY
 	_remaining_time = 0.0
 	_locked_target = null
+	_follow_up_queued = false
 
 
 func _resolve_locked_attack() -> void:
@@ -87,3 +101,15 @@ func _resolve_locked_attack() -> void:
 		return
 	_locked_target.apply_damage(_damage, &"melee")
 	attack_landed.emit(_locked_target, _damage)
+
+
+func _consume_follow_up() -> bool:
+	if not _follow_up_queued:
+		return false
+	_follow_up_queued = false
+	if not is_instance_valid(_locked_target) or not _locked_target.is_alive():
+		return false
+	_phase = Phase.WINDUP
+	_remaining_time = _windup_duration
+	attack_started.emit(_locked_target)
+	return true
