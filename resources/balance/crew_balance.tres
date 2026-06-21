@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_balance")
 starting_defender_count = 3
-maximum_defender_count = 3
+maximum_defender_count = 8
 defender_max_health = 3
 defender_move_speed = 180.0
 defender_local_y = -48.0
