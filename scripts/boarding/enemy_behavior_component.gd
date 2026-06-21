@@ -10,7 +10,7 @@ enum TargetDomain {
 	OBJECT,
 }
 
-@export var target_domain: TargetDomain = TargetDomain.GROUND
+@export_enum("Ground", "Air", "Distant", "Object") var target_domain: int = TargetDomain.GROUND
 @export var turret_targetable: bool = true
 @export var counts_as_ground: bool = false
 @export var counts_as_climbing: bool = false
@@ -63,7 +63,7 @@ func publish_visual_state(state_id: StringName) -> void:
 func _physics_process(delta: float) -> void:
 	if not active or game_flow == null:
 		return
-	if game_flow.state != GameFlowController.RunState.RUNNING:
+	if not game_flow.is_world_simulation_active():
 		return
 	_tick_behavior(maxf(0.0, delta))
 
