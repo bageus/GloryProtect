@@ -3,6 +3,8 @@ set -euo pipefail
 
 GODOT_BIN="${GODOT_BIN:-godot}"
 
+"${GODOT_BIN}" --headless --path . --import
+
 mapfile -t scenario_files < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
 )
