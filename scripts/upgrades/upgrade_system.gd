@@ -12,7 +12,7 @@ signal progress_reset
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("BuildableInventory") var buildable_inventory_path: NodePath = NodePath("../BuildableInventory")
 @export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath("../World/Platform/CrewManager")
-@export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../World/CrewReplacementController")
+@export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../CrewReplacementController")
 @export var balance: UpgradeBalance
 @export var catalog: UpgradeCatalog = preload("res://resources/upgrades/technical_upgrade_catalog.tres")
 @export var draw_balance: UpgradeDrawBalance = preload("res://resources/upgrades/upgrade_draw_balance.tres")
@@ -20,6 +20,7 @@ signal progress_reset
 
 var _completed_purchases: int = 0
 var _offer_open: bool = false
+var _selection_in_progress: bool = false
 var _specialization_offer: bool = false
 var _specialization_branch: StringName = &""
 var _current_offer: Array[UpgradeDefinition] = []
@@ -67,6 +68,14 @@ func get_card_count() -> int:
 	return _current_offer.size() if _offer_open else draw_balance.cards_per_offer
 
 
+func get_card_definition(card_index: int) -> UpgradeDefinition:
+	return _get_offer_definition(card_index)
+
+
+func get_all_card_definitions() -> Array[UpgradeDefinition]:
+	return catalog.definitions.duplicate()
+
+
 func get_card_id(card_index: int) -> StringName:
 	var definition: UpgradeDefinition = _get_offer_definition(card_index)
 	return definition.card_id if definition != null else &""
@@ -102,6 +111,10 @@ func is_offer_open() -> bool:
 	return _offer_open
 
 
+func is_selection_in_progress() -> bool:
+	return _selection_in_progress
+
+
 func is_specialization_offer() -> bool:
 	return _offer_open and _specialization_offer
 
@@ -118,28 +131,37 @@ func choose_card(card_index: int) -> bool:
 
 
 func choose_card_by_id(card_id: StringName) -> bool:
+	if _selection_in_progress:
+		return false
 	if not _offer_open or _game_flow.state != GameFlowController.RunState.CARD_SELECTION:
 		return false
 	var offer_index: int = _find_offer_index(card_id)
 	if offer_index < 0:
 		return false
 	var definition: UpgradeDefinition = _current_offer[offer_index]
-	if get_card_unavailability_reason(definition.card_id) != &"" or not _effect_applier.can_apply(definition):
+	if get_card_unavailability_reason(definition.card_id) != &"":
 		return false
+	if not _effect_applier.can_apply(definition):
+		return false
+	_selection_in_progress = true
 	var offer_number: int = get_current_offer_number()
 	var cost: int = get_current_cost()
 	if not _economy.spend_coins(cost, &"upgrade_card"):
+		_selection_in_progress = false
 		return false
 	if not _effect_applier.apply_effect(definition):
 		_economy.add_coins(cost, &"upgrade_refund")
+		_selection_in_progress = false
 		return false
 	if not _runtime.record_card(definition):
 		_economy.add_coins(cost, &"upgrade_refund")
+		_selection_in_progress = false
 		return false
 	_draw_generator.apply_selected_card(definition)
 	_completed_purchases += 1
 	card_selected.emit(offer_index, offer_number, cost)
 	card_selected_by_id.emit(definition.card_id, offer_number, cost)
+	_selection_in_progress = false
 	if _economy.can_afford(get_current_cost()):
 		_generate_offer()
 		_emit_current_offer()
@@ -151,6 +173,7 @@ func choose_card_by_id(card_id: StringName) -> bool:
 func reset_for_run() -> void:
 	_cancel_offer()
 	_completed_purchases = 0
+	_selection_in_progress = false
 	_current_offer.clear()
 	_specialization_offer = false
 	_specialization_branch = &""
@@ -216,6 +239,7 @@ func _close_offer() -> void:
 
 
 func _cancel_offer() -> void:
+	_selection_in_progress = false
 	if not _offer_open:
 		_current_offer.clear()
 		_specialization_offer = false
