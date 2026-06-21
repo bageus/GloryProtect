@@ -41,20 +41,22 @@ func choose_archetype(
 			total_weight += weight
 
 	if total_weight <= 0.0:
-		return get_default_archetype(allowed_spawn_requirements)
+		return null
 
 	var roll: float = rng.randf_range(0.0, total_weight)
 	var cumulative: float = 0.0
+	var last_selectable: BoardingEnemyArchetype = null
 	for archetype: BoardingEnemyArchetype in archetypes:
 		if not _is_selectable(archetype, allowed_spawn_requirements):
 			continue
 		var weight: float = archetype.get_weight(normalized_difficulty)
 		if weight <= 0.0:
 			continue
+		last_selectable = archetype
 		cumulative += weight
 		if roll <= cumulative:
 			return archetype
-	return get_default_archetype(allowed_spawn_requirements)
+	return last_selectable
 
 
 func validate() -> bool:
