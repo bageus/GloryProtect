@@ -157,10 +157,6 @@ func _test_target_lock_retarget_and_combat_reward() -> void:
 	var behavior: RopeSaboteurBehavior = (
 		saboteur.behavior as RopeSaboteurBehavior
 	)
-	var profile: RopeSaboteurArchetype = (
-		saboteur.archetype as RopeSaboteurArchetype
-	)
-	profile.arming_duration = 10.0
 	assert(await _wait_until(
 		func() -> bool: return behavior.get_selected_anchor_id() == 2,
 		120
@@ -199,10 +195,17 @@ func _disable_unrelated_world_systems(
 	game: Node,
 	director: BoardingSpawnDirector
 ) -> void:
+	director.set_process(false)
 	director.set_physics_process(false)
-	game.get_node("World/StrategicWaveSystem").set_process(false)
-	game.get_node("World/StrategicWaveDirector").set_process(false)
-	game.get_node("World/StrategicGroupMutationController").set_process(false)
+	var node_paths: Array[NodePath] = [
+		NodePath("World/StrategicWaveSystem"),
+		NodePath("World/StrategicWaveDirector"),
+		NodePath("World/StrategicGroupMutationController"),
+	]
+	for node_path: NodePath in node_paths:
+		var system: Node = game.get_node(node_path)
+		system.set_process(false)
+		system.set_physics_process(false)
 
 
 func _configure_stable_world(
