@@ -34,11 +34,11 @@ func recover(anchor_id: int, source: StringName) -> bool:
 		return false
 
 	var anchor: AnchorRuntime = _store.get_anchor(anchor_id)
-	if anchor.state not in [
-		AnchorRuntime.State.ATTACHED,
-		AnchorRuntime.State.OVERLOADED,
-		AnchorRuntime.State.RETURNING,
-	]:
+	if (
+		anchor.state != AnchorRuntime.State.ATTACHED
+		and anchor.state != AnchorRuntime.State.OVERLOADED
+		and anchor.state != AnchorRuntime.State.RETURNING
+	):
 		return false
 
 	_operations.cancel_anchor(anchor_id)
