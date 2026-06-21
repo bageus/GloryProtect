@@ -17,3 +17,7 @@ func _ready() -> void:
 		_replacements,
 		_turrets
 	)
+
+
+func get_all_card_definitions() -> Array[UpgradeDefinition]:
+	return catalog.get_all_definitions()
