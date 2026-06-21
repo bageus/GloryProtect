@@ -1,6 +1,7 @@
 class_name MedicRoleModifierController
 extends Node
 
+@export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
 @export_node_path("MedicalStationSystem") var medical_system_path: NodePath
@@ -13,6 +14,7 @@ var _known_armor_bonus: int = 0
 var _stored_health_segments: int = 0
 var _stored_armor_segments: int = 0
 
+@onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _roles: CrewRoleManager = get_node(role_manager_path)
 @onready var _medical: MedicalStationSystem = get_node(medical_system_path)
@@ -24,6 +26,7 @@ func _ready() -> void:
 	_medical.healing_started.connect(_on_healing_started)
 	_medical.healing_stopped.connect(_on_healing_stopped)
 	_crew.defender_replaced.connect(_on_defender_replaced)
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	call_deferred("_refresh")
 
 
@@ -190,6 +193,14 @@ func _apply_action_modifiers_to_active() -> void:
 	)
 
 
+func _reset_for_run() -> void:
+	_detach_current_medic()
+	_known_health_bonus = 0
+	_known_armor_bonus = 0
+	_stored_health_segments = 0
+	_stored_armor_segments = 0
+
+
 func _on_assignment_changed(
 	_defender_id: int,
 	_current_role: int,
@@ -217,3 +228,11 @@ func _on_healing_stopped(medic_id: int, _target_id: int) -> void:
 
 func _on_defender_replaced(_defender_id: int, _defender: Defender) -> void:
 	call_deferred("_refresh")
+
+
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
+		return
+	call_deferred("_reset_for_run")
