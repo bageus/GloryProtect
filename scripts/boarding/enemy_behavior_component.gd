@@ -63,6 +63,10 @@ func is_counted_as_boarded() -> bool:
 	return active and counts_as_boarded
 
 
+func get_selected_anchor_id() -> int:
+	return -1
+
+
 func publish_visual_state(state_id: StringName) -> void:
 	visual_state_changed.emit(state_id)
 

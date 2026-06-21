@@ -65,6 +65,24 @@ func get_boarded_enemies() -> Array[BoardingEnemy]:
 	return result
 
 
+func kill_climbing_on_anchor(
+	anchor_id: int,
+	reason: StringName = &"anchor_path_closed"
+) -> int:
+	var victims: Array[BoardingEnemy] = []
+	for enemy: BoardingEnemy in get_all_enemies():
+		if not enemy.health.is_alive():
+			continue
+		if not enemy.is_counted_as_climbing():
+			continue
+		if enemy.get_selected_anchor_id() != anchor_id:
+			continue
+		victims.append(enemy)
+	for enemy: BoardingEnemy in victims:
+		enemy.kill(reason)
+	return victims.size()
+
+
 func get_turret_targets() -> Array[BoardingEnemy]:
 	var result: Array[BoardingEnemy] = []
 	for enemy: BoardingEnemy in get_all_enemies():

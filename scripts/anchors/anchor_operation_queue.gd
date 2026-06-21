@@ -63,6 +63,22 @@ func has_active_install(side: int) -> bool:
 	return _active_install_ids[side] >= 0
 
 
+func cancel_anchor(anchor_id: int) -> void:
+	if not _store.is_valid(anchor_id):
+		return
+	var anchor: AnchorRuntime = _store.get_anchor(anchor_id)
+	var side: int = anchor.side
+	_queues[side].erase(anchor_id)
+	if _active_install_ids[side] == anchor_id:
+		_active_install_ids[side] = -1
+		_remove_all_pending[side] = false
+	if (
+		anchor.state == AnchorRuntime.State.QUEUED
+		or anchor.state == AnchorRuntime.State.INSTALLING
+	):
+		_store.set_stowed(anchor_id)
+
+
 func start_next_if_allowed(side: int, operator_available: bool) -> bool:
 	if not operator_available:
 		cancel_queued(side)

@@ -2,16 +2,17 @@
 
 Run from the repository root with Godot 4.6.2 stable.
 
-## Rope durability
+## Rope durability and recovery
 
 ```bash
 godot --headless --path . --script res://tests/unit/anchor_rope_durability_scenarios.gd
 godot --headless --path . --script res://tests/integration/anchor_rope_durability_scenarios.gd
+godot --headless --path . --script res://tests/integration/rope_break_recovery_scenarios.gd
 ```
 
-The unit scenario verifies independent durability, validation, clamping, one-shot destruction events, reset and reattachment recovery.
+The durability scenarios verify independent values, validation, clamping, one-shot destruction events and reattachment recovery.
 
-The integration scenario verifies the public `AnchorSystem` API against the full game scene. Reaching zero intentionally leaves the boarding path active until issue #16 implements physical destruction and recovery.
+The break-recovery scenario verifies synchronous path closure, removal of enemies on the destroyed rope, survival of boarded enemies, rewarded `anchor_path_closed` deaths, pause-safe return, overloaded-rope recovery and full durability after reinstallation.
 
 ## Rope saboteur
 
