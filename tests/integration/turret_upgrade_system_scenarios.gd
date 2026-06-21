@@ -21,7 +21,7 @@ func _run_scenarios() -> void:
 	var turrets: TurretUpgradeSystem = game.get_node("World/TurretSystem")
 	_test_base_line_effects(turrets)
 	_test_specialization_effects(turrets)
-	_test_run_reset(turrets, flow)
+	await _test_run_reset(turrets, flow)
 	print("Turret upgrade system scenarios passed")
 	quit()
 
