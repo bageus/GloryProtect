@@ -34,7 +34,7 @@ func is_path_available(anchor_id: int) -> bool:
 	return _anchors.is_path_available(anchor_id)
 
 
-func get_path(anchor_id: int) -> AnchorPathSnapshot:
+func get_anchor_path(anchor_id: int) -> AnchorPathSnapshot:
 	return _anchors.get_path_snapshot(anchor_id)
 
 
