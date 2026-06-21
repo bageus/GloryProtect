@@ -16,9 +16,11 @@ signal progress_reset
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("BuildableInventory") var buildable_inventory_path: NodePath = NodePath("../BuildableInventory")
+@export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath("../World/Platform/CrewManager")
+@export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../CrewReplacementController")
 @export var balance: UpgradeBalance
 @export var catalog: UpgradeCatalog = preload(
-	"res://resources/upgrades/technical_upgrade_catalog.tres"
+	"res://resources/upgrades/game_upgrade_catalog.tres"
 )
 @export var draw_balance: UpgradeDrawBalance = preload(
 	"res://resources/upgrades/upgrade_draw_balance.tres"
@@ -38,6 +40,10 @@ var _specialization_generator := UpgradeSpecializationEventGenerator.new()
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _economy: RunEconomy = get_node(run_economy_path)
 @onready var _buildables: BuildableInventory = get_node(buildable_inventory_path)
+@onready var _crew: CrewManager = get_node(crew_manager_path)
+@onready var _replacements: CrewReplacementController = get_node(
+	replacement_controller_path
+)
 
 
 func _ready() -> void:
@@ -45,7 +51,12 @@ func _ready() -> void:
 	assert(catalog != null and catalog.is_valid(), "UpgradeSystem catalog is invalid")
 	assert(draw_balance != null and draw_balance.is_valid(), "Upgrade draw balance is invalid")
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_effect_applier.configure(_buildables, _runtime)
+	_effect_applier.configure(
+		_buildables,
+		_runtime,
+		_crew,
+		_replacements
+	)
 	_draw_generator.configure(
 		draw_balance,
 		catalog,
@@ -177,6 +188,8 @@ func reset_for_run() -> void:
 	_specialization_branch = &""
 	_runtime.reset_for_run()
 	_draw_generator.reset_for_run()
+	_crew.reset_run_modifiers()
+	_replacements.reset_run_modifiers()
 	progress_reset.emit()
 
 
