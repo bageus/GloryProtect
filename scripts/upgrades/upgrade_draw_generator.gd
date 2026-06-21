@@ -85,6 +85,8 @@ func apply_selected_card(definition: UpgradeDefinition) -> void:
 func get_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 	if definition == null or not definition.is_valid():
 		return &"invalid_definition"
+	if definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION:
+		return &"specialization_event_only"
 	if _runtime.get_repeat_count(definition.card_id) >= definition.repeat_limit:
 		return &"repeat_limit_reached"
 	if _runtime.is_specialization_closed(definition.card_id):
