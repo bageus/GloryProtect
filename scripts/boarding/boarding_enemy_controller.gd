@@ -1,5 +1,5 @@
 class_name BoardingEnemyController
-extends Node
+extends BoardingEnemyBehavior
 
 enum State {
 	WAITING_WITHOUT_PATH,
@@ -43,7 +43,8 @@ func configure(
 	orbs: GroundOrbRegistry,
 	movement_resolver: BoardingMovementResolver,
 	jump_planner: BoardingJumpPlanner,
-	melee: MeleeAttackComponent
+	melee: MeleeAttackComponent,
+	_anchors: AnchorSystem
 ) -> void:
 	_enemy = enemy
 	_archetype = archetype
@@ -110,12 +111,27 @@ func get_platform_occupancy_x() -> float:
 	return _platform_local_x
 
 
+func is_grounded_for_limit() -> bool:
+	return (
+		state == State.WAITING_WITHOUT_PATH
+		or state == State.RUNNING_TO_ANCHOR
+	)
+
+
+func is_climbing() -> bool:
+	return state == State.CLIMBING
+
+
 func is_on_platform() -> bool:
 	return (
 		state == State.ON_PLATFORM
 		or state == State.FIGHTING
 		or state == State.JUMPING
 	)
+
+
+func is_fighting() -> bool:
+	return state == State.FIGHTING
 
 
 func force_board_at(local_x: float) -> void:
