@@ -10,7 +10,7 @@ The manager reapplies the shared runtime to current defenders and passes it to n
 
 ## Catalog
 
-`melee_defender_upgrade_catalog.tres` contains the melee branch. `active_game_upgrade_catalog.tres` combines it with the canonical `game_upgrade_catalog.tres`. PR #81 is intentionally reviewed on top of PR #82 until the corrected modular turret catalog lands, so the melee aggregate does not bypass the turret area cards.
+`melee_defender_upgrade_catalog.tres` contains the melee branch. `active_game_upgrade_catalog.tres` combines it with the canonical `game_upgrade_catalog.tres`. PR #81 is reviewed on top of PR #82 until the corrected modular turret catalog lands, so the melee aggregate does not bypass turret area cards.
 
 ## Base lines
 
