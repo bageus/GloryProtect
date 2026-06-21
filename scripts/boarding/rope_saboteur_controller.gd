@@ -75,7 +75,13 @@ func stop() -> void:
 
 
 func get_state() -> int:
-	return state
+	match state:
+		State.WAITING_WITHOUT_PATH:
+			return BoardingEnemyController.State.WAITING_WITHOUT_PATH
+		State.RUNNING_TO_ROPE, State.ARMING:
+			return BoardingEnemyController.State.RUNNING_TO_ANCHOR
+		_:
+			return BoardingEnemyController.State.DEAD
 
 
 func get_selected_anchor_id() -> int:
