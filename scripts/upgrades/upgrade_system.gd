@@ -127,11 +127,23 @@ func choose_card(card_index: int) -> bool:
 	var definition: UpgradeDefinition = _get_offer_definition(card_index)
 	if definition == null:
 		return false
-	return choose_card_by_id(definition.card_id)
+	return choose_card_for_offer(
+		definition.card_id,
+		get_current_offer_number()
+	)
 
 
 func choose_card_by_id(card_id: StringName) -> bool:
+	return choose_card_for_offer(card_id, get_current_offer_number())
+
+
+func choose_card_for_offer(
+	card_id: StringName,
+	expected_offer_number: int
+) -> bool:
 	if _selection_in_progress:
+		return false
+	if expected_offer_number != get_current_offer_number():
 		return false
 	if not _offer_open or _game_flow.state != GameFlowController.RunState.CARD_SELECTION:
 		return false
