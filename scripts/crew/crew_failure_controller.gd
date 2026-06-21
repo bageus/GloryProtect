@@ -20,6 +20,9 @@ func _ready() -> void:
 func _on_defender_died(defender_id: int) -> void:
 	if _crew.get_living_count() > 0:
 		return
-	if _revival != null and _revival.try_schedule_revival(defender_id):
-		return
+	if _revival != null:
+		if _revival.is_revival_scheduled(defender_id):
+			return
+		if _revival.try_schedule_revival(defender_id):
+			return
 	_game_flow.end_run(&"all_defenders_dead")
