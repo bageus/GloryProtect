@@ -17,6 +17,7 @@ var _balance: CrewBalance
 var _body_color: Color = Color(0.45, 0.8, 1.0)
 var _melee_upgrades: MeleeDefenderUpgradeRuntime
 var _configured_once: bool = false
+var _lethal_guard_feature_enabled: bool = false
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var durability: DefenderDurabilityComponent = get_node(durability_path)
@@ -31,7 +32,7 @@ func _ready() -> void:
 	movement.destination_reached.connect(_on_destination_reached)
 	health.depleted.connect(_on_depleted)
 	health.set_durability_component(durability)
-	_apply_configuration()
+	_apply_configuration(false)
 
 
 func configure(
@@ -45,7 +46,7 @@ func configure(
 	_body_color = body_color
 	_melee_upgrades = melee_upgrades
 	if is_node_ready():
-		_apply_configuration()
+		_apply_configuration(false)
 
 
 func apply_melee_upgrades(
@@ -53,7 +54,15 @@ func apply_melee_upgrades(
 ) -> void:
 	_melee_upgrades = upgrades
 	if is_node_ready():
-		_apply_configuration()
+		_apply_configuration(false)
+
+
+func reset_melee_upgrades_for_new_life(
+	upgrades: MeleeDefenderUpgradeRuntime
+) -> void:
+	_melee_upgrades = upgrades
+	if is_node_ready():
+		_apply_configuration(true)
 
 
 func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
@@ -85,7 +94,7 @@ func is_combat_action_active() -> bool:
 	return combat.is_action_active()
 
 
-func _apply_configuration() -> void:
+func _apply_configuration(reset_life_state: bool) -> void:
 	if _balance == null:
 		return
 	var max_health: int = _balance.defender_max_health
@@ -99,16 +108,18 @@ func _apply_configuration() -> void:
 		lethal_guard = _melee_upgrades.assault_lethal_guard
 		damage = _melee_upgrades.get_damage(damage)
 		cooldown = _melee_upgrades.get_cooldown(cooldown)
-	if _configured_once:
-		health.set_max_health(max_health, true)
-		durability.set_max_armor(armor)
-		durability.set_lethal_guard_available(
-			lethal_guard or durability.has_lethal_guard()
-		)
-	else:
+	if not _configured_once or reset_life_state:
 		health.configure(max_health)
 		durability.configure(armor, lethal_guard)
 		_configured_once = true
+	else:
+		health.set_max_health(max_health, true)
+		durability.set_max_armor(armor)
+		if lethal_guard and not _lethal_guard_feature_enabled:
+			durability.set_lethal_guard_available(true)
+		elif not lethal_guard:
+			durability.set_lethal_guard_available(false)
+	_lethal_guard_feature_enabled = lethal_guard
 	melee.configure(damage, 0.4, cooldown)
 	movement.configure(_balance.defender_move_speed)
 	visual.configure(_balance.defender_body_radius, _body_color)
