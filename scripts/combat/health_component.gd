@@ -2,11 +2,7 @@ class_name HealthComponent
 extends Node
 
 signal health_changed(current_health: int, max_health: int)
-signal damage_received(
-	requested_amount: int,
-	health_damage: int,
-	source_id: StringName
-)
+signal damage_received(requested_amount: int, health_damage: int, source_id: StringName, source_node: Node)
 signal damage_applied(amount: int, current_health: int)
 signal depleted
 
@@ -28,10 +24,7 @@ func configure(new_max_health: int) -> void:
 		health_changed.emit(current_health, max_health)
 
 
-func set_max_health(
-	new_max_health: int,
-	add_increase_to_current: bool = true
-) -> void:
+func set_max_health(new_max_health: int, add_increase_to_current: bool = true) -> void:
 	var previous_max: int = max_health
 	var resolved_max: int = maxi(1, new_max_health)
 	if resolved_max == previous_max:
@@ -43,25 +36,17 @@ func set_max_health(
 	health_changed.emit(current_health, max_health)
 
 
-func set_durability_component(
-	durability: DefenderDurabilityComponent
-) -> void:
+func set_durability_component(durability: DefenderDurabilityComponent) -> void:
 	_durability = durability
 
 
-func apply_damage(
-	amount: int,
-	source_id: StringName = &"generic"
-) -> void:
+func apply_damage(amount: int, source_id: StringName = &"generic", source_node: Node = null) -> void:
 	if amount <= 0 or current_health <= 0:
 		return
 	var resolved_amount: int = amount
 	if _durability != null and is_instance_valid(_durability):
-		resolved_amount = _durability.resolve_incoming_damage(
-			amount,
-			current_health
-		)
-	damage_received.emit(amount, resolved_amount, source_id)
+		resolved_amount = _durability.resolve_incoming_damage(amount, current_health)
+	damage_received.emit(amount, resolved_amount, source_id, source_node)
 	if resolved_amount <= 0:
 		return
 	var previous_health: int = current_health
