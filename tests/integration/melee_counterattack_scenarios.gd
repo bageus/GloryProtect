@@ -20,11 +20,12 @@ func _run_scenario() -> void:
 	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	director.set_process(false)
 	director.set_physics_process(false)
-	for path: NodePath in [
+	var node_paths: Array[NodePath] = [
 		NodePath("World/StrategicWaveSystem"),
 		NodePath("World/StrategicWaveDirector"),
 		NodePath("World/StrategicGroupMutationController"),
-	]:
+	]
+	for path: NodePath in node_paths:
 		var system: Node = game.get_node(path)
 		system.set_process(false)
 		system.set_physics_process(false)
