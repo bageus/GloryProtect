@@ -2,6 +2,12 @@ class_name UpgradeSystem
 extends Node
 
 signal offer_opened(offer_number: int, cost: int, card_count: int)
+signal specialization_offer_opened(
+	branch_id: StringName,
+	offer_number: int,
+	cost: int,
+	card_count: int
+)
 signal offer_closed
 signal card_selected(card_index: int, offer_number: int, cost: int)
 signal card_selected_by_id(card_id: StringName, offer_number: int, cost: int)
@@ -21,10 +27,13 @@ signal progress_reset
 
 var _completed_purchases: int = 0
 var _offer_open: bool = false
+var _specialization_offer: bool = false
+var _specialization_branch: StringName = &""
 var _current_offer: Array[UpgradeDefinition] = []
 var _runtime := UpgradeRuntime.new()
 var _effect_applier := UpgradeEffectApplier.new()
 var _draw_generator := UpgradeDrawGenerator.new()
+var _specialization_generator := UpgradeSpecializationEventGenerator.new()
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _economy: RunEconomy = get_node(run_economy_path)
@@ -42,6 +51,11 @@ func _ready() -> void:
 		catalog,
 		_runtime,
 		deterministic_seed
+	)
+	_specialization_generator.configure(
+		catalog,
+		_runtime,
+		_get_specialization_seed()
 	)
 	_economy.coins_changed.connect(_on_coins_changed)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
@@ -84,6 +98,8 @@ func get_card_description(card_index: int) -> String:
 
 func get_card_unavailability_reason(card_id: StringName) -> StringName:
 	var definition: UpgradeDefinition = catalog.get_definition(card_id)
+	if _specialization_offer:
+		return _get_specialization_unavailability_reason(definition)
 	return _draw_generator.get_unavailability_reason(definition)
 
 
@@ -93,10 +109,19 @@ func get_branch_weight(branch_id: StringName) -> int:
 
 func set_draw_seed(seed: int) -> void:
 	_draw_generator.set_seed(seed)
+	_specialization_generator.set_seed(seed + 1)
 
 
 func is_offer_open() -> bool:
 	return _offer_open
+
+
+func is_specialization_offer() -> bool:
+	return _offer_open and _specialization_offer
+
+
+func get_specialization_offer_branch() -> StringName:
+	return _specialization_branch if is_specialization_offer() else &""
 
 
 func choose_card(card_index: int) -> bool:
@@ -115,7 +140,7 @@ func choose_card_by_id(card_id: StringName) -> bool:
 	if offer_index < 0:
 		return false
 	var definition: UpgradeDefinition = _current_offer[offer_index]
-	if _draw_generator.get_unavailability_reason(definition) != &"":
+	if get_card_unavailability_reason(definition.card_id) != &"":
 		return false
 	if not _effect_applier.can_apply(definition):
 		return false
@@ -148,6 +173,8 @@ func reset_for_run() -> void:
 	_cancel_offer()
 	_completed_purchases = 0
 	_current_offer.clear()
+	_specialization_offer = false
+	_specialization_branch = &""
 	_runtime.reset_for_run()
 	_draw_generator.reset_for_run()
 	progress_reset.emit()
@@ -169,10 +196,33 @@ func _open_offer_if_affordable() -> void:
 
 
 func _generate_offer() -> void:
+	_current_offer.clear()
+	_specialization_offer = false
+	_specialization_branch = &""
+	if _generate_specialization_offer():
+		return
 	_current_offer = _draw_generator.generate_offer()
 	for index: int in range(_current_offer.size() - 1, -1, -1):
 		if not _effect_applier.can_apply(_current_offer[index]):
 			_current_offer.remove_at(index)
+
+
+func _generate_specialization_offer() -> bool:
+	var branch_id: StringName = _specialization_generator.choose_ready_branch()
+	if branch_id == &"":
+		return false
+	var offer: Array[UpgradeDefinition] = (
+		_specialization_generator.generate_event_offer(branch_id)
+	)
+	if offer.size() != 3:
+		return false
+	for definition: UpgradeDefinition in offer:
+		if not _effect_applier.can_apply(definition):
+			return false
+	_specialization_offer = true
+	_specialization_branch = branch_id
+	_current_offer = offer
+	return true
 
 
 func _emit_current_offer() -> void:
@@ -181,6 +231,13 @@ func _emit_current_offer() -> void:
 		get_current_cost(),
 		_current_offer.size()
 	)
+	if _specialization_offer:
+		specialization_offer_opened.emit(
+			_specialization_branch,
+			get_current_offer_number(),
+			get_current_cost(),
+			_current_offer.size()
+		)
 
 
 func _close_offer() -> void:
@@ -193,9 +250,13 @@ func _close_offer() -> void:
 func _cancel_offer() -> void:
 	if not _offer_open:
 		_current_offer.clear()
+		_specialization_offer = false
+		_specialization_branch = &""
 		return
 	_offer_open = false
 	_current_offer.clear()
+	_specialization_offer = false
+	_specialization_branch = &""
 	offer_closed.emit()
 
 
@@ -212,6 +273,30 @@ func _find_offer_index(card_id: StringName) -> int:
 		if _current_offer[index].card_id == card_id:
 			return index
 	return -1
+
+
+func _get_specialization_unavailability_reason(
+	definition: UpgradeDefinition
+) -> StringName:
+	if definition == null or not definition.is_valid():
+		return &"invalid_definition"
+	if definition.card_type != UpgradeDefinition.CardType.SPECIALIZATION:
+		return &"not_specialization_card"
+	if definition.branch_id != _specialization_branch:
+		return &"wrong_specialization_branch"
+	if _runtime.has_specialization(definition.branch_id):
+		return &"specialization_already_selected"
+	if _runtime.is_specialization_closed(definition.card_id):
+		return &"specialization_closed"
+	if _runtime.get_repeat_count(definition.card_id) >= definition.repeat_limit:
+		return &"repeat_limit_reached"
+	return &""
+
+
+func _get_specialization_seed() -> int:
+	if deterministic_seed == 0:
+		return 0
+	return deterministic_seed + 1
 
 
 func _on_coins_changed(
