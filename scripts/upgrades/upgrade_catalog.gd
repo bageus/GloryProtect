@@ -43,9 +43,8 @@ func is_available(
 	for prerequisite_id: StringName in definition.prerequisite_card_ids:
 		if not runtime.has_card(prerequisite_id):
 			return false
-	if definition.required_specialization_id != &":":
-		if definition.required_specialization_id != &"":
-			var selected: StringName = runtime.get_specialization(definition.branch_id)
-			if selected != definition.required_specialization_id:
-				return false
+	if definition.required_specialization_id != &"":
+		var selected: StringName = runtime.get_specialization(definition.branch_id)
+		if selected != definition.required_specialization_id:
+			return false
 	return true
