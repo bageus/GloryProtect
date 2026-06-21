@@ -93,7 +93,8 @@ func _test_domain_effects_and_limits() -> void:
 		assert(buildables.get_unlocked_count(BuildableType.Id.TURRET) == expected_turrets)
 	assert(runtime.get_branch_progress(&"turret") == 0)
 	assert(buildables.balance.turret_damage == 1)
-	assert(not applier.can_apply(post))
+	assert(not catalog.is_available(post, runtime))
+	assert(applier.can_apply(post))
 
 	var fourth: UpgradeDefinition = catalog.get_definition(&"turret_fourth")
 	assert(not catalog.is_available(fourth, runtime))
