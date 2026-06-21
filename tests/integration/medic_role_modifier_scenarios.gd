@@ -22,9 +22,13 @@ func _run_scenario() -> void:
 	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var replacements: CrewReplacementController = game.get_node(
+		"CrewReplacementController"
+	)
 	var controller: MedicRoleModifierController = game.get_node(
 		"World/MedicRoleModifierController"
 	)
+	replacements.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
 	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) >= 0)
@@ -75,6 +79,24 @@ func _run_scenario() -> void:
 	assert(second.health.current_health == second.health.max_health)
 	assert(second.durability.get_role_max_armor() == 2)
 	assert(second.durability.get_role_current_armor() == 1)
+
+	second.health.set_health(0)
+	await process_frame
+	assert(controller.get_active_medic_id() == -1)
+	assert(controller.get_stored_health_segments() == 2)
+	assert(controller.get_stored_armor_segments() == 2)
+	assert(second.get_medic_role_health_bonus() == 0)
+	assert(second.durability.get_role_max_armor() == 0)
+
+	roles.request_assignment(first.defender_id, CrewRole.Id.MEDIC)
+	await _wait_for_role(roles, first.defender_id, CrewRole.Id.MEDIC)
+	await process_frame
+	assert(controller.get_active_medic_id() == first.defender_id)
+	assert(first.health.max_health == base_with_melee + 2)
+	assert(first.health.current_health == first.health.max_health)
+	assert(first.get_medic_role_health_current() == 2)
+	assert(first.durability.get_role_max_armor() == 2)
+	assert(first.durability.get_role_current_armor() == 2)
 
 	print("Medic role modifier scenarios passed")
 	quit()
