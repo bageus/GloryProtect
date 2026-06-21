@@ -36,8 +36,16 @@ func _test_catalog_and_opening_rules() -> void:
 
 	assert(runtime.record_card(post))
 	assert(runtime.get_branch_progress(&"turret") == 0)
-	for card_id: StringName in basic_ids:
-		assert(CATALOG.is_available(CATALOG.get_definition(card_id), runtime))
+	var available_turret_basics: Array[StringName] = []
+	for definition: UpgradeDefinition in CATALOG.get_available_definitions(runtime):
+		if (
+			definition.branch_id == &"turret"
+			and definition.card_type == UpgradeDefinition.CardType.BASIC
+		):
+			available_turret_basics.append(definition.card_id)
+	available_turret_basics.sort()
+	basic_ids.sort()
+	assert(available_turret_basics == basic_ids)
 
 	assert(not CATALOG.is_available(
 		CATALOG.get_definition(&"turret_damage_advanced"),
@@ -103,6 +111,7 @@ func _test_offer_has_unique_card_ids() -> void:
 	for seed: int in range(1, 40):
 		generator.set_seed(seed)
 		var offer: Array[UpgradeDefinition] = generator.generate_offer()
+		assert(offer.size() == DRAW_BALANCE.cards_per_offer)
 		var seen: Dictionary[StringName, bool] = {}
 		for definition: UpgradeDefinition in offer:
 			assert(not seen.has(definition.card_id))
@@ -114,12 +123,18 @@ func _test_common_values_and_reset() -> void:
 		&"common_add_defender"
 	)
 	assert(add_defender.repeat_limit == 5)
-	assert(CATALOG.get_definition(
-		&"common_move_speed_basic"
-	).effect.scalar_value == 1.15)
-	assert(CATALOG.get_definition(
-		&"common_respawn_basic"
-	).effect.scalar_value == 0.75)
+	assert(is_equal_approx(
+		CATALOG.get_definition(
+			&"common_move_speed_basic"
+		).effect.scalar_value,
+		1.15
+	))
+	assert(is_equal_approx(
+		CATALOG.get_definition(
+			&"common_respawn_basic"
+		).effect.scalar_value,
+		0.75
+	))
 
 	var runtime := UpgradeRuntime.new()
 	for _index: int in range(5):
