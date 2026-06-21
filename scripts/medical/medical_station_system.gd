@@ -56,6 +56,8 @@ func _physics_process(delta: float) -> void:
 	if _cycle_active:
 		_update_active_cycle(medic, maxf(0.0, delta))
 		return
+	if medic.melee.is_attacking():
+		return
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(medic.defender_id)
 	if assignment == null:
