@@ -71,7 +71,7 @@ func is_fighting() -> bool:
 
 
 func is_turret_targetable() -> bool:
-	return false
+	return is_climbing() or is_on_platform()
 
 
 func force_board_at(_local_x: float) -> void:
