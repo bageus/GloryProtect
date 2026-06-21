@@ -1,12 +1,17 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
 [ext_resource type="PackedScene" path="res://scenes/boarding/boarding_enemy.tscn" id="3_enemy"]
 [ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="4_boarding"]
 [ext_resource type="Resource" path="res://resources/enemies/flying_enemy_profile.tres" id="5_profile"]
+[ext_resource type="Resource" path="res://resources/upgrades/common_repeatable_upgrade_catalog.tres" id="6_upgrades"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
+
+[node name="UpgradeSystem" parent="." index="2"]
+catalog = ExtResource("6_upgrades")
+replacement_controller_path = NodePath("../CrewReplacementController")
 
 [node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
 script = ExtResource("2_director")
