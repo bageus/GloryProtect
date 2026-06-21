@@ -104,6 +104,20 @@ func apply_stun(duration_seconds: float) -> void:
 	stun_changed.emit(enemy_id, _stun_remaining)
 
 
+func apply_platform_knockback(
+	distance: float,
+	source_world_x: float
+) -> void:
+	if distance <= 0.0 or behavior != null or not controller.is_on_platform():
+		return
+	var direction: float = signf(global_position.x - source_world_x)
+	if is_zero_approx(direction):
+		direction = 1.0
+	controller.force_board_at(
+		controller.get_platform_local_x() + direction * distance
+	)
+
+
 func is_stunned() -> bool:
 	return _stun_remaining > 0.0
 
