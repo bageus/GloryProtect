@@ -59,16 +59,24 @@ func _tick_behavior(delta: float) -> void:
 	)
 	var distance: float = enemy.global_position.distance_to(target_position)
 	if distance <= profile.attack_range:
-		state = State.ATTACKING
-		publish_visual_state(&"attacking")
+		_set_state(State.ATTACKING)
 		melee.try_start(target.health)
 		return
-	state = State.FLYING
-	publish_visual_state(&"flying")
+	_set_state(State.FLYING)
 	var direction: Vector2 = enemy.global_position.direction_to(target_position)
 	var velocity: Vector2 = direction * profile.flight_speed
 	velocity += _get_separation_velocity()
 	enemy.global_position += velocity * delta
+
+
+func _set_state(new_state: int) -> void:
+	if state == new_state:
+		return
+	state = new_state
+	if state == State.ATTACKING:
+		publish_visual_state(&"attacking")
+	else:
+		publish_visual_state(&"flying")
 
 
 func _get_separation_velocity() -> Vector2:
