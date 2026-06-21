@@ -18,7 +18,14 @@ enum TargetDomain {
 
 var enemy: BoardingEnemy
 var game_flow: GameFlowController
+var context: EnemyBehaviorContext
 var active: bool = false
+
+
+func set_context(new_context: EnemyBehaviorContext) -> void:
+	assert(not active, "Enemy behavior context must be set before activation")
+	assert(new_context != null, "Enemy behavior context is required")
+	context = new_context
 
 
 func configure(
