@@ -2,6 +2,7 @@ class_name AnchorRuntimeStore
 extends RefCounted
 
 signal anchor_state_changed(anchor_id: int, state: int)
+signal anchor_attached(anchor_id: int)
 
 var _anchors: Array[AnchorRuntime] = []
 
@@ -62,6 +63,7 @@ func attach(anchor_id: int, platform_x: float) -> void:
 	anchor.attached_orb_id = anchor.target_orb_id
 	anchor.attached_ground_point = anchor.target_ground_point
 	_set_state(anchor_id, AnchorRuntime.State.ATTACHED)
+	anchor_attached.emit(anchor_id)
 
 
 func begin_overload(anchor_id: int) -> void:
