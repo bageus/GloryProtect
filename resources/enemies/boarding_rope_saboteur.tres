@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="RopeSaboteurArchetype" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/boarding/rope_saboteur_archetype.gd" id="1_archetype"]
+[ext_resource type="PackedScene" path="res://scenes/boarding/rope_saboteur_enemy.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_archetype")
+archetype_id = &"rope_saboteur"
+display_name = "Подрывник троса"
+enemy_scene = ExtResource("2_scene")
+max_health = 1
+body_radius = 9.0
+body_color = Color(0.42, 0.65, 0.18, 1)
+accent_color = Color(0.95, 0.86, 0.2, 1)
+ground_move_speed = 155.0
+climb_move_speed = 20.0
+platform_move_speed = 20.0
+attack_damage = 1
+attack_windup = 0.5
+attack_cooldown = 1.0
+attack_range = 20.0
+unlock_difficulty = 0.25
+weight_at_unlock = 0.15
+weight_at_max_difficulty = 0.9
+rope_damage = 35.0
+arming_duration = 1.6
