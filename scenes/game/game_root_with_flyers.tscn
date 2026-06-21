@@ -8,7 +8,7 @@
 [ext_resource type="Resource" path="res://resources/upgrades/game_upgrade_catalog.tres" id="6_upgrades"]
 [ext_resource type="Script" path="res://scripts/upgrades/turret_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
-[ext_resource type="Resource" path="res://resources/balance/turret_upgrade_balance.tres" id="9_turret_balance"]
+[ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
