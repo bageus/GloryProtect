@@ -10,6 +10,7 @@ const BALANCE: TurretUpgradeBalance = preload(
 
 func _init() -> void:
 	_test_base_lines()
+	_test_effect_validation()
 	_test_specializations()
 	_test_catalog_prerequisites()
 	_test_independent_shot_and_volley_counters()
@@ -31,6 +32,36 @@ func _test_base_lines() -> void:
 	assert(upgrades.apply_scalar(&"turret_range_bonus_ratio", 0.2))
 	assert(upgrades.apply_scalar(&"turret_range_bonus_ratio", 0.2))
 	assert(is_equal_approx(upgrades.get_range(360.0), 360.0 * 1.4))
+
+
+func _test_effect_validation() -> void:
+	var upgrades := TurretUpgradeRuntime.new()
+	var damage := UpgradeEffectDefinition.new()
+	damage.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR
+	damage.target_id = &"turret_damage_bonus"
+	damage.scalar_value = 1.0
+	assert(upgrades.can_apply_effect(damage))
+	damage.scalar_value = 0.0
+	assert(not upgrades.can_apply_effect(damage))
+	damage.scalar_value = -1.0
+	assert(not upgrades.can_apply_effect(damage))
+	damage.scalar_value = 0.5
+	assert(not upgrades.can_apply_effect(damage))
+	assert(not upgrades.apply_scalar(damage.target_id, damage.scalar_value))
+
+	var heavy := UpgradeEffectDefinition.new()
+	heavy.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_FLAG
+	heavy.target_id = TurretUpgradeRuntime.HEAVY
+	var explosion := UpgradeEffectDefinition.new()
+	explosion.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_FLAG
+	explosion.target_id = &"turret_heavy_explosive_fifth"
+	assert(upgrades.can_apply_effect(heavy))
+	assert(not upgrades.can_apply_effect(explosion))
+	assert(upgrades.apply_flag(heavy.target_id))
+	assert(not upgrades.can_apply_effect(heavy))
+	assert(upgrades.can_apply_effect(explosion))
+	assert(upgrades.apply_flag(explosion.target_id))
+	assert(not upgrades.can_apply_effect(explosion))
 
 
 func _test_specializations() -> void:
