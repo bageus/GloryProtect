@@ -8,7 +8,7 @@ extends BoardingEnemyArchetype
 
 func is_valid() -> bool:
 	return (
-		super.is_valid()
+		super()
 		and enemy_scene != null
 		and rope_damage > 0.0
 		and arming_duration > 0.0
