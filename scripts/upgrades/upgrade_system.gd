@@ -2,12 +2,7 @@ class_name UpgradeSystem
 extends Node
 
 signal offer_opened(offer_number: int, cost: int, card_count: int)
-signal specialization_offer_opened(
-	branch_id: StringName,
-	offer_number: int,
-	cost: int,
-	card_count: int
-)
+signal specialization_offer_opened(branch_id: StringName, offer_number: int, cost: int, card_count: int)
 signal offer_closed
 signal card_selected(card_index: int, offer_number: int, cost: int)
 signal card_selected_by_id(card_id: StringName, offer_number: int, cost: int)
@@ -19,16 +14,13 @@ signal progress_reset
 @export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath("../World/Platform/CrewManager")
 @export_node_path("CrewReplacementController") var replacement_controller_path: NodePath = NodePath("../CrewReplacementController")
 @export var balance: UpgradeBalance
-@export var catalog: UpgradeCatalog = preload(
-	"res://resources/upgrades/game_upgrade_catalog.tres"
-)
-@export var draw_balance: UpgradeDrawBalance = preload(
-	"res://resources/upgrades/upgrade_draw_balance.tres"
-)
+@export var catalog: UpgradeCatalog = preload("res://resources/upgrades/game_upgrade_catalog.tres")
+@export var draw_balance: UpgradeDrawBalance = preload("res://resources/upgrades/upgrade_draw_balance.tres")
 @export var deterministic_seed: int = 0
 
 var _completed_purchases: int = 0
 var _offer_open: bool = false
+var _selection_in_progress: bool = false
 var _specialization_offer: bool = false
 var _specialization_branch: StringName = &""
 var _current_offer: Array[UpgradeDefinition] = []
@@ -41,9 +33,7 @@ var _specialization_generator := UpgradeSpecializationEventGenerator.new()
 @onready var _economy: RunEconomy = get_node(run_economy_path)
 @onready var _buildables: BuildableInventory = get_node(buildable_inventory_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
-@onready var _replacements: CrewReplacementController = get_node(
-	replacement_controller_path
-)
+@onready var _replacements: CrewReplacementController = get_node(replacement_controller_path)
 
 
 func _ready() -> void:
@@ -51,23 +41,9 @@ func _ready() -> void:
 	assert(catalog != null and catalog.is_valid(), "UpgradeSystem catalog is invalid")
 	assert(draw_balance != null and draw_balance.is_valid(), "Upgrade draw balance is invalid")
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	_effect_applier.configure(
-		_buildables,
-		_runtime,
-		_crew,
-		_replacements
-	)
-	_draw_generator.configure(
-		draw_balance,
-		catalog,
-		_runtime,
-		deterministic_seed
-	)
-	_specialization_generator.configure(
-		catalog,
-		_runtime,
-		_get_specialization_seed()
-	)
+	_effect_applier.configure(_buildables, _runtime, _crew, _replacements)
+	_draw_generator.configure(draw_balance, catalog, _runtime, deterministic_seed)
+	_specialization_generator.configure(catalog, _runtime, _get_specialization_seed())
 	_economy.coins_changed.connect(_on_coins_changed)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 
@@ -90,6 +66,14 @@ func get_current_cost() -> int:
 
 func get_card_count() -> int:
 	return _current_offer.size() if _offer_open else draw_balance.cards_per_offer
+
+
+func get_card_definition(card_index: int) -> UpgradeDefinition:
+	return _get_offer_definition(card_index)
+
+
+func get_all_card_definitions() -> Array[UpgradeDefinition]:
+	return catalog.definitions.duplicate()
 
 
 func get_card_id(card_index: int) -> StringName:
@@ -127,6 +111,10 @@ func is_offer_open() -> bool:
 	return _offer_open
 
 
+func is_selection_in_progress() -> bool:
+	return _selection_in_progress
+
+
 func is_specialization_offer() -> bool:
 	return _offer_open and _specialization_offer
 
@@ -139,13 +127,25 @@ func choose_card(card_index: int) -> bool:
 	var definition: UpgradeDefinition = _get_offer_definition(card_index)
 	if definition == null:
 		return false
-	return choose_card_by_id(definition.card_id)
+	return choose_card_for_offer(
+		definition.card_id,
+		get_current_offer_number()
+	)
 
 
 func choose_card_by_id(card_id: StringName) -> bool:
-	if not _offer_open:
+	return choose_card_for_offer(card_id, get_current_offer_number())
+
+
+func choose_card_for_offer(
+	card_id: StringName,
+	expected_offer_number: int
+) -> bool:
+	if _selection_in_progress:
 		return false
-	if _game_flow.state != GameFlowController.RunState.CARD_SELECTION:
+	if expected_offer_number != get_current_offer_number():
+		return false
+	if not _offer_open or _game_flow.state != GameFlowController.RunState.CARD_SELECTION:
 		return false
 	var offer_index: int = _find_offer_index(card_id)
 	if offer_index < 0:
@@ -155,23 +155,25 @@ func choose_card_by_id(card_id: StringName) -> bool:
 		return false
 	if not _effect_applier.can_apply(definition):
 		return false
-
+	_selection_in_progress = true
 	var offer_number: int = get_current_offer_number()
 	var cost: int = get_current_cost()
 	if not _economy.spend_coins(cost, &"upgrade_card"):
+		_selection_in_progress = false
 		return false
 	if not _effect_applier.apply_effect(definition):
 		_economy.add_coins(cost, &"upgrade_refund")
+		_selection_in_progress = false
 		return false
 	if not _runtime.record_card(definition):
 		_economy.add_coins(cost, &"upgrade_refund")
+		_selection_in_progress = false
 		return false
 	_draw_generator.apply_selected_card(definition)
-
 	_completed_purchases += 1
 	card_selected.emit(offer_index, offer_number, cost)
 	card_selected_by_id.emit(definition.card_id, offer_number, cost)
-
+	_selection_in_progress = false
 	if _economy.can_afford(get_current_cost()):
 		_generate_offer()
 		_emit_current_offer()
@@ -183,6 +185,7 @@ func choose_card_by_id(card_id: StringName) -> bool:
 func reset_for_run() -> void:
 	_cancel_offer()
 	_completed_purchases = 0
+	_selection_in_progress = false
 	_current_offer.clear()
 	_specialization_offer = false
 	_specialization_branch = &""
@@ -194,9 +197,7 @@ func reset_for_run() -> void:
 
 
 func _open_offer_if_affordable() -> void:
-	if _offer_open:
-		return
-	if _game_flow.state != GameFlowController.RunState.RUNNING:
+	if _offer_open or _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
 	if not _economy.can_afford(get_current_cost()):
 		return
@@ -224,9 +225,7 @@ func _generate_specialization_offer() -> bool:
 	var branch_id: StringName = _specialization_generator.choose_ready_branch()
 	if branch_id == &"":
 		return false
-	var offer: Array[UpgradeDefinition] = (
-		_specialization_generator.generate_event_offer(branch_id)
-	)
+	var offer: Array[UpgradeDefinition] = _specialization_generator.generate_event_offer(branch_id)
 	if offer.size() != 3:
 		return false
 	for definition: UpgradeDefinition in offer:
@@ -239,18 +238,9 @@ func _generate_specialization_offer() -> bool:
 
 
 func _emit_current_offer() -> void:
-	offer_opened.emit(
-		get_current_offer_number(),
-		get_current_cost(),
-		_current_offer.size()
-	)
+	offer_opened.emit(get_current_offer_number(), get_current_cost(), _current_offer.size())
 	if _specialization_offer:
-		specialization_offer_opened.emit(
-			_specialization_branch,
-			get_current_offer_number(),
-			get_current_cost(),
-			_current_offer.size()
-		)
+		specialization_offer_opened.emit(_specialization_branch, get_current_offer_number(), get_current_cost(), _current_offer.size())
 
 
 func _close_offer() -> void:
@@ -261,6 +251,7 @@ func _close_offer() -> void:
 
 
 func _cancel_offer() -> void:
+	_selection_in_progress = false
 	if not _offer_open:
 		_current_offer.clear()
 		_specialization_offer = false
@@ -280,17 +271,13 @@ func _get_offer_definition(card_index: int) -> UpgradeDefinition:
 
 
 func _find_offer_index(card_id: StringName) -> int:
-	if card_id == &"":
-		return -1
 	for index: int in range(_current_offer.size()):
 		if _current_offer[index].card_id == card_id:
 			return index
 	return -1
 
 
-func _get_specialization_unavailability_reason(
-	definition: UpgradeDefinition
-) -> StringName:
+func _get_specialization_unavailability_reason(definition: UpgradeDefinition) -> StringName:
 	if definition == null or not definition.is_valid():
 		return &"invalid_definition"
 	if definition.card_type != UpgradeDefinition.CardType.SPECIALIZATION:
@@ -307,17 +294,10 @@ func _get_specialization_unavailability_reason(
 
 
 func _get_specialization_seed() -> int:
-	if deterministic_seed == 0:
-		return 0
-	return deterministic_seed + 1
+	return 0 if deterministic_seed == 0 else deterministic_seed + 1
 
 
-func _on_coins_changed(
-	_previous_amount: int,
-	_current_amount: int,
-	_delta: int,
-	_source: StringName
-) -> void:
+func _on_coins_changed(_previous_amount: int, _current_amount: int, _delta: int, _source: StringName) -> void:
 	_open_offer_if_affordable()
 
 
