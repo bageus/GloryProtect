@@ -1,9 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/boarding/boarding_enemy.gd" id="1_enemy"]
 [ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/combat/melee_attack_component.gd" id="3_melee"]
-[ext_resource type="Script" path="res://scripts/boarding/boarding_enemy_behavior.gd" id="4_behavior"]
 [ext_resource type="Script" path="res://scripts/boarding/rope_saboteur_controller.gd" id="5_controller"]
 [ext_resource type="Script" path="res://scripts/boarding/rope_saboteur_visual.gd" id="6_visual"]
 
