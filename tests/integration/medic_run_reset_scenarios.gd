@@ -94,6 +94,8 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 0.0))
 	assert(not stimulant.is_active(target.defender_id))
 	assert(role_modifiers.get_active_medic_id() == -1)
+	assert(role_modifiers.get_stored_health_segments() == 0)
+	assert(role_modifiers.get_stored_armor_segments() == 0)
 	assert(not medical.has_station())
 	for defender: Defender in crew.get_all_defenders():
 		assert(defender.get_medic_role_health_bonus() == 0)
