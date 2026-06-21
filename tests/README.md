@@ -23,6 +23,17 @@ godot --headless --path . --script res://tests/integration/rope_saboteur_scenari
 
 The catalog scenario verifies the unlock threshold, specialized archetype and weighted selection. The integration scenario verifies target locking, retargeting, pause behavior, turret targeting, rope-only damage and reward rules.
 
+## Common and repeatable upgrades
+
+```bash
+godot --headless --path . --script res://tests/unit/common_repeatable_upgrade_scenarios.gd
+godot --headless --path . --script res://tests/integration/common_repeatable_upgrade_scenarios.gd
+```
+
+The unit scenario verifies repeat limits, opening-card behavior, constant common-pool influence, unique offers, prerequisites and all three conditions for the fourth turret.
+
+The integration scenario verifies the public domain effects: five additional defenders, two movement upgrades, two respawn upgrades, three turret posts, base turret damage `1`, the conditional fourth turret and clean state in a fresh game scene.
+
 These Godot scenarios are not part of the current GitHub Actions workflow yet. They must be executed locally or added to CI before the pull request is merged.
 
 ## Project guard
