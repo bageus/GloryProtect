@@ -92,6 +92,10 @@ func is_grounded_for_limit() -> bool:
 	return state != State.DEAD
 
 
+func is_turret_targetable() -> bool:
+	return state == State.ARMING
+
+
 func get_arming_progress() -> float:
 	if _archetype == null or _archetype.arming_duration <= 0.0:
 		return 0.0
