@@ -23,6 +23,21 @@ func configure(new_max_health: int) -> void:
 		health_changed.emit(current_health, max_health)
 
 
+func set_max_health(
+	new_max_health: int,
+	add_increase_to_current: bool = true
+) -> void:
+	var previous_max: int = max_health
+	var resolved_max: int = maxi(1, new_max_health)
+	if resolved_max == previous_max:
+		return
+	max_health = resolved_max
+	if add_increase_to_current and resolved_max > previous_max:
+		current_health += resolved_max - previous_max
+	current_health = clampi(current_health, 0, max_health)
+	health_changed.emit(current_health, max_health)
+
+
 func set_durability_component(
 	durability: DefenderDurabilityComponent
 ) -> void:
