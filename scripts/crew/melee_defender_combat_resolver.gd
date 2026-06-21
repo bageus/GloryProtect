@@ -2,7 +2,6 @@ class_name MeleeDefenderCombatResolver
 extends RefCounted
 
 const SPLASH_DAMAGE: int = 1
-const HEAVY_BASH_KNOCKBACK: float = 40.0
 
 
 func resolve_primary_hit(
@@ -77,7 +76,7 @@ func _is_isolated_target(
 	registry: BoardingEnemyRegistry,
 	attack_range: float
 ) -> bool:
-	var radius_squared: float = attack_range * attack_range * 4.0
+	var radius_squared: float = attack_range * attack_range
 	for enemy: BoardingEnemy in registry.get_boarded_enemies():
 		if enemy == primary:
 			continue
@@ -114,7 +113,7 @@ func _apply_targets_behind_primary(
 		enemy.health.apply_damage(damage, &"melee_splash", defender)
 		if knockback and enemy.health.is_alive():
 			enemy.apply_platform_knockback(
-				HEAVY_BASH_KNOCKBACK,
+				enemy.get_body_radius() * 2.0,
 				defender.global_position.x
 			)
 
