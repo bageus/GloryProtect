@@ -5,6 +5,7 @@ signal crew_initialized
 signal defender_spawned(defender_id: int, defender: Defender)
 signal defender_died(defender_id: int)
 signal defender_replaced(defender_id: int, defender: Defender)
+signal crew_size_changed(previous_size: int, current_size: int)
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
@@ -34,6 +35,33 @@ func get_all_defenders() -> Array[Defender]:
 	for defender_id: int in ids:
 		result.append(_defenders[defender_id])
 	return result
+
+
+func get_total_count() -> int:
+	return _defenders.size()
+
+
+func can_add_defender() -> bool:
+	return get_total_count() < balance.maximum_defender_count
+
+
+func add_defender(spawn_local_x: float = NAN) -> Defender:
+	if not can_add_defender():
+		return null
+	var defender_id: int = 0
+	while _defenders.has(defender_id):
+		defender_id += 1
+	if defender_id >= balance.maximum_defender_count:
+		return null
+	var resolved_x: float = (
+		balance.replacement_door_local_x
+		if is_nan(spawn_local_x)
+		else spawn_local_x
+	)
+	var previous_size: int = get_total_count()
+	var defender: Defender = _spawn_defender(defender_id, resolved_x)
+	crew_size_changed.emit(previous_size, get_total_count())
+	return defender
 
 
 func get_living_defenders() -> Array[Defender]:
