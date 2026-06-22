@@ -177,6 +177,10 @@ func clear_temporary_action_multipliers() -> void:
 	set_temporary_action_multipliers(1.0, 1.0)
 
 
+func get_temporary_attack_speed_multiplier() -> float:
+	return _temporary_attack_speed_multiplier
+
+
 func can_medic_role_use_melee() -> bool:
 	return (
 		_medic_role_active
