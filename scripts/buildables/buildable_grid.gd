@@ -27,7 +27,7 @@ func _ready() -> void:
 
 
 func place(type_id: int, cell_index: int) -> int:
-	if not is_cell_available(cell_index):
+	if not is_cell_available_for_type(type_id, cell_index):
 		return -1
 	if not _inventory.can_deploy(type_id, get_count_by_type(type_id)):
 		return -1
@@ -49,7 +49,13 @@ func move(buildable_id: int, cell_index: int) -> bool:
 	var runtime: BuildableRuntime = _buildables[buildable_id]
 	if runtime.cell_index == cell_index:
 		return true
-	if not is_cell_available(cell_index):
+	if runtime.type_id == BuildableType.Id.MEDICAL_STATION:
+		return false
+	if not _is_cell_available_for_type(
+		runtime.type_id,
+		cell_index,
+		buildable_id
+	):
 		return false
 	var previous_cell: int = runtime.cell_index
 	_cell_occupants.erase(previous_cell)
@@ -79,9 +85,7 @@ func has_buildable(buildable_id: int) -> bool:
 
 func get_buildable_id_by_type(type_id: int) -> int:
 	var ids: Array[int] = get_buildable_ids_by_type(type_id)
-	if ids.is_empty():
-		return -1
-	return ids[0]
+	return -1 if ids.is_empty() else ids[0]
 
 
 func get_buildable_ids_by_type(type_id: int) -> Array[int]:
@@ -103,31 +107,48 @@ func is_cell_occupied(cell_index: int) -> bool:
 
 
 func is_cell_available(cell_index: int) -> bool:
-	return (
-		_platform.is_valid_cell(cell_index)
-		and not balance.is_reserved_cell(cell_index)
-		and not is_cell_occupied(cell_index)
-	)
+	return is_cell_available_for_type(BuildableType.Id.TURRET, cell_index)
+
+
+func is_cell_available_for_type(type_id: int, cell_index: int) -> bool:
+	return _is_cell_available_for_type(type_id, cell_index, -1)
 
 
 func find_nearest_available_cell(
 	preferred_cell: int,
 	ignored_buildable_id: int = -1
 ) -> int:
-	var cell_count: int = _platform.get_cell_count()
-	if cell_count <= 0:
-		return -1
-	var preferred: int = clampi(preferred_cell, 0, cell_count - 1)
-	if _is_cell_available_for(preferred, ignored_buildable_id):
-		return preferred
+	return find_nearest_available_cell_for_type(
+		BuildableType.Id.TURRET,
+		preferred_cell,
+		ignored_buildable_id
+	)
 
-	for distance: int in range(1, cell_count):
-		var left: int = preferred - distance
-		if left >= 0 and _is_cell_available_for(left, ignored_buildable_id):
-			return left
-		var right: int = preferred + distance
-		if right < cell_count and _is_cell_available_for(right, ignored_buildable_id):
-			return right
+
+func find_nearest_available_cell_for_type(
+	type_id: int,
+	preferred_cell: int,
+	ignored_buildable_id: int = -1
+) -> int:
+	var candidates: Array[int] = []
+	if type_id == BuildableType.Id.MEDICAL_STATION:
+		candidates = [balance.default_medical_cell]
+	elif type_id == BuildableType.Id.TURRET:
+		candidates = balance.turret_cell_indices.duplicate()
+	else:
+		return -1
+
+	candidates.sort_custom(
+		func(a: int, b: int) -> bool:
+			return abs(a - preferred_cell) < abs(b - preferred_cell)
+	)
+	for cell_index: int in candidates:
+		if _is_cell_available_for_type(
+			type_id,
+			cell_index,
+			ignored_buildable_id
+		):
+			return cell_index
 	return -1
 
 
@@ -175,10 +196,20 @@ func get_summary() -> String:
 	]
 
 
-func _is_cell_available_for(cell_index: int, ignored_buildable_id: int) -> bool:
+func _is_cell_available_for_type(
+	type_id: int,
+	cell_index: int,
+	ignored_buildable_id: int
+) -> bool:
 	if not _platform.is_valid_cell(cell_index):
 		return false
-	if balance.is_reserved_cell(cell_index):
+	if type_id == BuildableType.Id.MEDICAL_STATION:
+		if cell_index != balance.default_medical_cell:
+			return false
+	elif type_id == BuildableType.Id.TURRET:
+		if not balance.is_turret_cell(cell_index):
+			return false
+	else:
 		return false
 	if not _cell_occupants.has(cell_index):
 		return true
