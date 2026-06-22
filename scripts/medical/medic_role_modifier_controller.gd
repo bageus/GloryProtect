@@ -230,10 +230,13 @@ func _on_healing_stopped(medic_id: int, _target_id: int) -> void:
 		return
 	defender.set_medic_healing_action_active(false)
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(medic_id)
-	if (
+	var pending_assignment: bool = (
 		assignment != null
 		and assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION
-		and medic_id == _active_medic_id
+	)
+	if (
+		medic_id == _active_medic_id
+		and (pending_assignment or not _medical.has_station())
 	):
 		_detach_current_medic()
 
