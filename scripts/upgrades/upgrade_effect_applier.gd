@@ -6,6 +6,7 @@ var _crew: CrewManager
 var _replacements: CrewReplacementController
 var _runtime: UpgradeRuntime
 var _turrets: TurretUpgradeSystem
+var _medical: MedicalStationSystem
 
 
 func configure(
@@ -13,7 +14,8 @@ func configure(
 	runtime: UpgradeRuntime,
 	crew: CrewManager = null,
 	replacements: CrewReplacementController = null,
-	turrets: TurretUpgradeSystem = null
+	turrets: TurretUpgradeSystem = null,
+	medical: MedicalStationSystem = null
 ) -> void:
 	assert(buildables != null)
 	assert(runtime != null)
@@ -22,6 +24,7 @@ func configure(
 	_crew = crew
 	_replacements = replacements
 	_turrets = turrets
+	_medical = medical
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
@@ -43,14 +46,14 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 			return _replacements != null
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			return _runtime != null
-		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
-		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
-				return (
-					_turrets != null
-					and _turrets.can_apply_upgrade_effect(effect)
-				)
-			if _is_melee_effect(effect) or _is_shooter_effect(effect):
+				return _turrets != null and _turrets.can_apply_upgrade_effect(effect)
+			if _is_melee_effect(effect):
+				return _crew != null and _crew.get_melee_upgrades().can_apply_effect(effect)
+			if _is_medic_effect(effect):
+				return _medical != null and _medical.can_apply_upgrade_effect(effect)
+			if _is_shooter_effect(effect):
 				return _crew != null
 			return _runtime != null
 	return false
@@ -65,10 +68,7 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 	match effect.effect_type:
 		UpgradeEffectDefinition.EffectType.UNLOCK_BUILDABLE:
 			var before: int = _buildables.get_unlocked_count(effect.buildable_type_id)
-			var after: int = _buildables.unlock(
-				effect.buildable_type_id,
-				effect.integer_value
-			)
+			var after: int = _buildables.unlock(effect.buildable_type_id, effect.integer_value)
 			return after > before
 		UpgradeEffectDefinition.EffectType.ADD_DEFENDER:
 			var added: int = 0
@@ -84,24 +84,19 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			_runtime.set_domain_flag(effect.target_id, true)
 			return true
-		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG,
-		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
 				return _turrets.apply_upgrade_effect(effect)
 			if _is_melee_effect(effect):
 				if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 					return _crew.apply_melee_flag(effect.target_id)
-				return _crew.apply_melee_scalar(
-					effect.target_id,
-					effect.scalar_value
-				)
+				return _crew.apply_melee_scalar(effect.target_id, effect.scalar_value)
+			if _is_medic_effect(effect):
+				return _medical.apply_upgrade_effect(effect)
 			if _is_shooter_effect(effect):
 				if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 					return _crew.apply_shooter_flag(effect.target_id)
-				return _crew.apply_shooter_scalar(
-					effect.target_id,
-					effect.scalar_value
-				)
+				return _crew.apply_shooter_scalar(effect.target_id, effect.scalar_value)
 			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 				_runtime.set_domain_flag(effect.target_id, true)
 				return true
@@ -116,6 +111,10 @@ func _is_turret_effect(effect: UpgradeEffectDefinition) -> bool:
 
 func _is_melee_effect(effect: UpgradeEffectDefinition) -> bool:
 	return String(effect.target_id).begins_with("melee_")
+
+
+func _is_medic_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("medic_")
 
 
 func _is_shooter_effect(effect: UpgradeEffectDefinition) -> bool:
