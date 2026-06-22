@@ -45,20 +45,17 @@ enum PortalState {
 @export var platform_core_size: Vector2 = Vector2(112.0, 112.0)
 @export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.33
 @export var platform_core_offset: Vector2 = Vector2.ZERO
+@export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
 @export_group("Driver Console")
-@export var driver_toggle_size: Vector2 = Vector2(104.0, 82.0)
-@export var driver_toggle_offset: Vector2 = Vector2(0.0, -51.0)
-@export var driver_lever_size: Vector2 = Vector2(28.0, 68.0)
-@export var driver_lever_mount_offset: Vector2 = Vector2(0.0, 5.0)
+@export var driver_console_surface_offset: Vector2 = Vector2(0.0, -2.0)
+@export var driver_lever_mount_normalized: Vector2 = Vector2(0.5, 0.58)
+@export var driver_lever_mount_offset: Vector2 = Vector2(0.0, 0.0)
 @export_range(0.0, 60.0, 1.0) var driver_lever_max_angle_degrees: float = 24.0
 @export_range(1.0, 30.0, 0.5) var driver_lever_response_speed: float = 13.0
 
 @export_group("Portal Visual")
-@export var portal_size: Vector2 = Vector2(136.0, 136.0)
-@export var portal_local_y: float = -82.0
-@export var portal_offset: Vector2 = Vector2.ZERO
-@export var portal_overlay_size: Vector2 = Vector2(104.0, 104.0)
+@export var portal_surface_offset: Vector2 = Vector2(0.0, 2.0)
 @export var portal_overlay_offset: Vector2 = Vector2(0.0, 2.0)
 @export_range(0.01, 2.0, 0.01) var portal_flash_duration: float = 0.18
 @export_range(0.01, 2.0, 0.01) var portal_ghost_duration: float = 0.26
@@ -92,7 +89,9 @@ func _ready() -> void:
 	_driver_lever_source_rect = _get_alpha_bounds(DRIVER_LEVER_TEXTURE)
 	var scene_root: Node = get_tree().current_scene
 	if scene_root != null:
-		_game_flow = scene_root.get_node_or_null("GameFlowController") as GameFlowController
+		_game_flow = scene_root.get_node_or_null(
+			"GameFlowController"
+		) as GameFlowController
 	_steering_input.driver_availability_changed.connect(_on_visual_state_changed)
 	queue_redraw()
 
@@ -129,7 +128,6 @@ func _draw() -> void:
 		Vector2(platform_width, balance.platform_height)
 	)
 
-	# The solid body remains behind transparent holes inside the tile artwork.
 	draw_rect(platform_rect, Color(0.12, 0.17, 0.24), true)
 	_draw_platform_tiles(platform_width)
 	draw_rect(platform_rect, Color(0.55, 0.69, 0.82, 0.45), false, 2.0)
@@ -175,10 +173,13 @@ func _draw_cells(platform_width: float) -> void:
 
 
 func _draw_portal() -> void:
-	var center := Vector2(
-		crew_balance.replacement_door_local_x,
-		portal_local_y
-	) + portal_offset
+	var portal_size: Vector2 = _portal_source_rect.size * object_asset_scale
+	var platform_top: float = -balance.platform_height * 0.5
+	var portal_bottom := Vector2(
+		crew_balance.replacement_door_local_x + portal_surface_offset.x,
+		platform_top + portal_surface_offset.y
+	)
+	var center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
 	var portal_rect := Rect2(center - portal_size * 0.5, portal_size)
 	draw_texture_rect_region(
 		PORTAL_TEXTURE,
@@ -235,9 +236,10 @@ func _draw_portal_overlay(
 	center: Vector2,
 	modulate: Color
 ) -> void:
+	var overlay_size: Vector2 = source_rect.size * object_asset_scale
 	var rect := Rect2(
-		center + portal_overlay_offset - portal_overlay_size * 0.5,
-		portal_overlay_size
+		center + portal_overlay_offset - overlay_size * 0.5,
+		overlay_size
 	)
 	draw_texture_rect_region(texture, rect, source_rect, modulate)
 
@@ -270,10 +272,20 @@ func _draw_portal_defender_ghost(center: Vector2, alpha: float) -> void:
 
 
 func _draw_driver_console() -> void:
-	var console_center: Vector2 = driver_toggle_offset
+	var console_size: Vector2 = (
+		_driver_toggle_source_rect.size * object_asset_scale
+	)
+	var lever_size: Vector2 = (
+		_driver_lever_source_rect.size * object_asset_scale
+	)
+	var platform_top: float = -balance.platform_height * 0.5
+	var console_bottom := Vector2(
+		driver_console_surface_offset.x,
+		platform_top + driver_console_surface_offset.y
+	)
 	var console_rect := Rect2(
-		console_center - driver_toggle_size * 0.5,
-		driver_toggle_size
+		console_bottom - Vector2(console_size.x * 0.5, console_size.y),
+		console_size
 	)
 	var console_tint := Color.WHITE
 	if not _steering_input.driver_available:
@@ -285,13 +297,15 @@ func _draw_driver_console() -> void:
 		console_tint
 	)
 
-	var lever_mount: Vector2 = console_center + driver_lever_mount_offset
+	var lever_mount := Vector2(
+		console_rect.position.x
+			+ console_rect.size.x * driver_lever_mount_normalized.x,
+		console_rect.position.y
+			+ console_rect.size.y * driver_lever_mount_normalized.y
+	) + driver_lever_mount_offset
 	var lever_rect := Rect2(
-		Vector2(
-			-driver_lever_size.x * 0.5,
-			-driver_lever_size.y
-		),
-		driver_lever_size
+		Vector2(-lever_size.x * 0.5, -lever_size.y),
+		lever_size
 	)
 	draw_set_transform(lever_mount, _driver_lever_angle, Vector2.ONE)
 	draw_texture_rect_region(
