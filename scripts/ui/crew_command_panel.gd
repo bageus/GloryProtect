@@ -1,12 +1,12 @@
 class_name CrewCommandPanel
 extends Control
 
-const LEFT_ANCHOR_CELL: int = 1
+const LEFT_ANCHOR_CELL := 1
 const LEFT_FREE_CELLS: Array[int] = [2, 3, 4, 5]
-const MEDIC_CELL: int = 7
-const DRIVER_CELL: int = 10
+const MEDIC_CELL := 7
+const DRIVER_CELL := 10
 const RIGHT_FREE_CELLS: Array[int] = [12, 13, 14, 15]
-const RIGHT_ANCHOR_CELL: int = 16
+const RIGHT_ANCHOR_CELL := 16
 
 enum SlotKind {
 	LEFT_ANCHOR,
@@ -25,13 +25,13 @@ var _grid: BuildableGrid
 var _platform: PlatformController
 var _inventory: BuildableInventory
 var _buildable_input: BuildableDebugInput
-var _configured: bool = false
+var _configured := false
 
 var _slot_specs: Array[Dictionary] = []
 var _slot_buttons: Array[Button] = []
-var _free_cell_by_defender: Dictionary[int, int] = {}
-var _pending_free_moves: Dictionary[int, int] = {}
-var _selected_slot: int = -1
+var _free_cell_by_defender: Dictionary = {}
+var _pending_free_moves: Dictionary = {}
+var _selected_slot := -1
 var _context_panel: PanelContainer
 var _context_box: VBoxContainer
 var _feedback_label: Label
@@ -52,11 +52,9 @@ func configure(
 	_grid = grid
 	_platform = grid.get_node(grid.platform_path) as PlatformController
 	_inventory = grid.get_node(grid.inventory_path) as BuildableInventory
-	var scene_root: Node = get_tree().current_scene
-	if scene_root != null:
-		_buildable_input = scene_root.get_node_or_null(
-			"BuildableDebugInput"
-		) as BuildableDebugInput
+	_buildable_input = grid.get_node_or_null(
+		"../../BuildableDebugInput"
+	) as BuildableDebugInput
 	_configured = true
 
 
@@ -80,29 +78,20 @@ func _process(_delta: float) -> void:
 	_cleanup_free_assignments()
 	_auto_distribute_free_fighters()
 	_update_slots()
-	if _context_panel.visible:
-		_rebuild_context_menu()
 
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventMouseButton:
 		return
 	var mouse_event := event as InputEventMouseButton
-	if (
-		mouse_event.button_index != MOUSE_BUTTON_LEFT
-		or not mouse_event.pressed
-	):
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
 		return
 	if not _can_place_turret_with_mouse():
 		return
 	var local_mouse: Vector2 = _platform.get_local_mouse_position()
-	var half_width: float = _platform.get_platform_width() * 0.5
-	if absf(local_mouse.x) > half_width:
+	if absf(local_mouse.x) > _platform.get_platform_width() * 0.5:
 		return
-	if (
-		local_mouse.y < -150.0
-		or local_mouse.y > _platform.get_platform_height() * 0.75
-	):
+	if local_mouse.y < -150.0 or local_mouse.y > 45.0:
 		return
 	var preferred_cell: int = _get_nearest_turret_cell(local_mouse.x)
 	var target_cell: int = _grid.find_nearest_available_cell_for_type(
@@ -127,7 +116,7 @@ func select_defender(defender_id: int) -> bool:
 
 
 func request_selected_role(role_id: int, station_id: int = -1) -> void:
-	if not _commands_enabled():
+	if not are_commands_enabled():
 		_set_feedback("Команды сейчас недоступны", true)
 		return
 	_roles.request_assignment(
@@ -138,7 +127,7 @@ func request_selected_role(role_id: int, station_id: int = -1) -> void:
 
 
 func are_commands_enabled() -> bool:
-	return _commands_enabled()
+	return _game_flow.is_world_simulation_active()
 
 
 func get_defender_button_count() -> int:
@@ -158,8 +147,7 @@ func is_turret_role_enabled(buildable_id: int) -> bool:
 
 
 func _build_slot_specs() -> void:
-	_slot_specs.clear()
-	_slot_specs.append(_make_slot(SlotKind.LEFT_ANCHOR, LEFT_ANCHOR_CELL))
+	_slot_specs = [_make_slot(SlotKind.LEFT_ANCHOR, LEFT_ANCHOR_CELL)]
 	for cell_index: int in LEFT_FREE_CELLS:
 		_slot_specs.append(_make_slot(SlotKind.FREE_CELL, cell_index))
 	_slot_specs.append(_make_slot(SlotKind.MEDIC, MEDIC_CELL))
@@ -170,19 +158,12 @@ func _build_slot_specs() -> void:
 
 
 func _make_slot(kind: int, cell_index: int) -> Dictionary:
-	return {
-		"kind": kind,
-		"cell": cell_index,
-	}
+	return {"kind": kind, "cell": cell_index}
 
 
 func _build_interface() -> void:
 	set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	offset_left = 0.0
 	offset_top = -142.0
-	offset_right = 0.0
-	offset_bottom = 0.0
-
 	_build_side_panel(true, 0, 6)
 	_build_side_panel(false, 6, 12)
 	_build_context_panel()
@@ -283,7 +264,10 @@ func _make_context_style() -> StyleBoxFlat:
 	style.bg_color = Color(0.018, 0.026, 0.043, 0.98)
 	style.border_color = Color(0.34, 0.56, 0.76, 1.0)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
 	return style
 
 
@@ -304,8 +288,8 @@ func _connect_signals() -> void:
 func _update_slots() -> void:
 	for slot_index: int in range(_slot_specs.size()):
 		var spec: Dictionary = _slot_specs[slot_index]
-		var button: Button = _slot_buttons[slot_index]
 		var description: Dictionary = _describe_slot(spec)
+		var button: Button = _slot_buttons[slot_index]
 		button.text = "%s\n%s" % [
 			description["title"],
 			description["occupant"],
@@ -317,10 +301,9 @@ func _update_slots() -> void:
 func _describe_slot(spec: Dictionary) -> Dictionary:
 	var kind: int = int(spec["kind"])
 	var cell_index: int = int(spec["cell"])
-	var title: String = "СВОБОДНАЯ ЯЧЕЙКА"
-	var owner_id: int = -1
-	var available: bool = true
-
+	var title := "СВОБОДНАЯ ЯЧЕЙКА"
+	var owner_id := -1
+	var available := true
 	match kind:
 		SlotKind.LEFT_ANCHOR:
 			title = "ЛЕВЫЙ ЯКОРЬ"
@@ -346,7 +329,7 @@ func _describe_slot(spec: Dictionary) -> Dictionary:
 			else:
 				owner_id = _get_free_fighter_at_cell(cell_index)
 
-	var occupant: String = "свободно"
+	var occupant := "свободно"
 	if not available:
 		occupant = "не открыт"
 	elif owner_id >= 0:
@@ -370,11 +353,10 @@ func _on_slot_pressed(slot_index: int) -> void:
 func _rebuild_context_menu() -> void:
 	_clear_children(_context_box)
 	if _selected_slot < 0 or _selected_slot >= _slot_specs.size():
-		_context_panel.visible = false
+		_close_context()
 		return
 	var spec: Dictionary = _slot_specs[_selected_slot]
 	var description: Dictionary = _describe_slot(spec)
-
 	var title := Label.new()
 	title.text = String(description["title"])
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -428,13 +410,12 @@ func _add_close_button() -> void:
 
 
 func _on_release_pressed(slot_index: int) -> void:
-	var owner_id: int = int(_describe_slot(_slot_specs[slot_index])["owner"])
+	var spec: Dictionary = _slot_specs[slot_index]
+	var owner_id: int = int(_describe_slot(spec)["owner"])
 	if owner_id < 0:
 		return
-	var spec: Dictionary = _slot_specs[slot_index]
 	if int(spec["kind"]) == SlotKind.FREE_CELL:
-		var turret_id: int = _get_turret_at_cell(int(spec["cell"]))
-		if turret_id < 0:
+		if _get_turret_at_cell(int(spec["cell"])) < 0:
 			_free_cell_by_defender.erase(owner_id)
 			_pending_free_moves.erase(owner_id)
 			_set_feedback("Боевая ячейка освобождена", false)
@@ -446,15 +427,13 @@ func _on_release_pressed(slot_index: int) -> void:
 
 
 func _on_assign_pressed(slot_index: int, defender_id: int) -> void:
-	if not _commands_enabled():
+	if not are_commands_enabled():
 		_set_feedback("Команды сейчас недоступны", true)
 		return
 	var spec: Dictionary = _slot_specs[slot_index]
-	var description: Dictionary = _describe_slot(spec)
-	var previous_owner: int = int(description["owner"])
+	var previous_owner: int = int(_describe_slot(spec)["owner"])
 	if previous_owner >= 0 and previous_owner != defender_id:
 		_release_post_owner(previous_owner)
-
 	_selection.select_defender(defender_id)
 	var kind: int = int(spec["kind"])
 	var cell_index: int = int(spec["cell"])
@@ -463,17 +442,11 @@ func _on_assign_pressed(slot_index: int, defender_id: int) -> void:
 		if turret_id < 0:
 			_assign_free_fighter_to_cell(defender_id, cell_index)
 		else:
-			_free_cell_by_defender.erase(defender_id)
-			_roles.request_assignment(
-				defender_id,
-				CrewRole.Id.TURRET,
-				turret_id
-			)
+			_forget_free_cell(defender_id)
+			_roles.request_assignment(defender_id, CrewRole.Id.TURRET, turret_id)
 	else:
-		_free_cell_by_defender.erase(defender_id)
-		_pending_free_moves.erase(defender_id)
-		var role_id: int = _get_role_for_kind(kind)
-		_roles.request_assignment(defender_id, role_id)
+		_forget_free_cell(defender_id)
+		_roles.request_assignment(defender_id, _get_role_for_kind(kind))
 	_set_feedback("Защитник %d назначен" % (defender_id + 1), false)
 	_close_context()
 
@@ -484,7 +457,7 @@ func _release_post_owner(defender_id: int) -> void:
 		_free_cell_by_defender[defender_id] = free_cell
 		_pending_free_moves[defender_id] = free_cell
 	else:
-		_free_cell_by_defender.erase(defender_id)
+		_forget_free_cell(defender_id)
 	_roles.request_assignment(defender_id, CrewRole.Id.FREE_FIGHTER)
 
 
@@ -502,55 +475,56 @@ func _assign_free_fighter_to_cell(defender_id: int, cell_index: int) -> void:
 	_roles.request_assignment(defender_id, CrewRole.Id.FREE_FIGHTER)
 
 
+func _forget_free_cell(defender_id: int) -> void:
+	_free_cell_by_defender.erase(defender_id)
+	_pending_free_moves.erase(defender_id)
+
+
 func _move_defender_to_free_cell(defender_id: int, cell_index: int) -> void:
 	var defender: Defender = _crew.get_defender(defender_id)
-	if defender == null or not defender.health.is_alive():
-		return
-	defender.move_to(_platform.get_cell_local_x(cell_index))
+	if defender != null and defender.health.is_alive():
+		defender.move_to(_platform.get_cell_local_x(cell_index))
 
 
 func _update_pending_free_moves() -> void:
-	var defender_ids: Array[int] = _pending_free_moves.keys()
-	for defender_id: int in defender_ids:
+	var ids: Array = _pending_free_moves.keys()
+	for raw_id: Variant in ids:
+		var defender_id := int(raw_id)
 		var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender_id)
 		if assignment == null:
 			continue
 		if (
-			assignment.current_role != CrewRole.Id.FREE_FIGHTER
-			or assignment.state != CrewAssignmentRuntime.State.ACTIVE
+			assignment.current_role == CrewRole.Id.FREE_FIGHTER
+			and assignment.state == CrewAssignmentRuntime.State.ACTIVE
 		):
-			continue
-		_move_defender_to_free_cell(
-			defender_id,
-			int(_pending_free_moves[defender_id])
-		)
-		_pending_free_moves.erase(defender_id)
+			_move_defender_to_free_cell(
+				defender_id,
+				int(_pending_free_moves[defender_id])
+			)
+			_pending_free_moves.erase(defender_id)
 
 
 func _cleanup_free_assignments() -> void:
-	var defender_ids: Array[int] = _free_cell_by_defender.keys()
-	for defender_id: int in defender_ids:
+	var ids: Array = _free_cell_by_defender.keys()
+	for raw_id: Variant in ids:
+		var defender_id := int(raw_id)
 		var defender: Defender = _crew.get_defender(defender_id)
 		var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender_id)
 		if defender == null or assignment == null or not defender.health.is_alive():
-			_free_cell_by_defender.erase(defender_id)
-			_pending_free_moves.erase(defender_id)
+			_forget_free_cell(defender_id)
 			continue
 		if (
 			assignment.current_role != CrewRole.Id.FREE_FIGHTER
 			and assignment.target_role != CrewRole.Id.FREE_FIGHTER
 		):
-			_free_cell_by_defender.erase(defender_id)
-			_pending_free_moves.erase(defender_id)
+			_forget_free_cell(defender_id)
 
 
 func _auto_distribute_free_fighters() -> void:
 	for defender: Defender in _crew.get_living_defenders():
 		if _free_cell_by_defender.has(defender.defender_id):
 			continue
-		var assignment: CrewAssignmentRuntime = _roles.get_assignment(
-			defender.defender_id
-		)
+		var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender.defender_id)
 		if assignment == null:
 			continue
 		if (
@@ -566,16 +540,14 @@ func _auto_distribute_free_fighters() -> void:
 
 func _find_empty_free_cell() -> int:
 	for cell_index: int in _grid.balance.turret_cell_indices:
-		if _get_turret_at_cell(cell_index) >= 0:
-			continue
-		if _get_free_fighter_at_cell(cell_index) >= 0:
-			continue
-		return cell_index
+		if _get_turret_at_cell(cell_index) < 0 and _get_free_fighter_at_cell(cell_index) < 0:
+			return cell_index
 	return -1
 
 
 func _get_free_fighter_at_cell(cell_index: int) -> int:
-	for defender_id: int in _free_cell_by_defender:
+	for raw_id: Variant in _free_cell_by_defender.keys():
+		var defender_id := int(raw_id)
 		if int(_free_cell_by_defender[defender_id]) != cell_index:
 			continue
 		var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender_id)
@@ -594,9 +566,7 @@ func _get_free_fighter_at_cell(cell_index: int) -> int:
 
 
 func _get_turret_at_cell(cell_index: int) -> int:
-	for buildable_id: int in _grid.get_buildable_ids_by_type(
-		BuildableType.Id.TURRET
-	):
+	for buildable_id: int in _grid.get_buildable_ids_by_type(BuildableType.Id.TURRET):
 		var snapshot: BuildableSnapshot = _grid.get_snapshot(buildable_id)
 		if snapshot != null and snapshot.cell_index == cell_index:
 			return buildable_id
@@ -608,9 +578,7 @@ func _get_available_free_defenders(excluded_id: int) -> Array[int]:
 	for defender: Defender in _crew.get_living_defenders():
 		if defender.defender_id == excluded_id:
 			continue
-		var assignment: CrewAssignmentRuntime = _roles.get_assignment(
-			defender.defender_id
-		)
+		var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender.defender_id)
 		if (
 			assignment != null
 			and assignment.current_role == CrewRole.Id.FREE_FIGHTER
@@ -661,19 +629,13 @@ func _can_place_turret_with_mouse() -> bool:
 
 func _get_nearest_turret_cell(local_x: float) -> int:
 	var selected: int = _grid.balance.turret_cell_indices[0]
-	var best_distance: float = INF
+	var best_distance := INF
 	for cell_index: int in _grid.balance.turret_cell_indices:
-		var distance: float = absf(
-			_platform.get_cell_local_x(cell_index) - local_x
-		)
+		var distance := absf(_platform.get_cell_local_x(cell_index) - local_x)
 		if distance < best_distance:
 			selected = cell_index
 			best_distance = distance
 	return selected
-
-
-func _commands_enabled() -> bool:
-	return _game_flow.is_world_simulation_active()
 
 
 func _set_feedback(message: String, is_error: bool) -> void:
@@ -715,8 +677,9 @@ func _on_buildable_changed(
 	_type_id: int,
 	_cell_index: int
 ) -> void:
-	_auto_distribute_free_fighters()
 	_update_slots()
+	if _context_panel.visible:
+		_rebuild_context_menu()
 
 
 func _on_buildable_moved(
@@ -741,6 +704,8 @@ func _on_assignment_changed(
 	_state: int
 ) -> void:
 	_update_slots()
+	if _context_panel.visible:
+		_rebuild_context_menu()
 
 
 func _on_assignment_rejected(
@@ -759,6 +724,5 @@ func _on_crew_changed(_defender_id: int, _defender: Defender) -> void:
 
 
 func _on_defender_died(defender_id: int) -> void:
-	_free_cell_by_defender.erase(defender_id)
-	_pending_free_moves.erase(defender_id)
+	_forget_free_cell(defender_id)
 	_update_slots()
