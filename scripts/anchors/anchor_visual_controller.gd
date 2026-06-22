@@ -4,8 +4,10 @@ extends Node2D
 const CHAIN_TEXTURE: Texture2D = preload(
 	"res://visual/tiles/tile_chain.png"
 )
-const CHAIN_LINK_SIZE: Vector2 = Vector2(30.0, 30.0)
-const CHAIN_LINK_SPACING: float = 18.0
+const CHAIN_LINK_SIZE: Vector2 = Vector2(46.0, 46.0)
+const CHAIN_LINK_SPACING: float = 23.0
+const CHAIN_BACKING_WIDTH: float = 7.0
+const CHAIN_BRIGHTEN_AMOUNT: float = 0.18
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -130,6 +132,19 @@ func _draw_chain_links(
 	var step: float = length / float(link_count)
 	var rotation: float = direction.angle() - PI * 0.5
 	var link_rect := Rect2(-CHAIN_LINK_SIZE * 0.5, CHAIN_LINK_SIZE)
+	var visible_tint: Color = tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
+	visible_tint.a = 1.0
+	var backing_color: Color = visible_tint
+	backing_color.a = 0.4
+
+	# A bright backing prevents the texture from disappearing against dark ground.
+	draw_line(
+		start_point,
+		end_point,
+		backing_color,
+		CHAIN_BACKING_WIDTH,
+		true
+	)
 
 	for index: int in range(link_count):
 		var link_position := (
@@ -137,7 +152,7 @@ func _draw_chain_links(
 			+ direction * (step * (float(index) + 0.5))
 		)
 		draw_set_transform(link_position, rotation, Vector2.ONE)
-		draw_texture_rect(CHAIN_TEXTURE, link_rect, false, tint)
+		draw_texture_rect(CHAIN_TEXTURE, link_rect, false, visible_tint)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
