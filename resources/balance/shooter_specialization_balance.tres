@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ShooterSpecializationBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/crew/shooter_specialization_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+piercing_lane_half_height = 24.0
+base_pierce_target_count = 1
+sniper_pierce_target_count = 4
+explosive_radius = 72.0
+mark_duration = 10.0
+mark_damage_multiplier = 1.5
