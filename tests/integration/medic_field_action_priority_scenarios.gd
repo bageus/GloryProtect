@@ -66,6 +66,23 @@ func _run_scenario() -> void:
 	assert(not medic.melee.is_attacking())
 	assert(enemy.health.current_health == 3)
 
+	roles.request_assignment(medic.defender_id, CrewRole.Id.FREE_FIGHTER)
+	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
+	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
+	medical.call("_physics_process", medical.get_heal_remaining())
+	assert(patient.health.current_health == 2)
+	assert(not medical.is_healing_cycle_active(medic.defender_id))
+	assert(not medic.can_medic_role_use_melee())
+	medic.combat.call("_physics_process", 0.0)
+	assert(not medic.melee.is_attacking())
+	assert(enemy.health.current_health == 3)
+	await process_frame
+	assert(assignment.state in [
+		CrewAssignmentRuntime.State.MOVING,
+		CrewAssignmentRuntime.State.ACTIVE,
+	])
+	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.FREE_FIGHTER)
+
 	print("Medic field action priority scenarios passed")
 	quit()
 
