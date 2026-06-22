@@ -16,7 +16,7 @@ const ALPHA_CROP_THRESHOLD := 0.08
 @export var clamp_ground_offset := Vector2(0.0, 4.0)
 @export var clamp_chain_connection_offset := Vector2(0.0, -34.0)
 @export var stowed_chain_length := 40.0
-@export var winch_vertical_offset := -76.0
+@export var winch_vertical_offset := -56.0
 @export var winch_chain_exit_offset := Vector2(0.0, 24.0)
 
 var _store: AnchorRuntimeStore
@@ -59,7 +59,12 @@ func _draw() -> void:
 func _draw_winch_posts() -> void:
 	for anchor_id: int in range(4):
 		var side := AnchorRuntime.Side.LEFT if anchor_id < 2 else AnchorRuntime.Side.RIGHT
-		_draw_winch(_get_winch_center(anchor_id), side == AnchorRuntime.Side.RIGHT, bool(_is_operator_available.call(side)))
+		var mirrored := anchor_id == 1 or anchor_id == 3
+		_draw_winch(
+			_get_winch_center(anchor_id),
+			mirrored,
+			bool(_is_operator_available.call(side))
+		)
 
 func _draw_winch(center: Vector2, mirrored: bool, operator_available: bool) -> void:
 	var tint := Color.WHITE if operator_available else Color(0.52, 0.55, 0.58, 1.0)
