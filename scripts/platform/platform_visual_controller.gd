@@ -47,7 +47,6 @@ func _draw() -> void:
 	draw_rect(platform_rect, Color(0.55, 0.69, 0.82, 0.45), false, 2.0)
 	if show_cell_guides:
 		_draw_cells(platform_width)
-	_draw_replacement_door()
 	_draw_driver_post()
 	_draw_anchor_posts(platform_width)
 	_draw_platform_orb()
@@ -85,25 +84,6 @@ func _draw_cells(platform_width: float) -> void:
 			Color(0.82, 0.9, 0.96, 0.18),
 			1.0
 		)
-
-
-func _draw_replacement_door() -> void:
-	var door_width: float = balance.cell_width * 1.2
-	var door_height: float = 34.0
-	var door_rect := Rect2(
-		Vector2(
-			crew_balance.replacement_door_local_x - door_width * 0.5,
-			-balance.platform_height * 0.5 - door_height
-		),
-		Vector2(door_width, door_height)
-	)
-	draw_rect(door_rect, Color(0.11, 0.15, 0.22), true)
-	draw_rect(door_rect, Color(0.48, 0.61, 0.72), false, 2.0)
-	draw_circle(
-		door_rect.position + Vector2(door_width - 8.0, door_height * 0.5),
-		2.5,
-		Color(0.88, 0.72, 0.3)
-	)
 
 
 func _draw_driver_post() -> void:
