@@ -54,6 +54,11 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
 	flow.toggle_manual_pause()
 
+	flow.begin_card_selection()
+	revival.call("_physics_process", 30.0)
+	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
+	flow.finish_card_selection()
+
 	ordinary_replacement.health.set_health(0)
 	crew.get_defender(1).health.set_health(0)
 	assert(crew.get_living_count() == 1)
