@@ -1,10 +1,11 @@
-[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
 [ext_resource type="Resource" path="res://resources/upgrades/turret_branch_upgrade_catalog.tres" id="2_turret"]
 [ext_resource type="Resource" path="res://resources/upgrades/melee_defender_upgrade_catalog.tres" id="3_melee"]
 [ext_resource type="Resource" path="res://resources/upgrades/medic_upgrade_catalog.tres" id="4_medic"]
+[ext_resource type="Resource" path="res://resources/upgrades/shooter_upgrade_catalog.tres" id="5_shooter"]
 
 [resource]
 script = ExtResource("1_catalog")
-included_catalogs = Array[ExtResource("1_catalog")]([ExtResource("2_turret"), ExtResource("3_melee"), ExtResource("4_medic")])
+included_catalogs = Array[ExtResource("1_catalog")]([ExtResource("2_turret"), ExtResource("3_melee"), ExtResource("4_medic"), ExtResource("5_shooter")])
