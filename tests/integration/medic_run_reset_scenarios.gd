@@ -88,6 +88,17 @@ func _run_scenario() -> void:
 	assert(replacements.get_pending_count() == 2)
 
 	flow.start_run()
+	assert(replacements.get_pending_count() == 0)
+	assert(is_equal_approx(revival.get_cooldown_remaining(), 0.0))
+	for defender: Defender in crew.get_all_defenders():
+		assert(defender.get_medic_role_health_bonus() == 0)
+		assert(defender.durability.get_role_max_armor() == 0)
+		assert(defender.durability.get_temporary_armor() == 0)
+		assert(not defender.durability.has_next_hit_guard())
+		assert(is_equal_approx(
+			defender.get_temporary_attack_speed_multiplier(),
+			1.0
+		))
 	await process_frame
 	await process_frame
 	assert(flow.state in [
@@ -97,18 +108,11 @@ func _run_scenario() -> void:
 	assert(medical.get_current_heal_amount() == medical.balance.heal_amount)
 	assert(medical.upgrades.specialization_id == &"")
 	assert(not medical.upgrades.revival_enabled)
-	assert(is_equal_approx(revival.get_cooldown_remaining(), 0.0))
 	assert(not stimulant.is_active(target.defender_id))
 	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(role_modifiers.get_stored_health_segments() == 0)
 	assert(role_modifiers.get_stored_armor_segments() == 0)
-	assert(replacements.get_pending_count() == 0)
 	assert(not medical.has_station())
-	for defender: Defender in crew.get_all_defenders():
-		assert(defender.get_medic_role_health_bonus() == 0)
-		assert(defender.durability.get_role_max_armor() == 0)
-		assert(defender.durability.get_temporary_armor() == 0)
-		assert(not defender.durability.has_next_hit_guard())
 
 	print("Medic run reset scenarios passed")
 	quit()
