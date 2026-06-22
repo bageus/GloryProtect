@@ -1,12 +1,37 @@
 class_name GroundOrbVisualController
 extends Node2D
 
+const GROUND_TILE_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_grass.png"
+)
+
+# The asset names describe the source half, while the supplied visual mapping is
+# reversed: *_right_* is the left screen half and *_left_* is the right half.
+const GROUND_CORE_VISUAL_LEFT_ENERGY_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_core_ground_right_energy.png"
+)
+const GROUND_CORE_VISUAL_LEFT_NOENERGY_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_core_ground_right_noenergy.png"
+)
+const GROUND_CORE_VISUAL_RIGHT_ENERGY_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_core_ground_left_energy.png"
+)
+const GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_core_ground_left_noenergy.png"
+)
+
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("GroundOrbRegistry") var registry_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export var platform_balance: PlatformBalance
 @export var show_contact_zones: bool = false
+
+@export_group("Asset Visuals")
+@export var ground_tile_size: Vector2 = Vector2(128.0, 128.0)
+@export var ground_tile_vertical_offset: float = 0.0
+@export var ground_core_half_size: Vector2 = Vector2(96.0, 128.0)
+@export var ground_core_vertical_offset: float = 0.0
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _registry: GroundOrbRegistry = get_node(registry_path)
@@ -25,9 +50,9 @@ func _process(_delta: float) -> void:
 
 func _draw() -> void:
 	_draw_ground()
+	_draw_active_contact()
 	for orb_id in range(_registry.get_orb_count()):
 		_draw_orb(orb_id)
-	_draw_active_contact()
 
 
 func _draw_ground() -> void:
@@ -39,13 +64,19 @@ func _draw_ground() -> void:
 			_registry.catalog.ground_depth
 		)
 	)
-	draw_rect(ground_rect, Color(0.09, 0.13, 0.17), true)
-	draw_line(
-		Vector2(platform_balance.world_min_x, ground_y),
-		Vector2(platform_balance.world_max_x, ground_y),
-		Color(0.4, 0.5, 0.58),
-		4.0
+	draw_rect(ground_rect, Color(0.045, 0.065, 0.08), true)
+
+	var tile_width: float = maxf(ground_tile_size.x, 1.0)
+	var tile_x: float = (
+		floorf(platform_balance.world_min_x / tile_width) * tile_width
 	)
+	while tile_x < platform_balance.world_max_x:
+		var tile_rect := Rect2(
+			Vector2(tile_x, ground_y + ground_tile_vertical_offset),
+			ground_tile_size
+		)
+		draw_texture_rect(GROUND_TILE_TEXTURE, tile_rect, false)
+		tile_x += tile_width
 
 
 func _draw_orb(orb_id: int) -> void:
@@ -64,26 +95,48 @@ func _draw_orb(orb_id: int) -> void:
 		var pulse := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.012)
 		brightness = maxf(brightness, pulse)
 
-	var core_color := section_color * brightness
-	core_color.a = 1.0
-	var outer_color := section_color.darkened(0.55)
-	outer_color.a = 1.0
-
 	if show_contact_zones:
 		_draw_contact_zone(orb_id)
 
-	draw_circle(position, _registry.catalog.orb_outer_radius - 5.0, outer_color)
-	draw_circle(position, _registry.catalog.orb_core_radius, core_color)
-	draw_arc(
-		position,
-		_registry.catalog.orb_outer_radius,
-		0.0,
-		TAU,
-		64,
-		section_color,
-		3.0
-	)
+	_draw_ground_core(position, is_contact, brightness)
 	_draw_health_ring(position, percent, section_color)
+
+
+func _draw_ground_core(
+	position: Vector2,
+	is_charging: bool,
+	brightness: float
+) -> void:
+	var visual_left_texture: Texture2D = (
+		GROUND_CORE_VISUAL_LEFT_ENERGY_TEXTURE
+		if is_charging
+		else GROUND_CORE_VISUAL_LEFT_NOENERGY_TEXTURE
+	)
+	var visual_right_texture: Texture2D = (
+		GROUND_CORE_VISUAL_RIGHT_ENERGY_TEXTURE
+		if is_charging
+		else GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE
+	)
+	var visual_brightness: float = clampf(brightness, 0.55, 1.0)
+	var tint := Color(
+		visual_brightness,
+		visual_brightness,
+		visual_brightness,
+		1.0
+	)
+	var center := position + Vector2(0.0, ground_core_vertical_offset)
+	var half_height: float = ground_core_half_size.y * 0.5
+	var left_rect := Rect2(
+		center + Vector2(-ground_core_half_size.x, -half_height),
+		ground_core_half_size
+	)
+	var right_rect := Rect2(
+		center + Vector2(0.0, -half_height),
+		ground_core_half_size
+	)
+
+	draw_texture_rect(visual_left_texture, left_rect, false, tint)
+	draw_texture_rect(visual_right_texture, right_rect, false, tint)
 
 
 func _draw_contact_zone(orb_id: int) -> void:
@@ -98,10 +151,14 @@ func _draw_contact_zone(orb_id: int) -> void:
 
 
 func _draw_health_ring(position: Vector2, percent: float, color: Color) -> void:
+	var ring_radius: float = maxf(
+		_registry.catalog.orb_outer_radius + 7.0,
+		ground_core_half_size.y * 0.5 + 8.0
+	)
 	var end_angle := -PI * 0.5 + TAU * clampf(percent / 100.0, 0.0, 1.0)
 	draw_arc(
-		position,
-		_registry.catalog.orb_outer_radius + 7.0,
+		position + Vector2(0.0, ground_core_vertical_offset),
+		ring_radius,
 		-PI * 0.5,
 		end_angle,
 		48,
