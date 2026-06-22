@@ -29,6 +29,7 @@ const GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE: Texture2D = preload(
 
 @export_group("Asset Visuals")
 @export var ground_tile_size: Vector2 = Vector2(128.0, 128.0)
+@export_range(0.0, 8.0, 0.25) var ground_tile_overlap: float = 1.0
 @export var ground_tile_vertical_offset: float = 0.0
 @export var ground_core_half_size: Vector2 = Vector2(96.0, 128.0)
 @export var ground_core_vertical_offset: float = 0.0
@@ -38,9 +39,12 @@ const GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE: Texture2D = preload(
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 
+var _ground_tile_source_rect: Rect2
+
 
 func _ready() -> void:
 	assert(platform_balance != null, "GroundOrbVisualController requires PlatformBalance")
+	_ground_tile_source_rect = _get_used_texture_rect(GROUND_TILE_TEXTURE)
 	queue_redraw()
 
 
@@ -67,15 +71,26 @@ func _draw_ground() -> void:
 	draw_rect(ground_rect, Color(0.045, 0.065, 0.08), true)
 
 	var tile_width: float = maxf(ground_tile_size.x, 1.0)
+	var half_overlap: float = ground_tile_overlap * 0.5
 	var tile_x: float = (
 		floorf(platform_balance.world_min_x / tile_width) * tile_width
 	)
 	while tile_x < platform_balance.world_max_x:
 		var tile_rect := Rect2(
-			Vector2(tile_x, ground_y + ground_tile_vertical_offset),
-			ground_tile_size
+			Vector2(
+				tile_x - half_overlap,
+				ground_y + ground_tile_vertical_offset
+			),
+			Vector2(
+				ground_tile_size.x + ground_tile_overlap,
+				ground_tile_size.y
+			)
 		)
-		draw_texture_rect(GROUND_TILE_TEXTURE, tile_rect, false)
+		draw_texture_rect_region(
+			GROUND_TILE_TEXTURE,
+			tile_rect,
+			_ground_tile_source_rect
+		)
 		tile_x += tile_width
 
 
@@ -184,4 +199,17 @@ func _draw_active_contact() -> void:
 		platform_orb_position,
 		Color(0.85, 1.0, 1.0, 0.95),
 		2.0
+	)
+
+
+func _get_used_texture_rect(texture: Texture2D) -> Rect2:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return Rect2(Vector2.ZERO, texture.get_size())
+	var used_rect: Rect2i = image.get_used_rect()
+	if used_rect.size.x <= 0 or used_rect.size.y <= 0:
+		return Rect2(Vector2.ZERO, texture.get_size())
+	return Rect2(
+		Vector2(used_rect.position),
+		Vector2(used_rect.size)
 	)
