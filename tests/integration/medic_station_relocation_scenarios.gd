@@ -22,6 +22,9 @@ func _run_scenario() -> void:
 	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var role_modifiers: MedicRoleModifierController = game.get_node(
+		"World/MedicRoleModifierController"
+	)
 	medical.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
@@ -74,6 +77,7 @@ func _run_scenario() -> void:
 	medical.call("_physics_process", demolition_remaining)
 	assert(target.health.current_health == 2)
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
+	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
 	assert(assignment.target_role == CrewRole.Id.DRIVER)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.DRIVER)
