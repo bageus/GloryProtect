@@ -110,7 +110,6 @@ func _process(_delta: float) -> void:
 func _create_crew_command_panel() -> void:
 	var panel := CrewCommandPanel.new()
 	panel.name = "CrewCommandPanel"
-	add_child(panel)
 	panel.configure(
 		_game_flow,
 		_crew_input,
@@ -118,6 +117,7 @@ func _create_crew_command_panel() -> void:
 		_replacements,
 		_buildable_grid
 	)
+	add_child(panel)
 
 
 func _update_run_state() -> void:
