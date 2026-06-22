@@ -58,6 +58,7 @@ medical_system_path = NodePath("../MedicalStationSystem")
 [node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
 script = ExtResource("2_director")
 game_flow_path = NodePath("../../GameFlowController")
+wave_director_path = NodePath("../StrategicWaveDirector")
 platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
@@ -69,3 +70,4 @@ enemy_container_path = NodePath("../BoardingEnemyContainer")
 enemy_scene = ExtResource("3_enemy")
 boarding_balance = ExtResource("4_boarding")
 profile = ExtResource("5_profile")
+first_flying_wave_number = 10
