@@ -7,6 +7,7 @@ var _replacements: CrewReplacementController
 var _runtime: UpgradeRuntime
 var _turrets: TurretUpgradeSystem
 var _medical: MedicalStationSystem
+var _anchorless: AnchorlessControlSystem
 
 
 func configure(
@@ -15,7 +16,8 @@ func configure(
 	crew: CrewManager = null,
 	replacements: CrewReplacementController = null,
 	turrets: TurretUpgradeSystem = null,
-	medical: MedicalStationSystem = null
+	medical: MedicalStationSystem = null,
+	anchorless: AnchorlessControlSystem = null
 ) -> void:
 	assert(buildables != null)
 	assert(runtime != null)
@@ -25,6 +27,7 @@ func configure(
 	_replacements = replacements
 	_turrets = turrets
 	_medical = medical
+	_anchorless = anchorless
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
@@ -53,6 +56,8 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 				return _crew != null and _crew.get_melee_upgrades().can_apply_effect(effect)
 			if _is_medic_effect(effect):
 				return _medical != null and _medical.can_apply_upgrade_effect(effect)
+			if _is_anchorless_effect(effect):
+				return _anchorless != null and _anchorless.can_apply_upgrade_effect(effect)
 			return _runtime != null
 	return false
 
@@ -91,6 +96,8 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 				return _crew.apply_melee_scalar(effect.target_id, effect.scalar_value)
 			if _is_medic_effect(effect):
 				return _medical.apply_upgrade_effect(effect)
+			if _is_anchorless_effect(effect):
+				return _anchorless.apply_upgrade_effect(effect)
 			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 				_runtime.set_domain_flag(effect.target_id, true)
 				return true
@@ -109,3 +116,7 @@ func _is_melee_effect(effect: UpgradeEffectDefinition) -> bool:
 
 func _is_medic_effect(effect: UpgradeEffectDefinition) -> bool:
 	return String(effect.target_id).begins_with("medic_")
+
+
+func _is_anchorless_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("anchorless_")
