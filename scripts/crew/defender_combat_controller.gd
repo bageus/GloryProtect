@@ -231,4 +231,8 @@ func _can_role_use_melee(role_id: int) -> bool:
 		role_id == CrewRole.Id.FREE_FIGHTER
 		or role_id == CrewRole.Id.LEFT_ANCHOR
 		or role_id == CrewRole.Id.RIGHT_ANCHOR
+		or (
+			role_id == CrewRole.Id.MEDIC
+			and _defender.can_medic_role_use_melee()
+		)
 	)
