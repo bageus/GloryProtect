@@ -15,7 +15,7 @@ Issue #25 is implemented on top of the merged melee-defender and corrected turre
 
 ## Unlock and branch progress
 
-`medic_station` is an `UNLOCK` card. It unlocks the single medical-station inventory entry and exposes the three base lines. The common runtime excludes `UNLOCK` cards from branch progress, so the post itself is not one of the two cards required for a specialization event.
+`medic_station` is an `UNLOCK` card. It unlocks the single medical-station inventory entry and exposes the three base lines. The common runtime excludes `UNLOCK` cards from branch progress, so the post itself is not one of the two cards required for a specialization event. `UpgradeDrawGenerator` also excludes `UNLOCK` cards from branch-weight changes.
 
 ## Base lines
 
@@ -62,9 +62,9 @@ An active healing cycle remains indivisible and temporarily blocks the field-med
 
 ## Combat stimulant
 
-A successful heal applies `+15%` attack speed and `+15%` movement speed for `5 seconds`. The effect composes with global crew and role modifiers, refreshes on another successful heal and freezes during manual pause or card selection.
+A successful heal applies `+15%` attack speed and `+15%` movement speed for `5 seconds`. The effect composes with global crew and role modifiers, refreshes on another successful heal and freezes during manual pause or card selection. Reconfiguring attack speed does not reset an already active melee windup or cooldown.
 
-The revival card has a `60 second` run-scoped cooldown. The first eligible defender death while the cooldown is ready reserves an immediate deferred replacement. If that death removes the final living defender, `CrewFailureController` recognizes the already reserved transaction before declaring defeat. Listener order does not matter: the failure controller can also reserve the same transaction as a fallback. The deferred replacement runs only after the current death-signal dispatch, preventing the old role-death handler from marking the new defender dead.
+The revival card has a `60 second` run-scoped cooldown. The first eligible defender death while the cooldown is ready reserves an immediate deferred replacement. Any reserved revival transaction suppresses zero-crew defeat, including a same-frame wipe where other defenders die after the selected revival target. The deferred replacement runs only after the current death-signal dispatch, preventing the old role-death handler from marking the new defender dead.
 
 ## Protective healing
 
@@ -72,9 +72,11 @@ Each actually restored health segment grants one temporary armor segment. Reachi
 
 Chain therapy heals the second-most-injured living defender for the provisional `50%` of the current healing amount, rounded down with a minimum of `1`. The secondary target receives the same protective post-heal effects.
 
-## Station lifecycle
+## Station and run lifecycle
 
 Moving the medical station during an active cycle does not cancel that cycle. The medic finishes the operation and then moves to the new post. Demolishing the station stops the current cycle safely, releases the role and leaves the obtained unlock available for later placement.
+
+`MedicalStationSystem.reset_upgrade_runtime()` explicitly stops an active cycle before clearing upgrades, so a pending reassignment cannot remain blocked by signal ordering. A new run also clears stimulant timers, revival cooldown/reservation, role pools, temporary armor/guard and all pending ordinary crew replacements.
 
 ## Catalog composition
 
@@ -90,6 +92,7 @@ This avoids duplicating the base catalog while keeping turret, melee and medic c
 
 Unit scenarios:
 
+- `tests/unit/active_upgrade_catalog_scenarios.gd`;
 - `tests/unit/medic_upgrade_runtime_scenarios.gd`;
 - `tests/unit/medic_catalog_scenarios.gd`.
 
@@ -104,6 +107,7 @@ Integration scenarios:
 - `tests/integration/medic_protective_healing_scenarios.gd`;
 - `tests/integration/medic_revival_scenarios.gd`;
 - `tests/integration/medic_station_relocation_scenarios.gd`;
+- `tests/integration/medic_runtime_reset_cycle_scenarios.gd`;
 - `tests/integration/medic_run_reset_scenarios.gd`.
 
-The runner discovers all `*_scenarios.gd` files automatically. These scenarios have been added and statically reviewed, but executable validation still depends on GitHub Actions issue #83. The same blocker applies to the file-size guard.
+The runner discovers all `*_scenarios.gd` files automatically. These scenarios have been added and statically reviewed. GitHub Actions issue #83 still prevents executable validation: the latest `Project guards` run created both jobs but returned `steps: []` and no logs, so neither the file-size guard nor the Godot suite executed.
