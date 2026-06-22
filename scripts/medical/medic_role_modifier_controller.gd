@@ -62,13 +62,16 @@ func _resolve_active_medic_id() -> int:
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(owner_id)
 	if assignment == null or assignment.current_role != CrewRole.Id.MEDIC:
 		return -1
-	if assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION:
-		if not _medical.is_healing_cycle_active(owner_id):
-			return -1
-	elif assignment.state != CrewAssignmentRuntime.State.ACTIVE:
-		return -1
 	var defender: Defender = _crew.get_defender(owner_id)
 	if defender == null or not defender.health.is_alive():
+		return -1
+	if assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION:
+		if (
+			not _medical.is_healing_cycle_active(owner_id)
+			and not defender.is_combat_action_active()
+		):
+			return -1
+	elif assignment.state != CrewAssignmentRuntime.State.ACTIVE:
 		return -1
 	return owner_id
 
