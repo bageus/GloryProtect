@@ -265,6 +265,17 @@ func _stop_cycle() -> void:
 	var previous_medic: int = _medic_id
 	var previous_target: int = _target_id
 	var was_active: bool = _cycle_active
+	var pending_role: int = -1
+	var pending_station: int = -1
+	if _station_disable_pending and previous_medic >= 0:
+		var assignment: CrewAssignmentRuntime = _roles.get_assignment(previous_medic)
+		if (
+			assignment != null
+			and assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+			and assignment.target_role != CrewRole.Id.MEDIC
+		):
+			pending_role = assignment.target_role
+			pending_station = assignment.target_station_id
 	if previous_medic >= 0:
 		_roles.set_external_role_action_active(
 			previous_medic,
@@ -280,6 +291,12 @@ func _stop_cycle() -> void:
 	if _station_disable_pending:
 		_station_disable_pending = false
 		_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
+		if previous_medic >= 0 and pending_role >= 0:
+			_roles.request_assignment(
+				previous_medic,
+				pending_role,
+				pending_station
+			)
 
 
 func _sync_station() -> void:
