@@ -11,4 +11,4 @@ defender_move_speed = 180.0
 defender_local_y = -48.0
 defender_body_radius = 14.0
 replacement_delay_seconds = 12.0
-replacement_door_local_x = -80.0
+replacement_door_local_x = 0.0
