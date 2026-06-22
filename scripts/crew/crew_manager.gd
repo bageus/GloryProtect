@@ -134,6 +134,7 @@ func reset_run_modifiers() -> void:
 	_shooter_upgrades.reset()
 	for defender: Defender in get_all_defenders():
 		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
+		defender.shooter_combat.reset_for_run()
 		defender.movement.configure(get_current_movement_speed())
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	melee_upgrades_changed.emit()
