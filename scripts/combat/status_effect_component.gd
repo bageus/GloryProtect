@@ -13,10 +13,15 @@ var poison_remaining: float = 0.0
 var poison_tick_remaining: float = 0.0
 
 @onready var health: HealthComponent = get_node(health_path)
-@onready var game_flow: GameFlowController = get_node(game_flow_path)
+var game_flow: GameFlowController
 
 
 func _ready() -> void:
+	game_flow = _resolve_game_flow()
+	assert(
+		game_flow != null,
+		"StatusEffectComponent requires GameFlowController"
+	)
 	health.depleted.connect(clear_poison)
 
 
@@ -54,7 +59,7 @@ func is_poisoned() -> bool:
 func _physics_process(delta: float) -> void:
 	if not is_poisoned():
 		return
-	if not game_flow.is_world_simulation_active():
+	if game_flow == null or not game_flow.is_world_simulation_active():
 		return
 	_tick_poison(maxf(0.0, delta))
 
@@ -73,6 +78,17 @@ func _tick_poison(delta: float) -> void:
 		clear_poison()
 	else:
 		_emit_poison_changed()
+
+
+func _resolve_game_flow() -> GameFlowController:
+	var configured := get_node_or_null(game_flow_path) as GameFlowController
+	if configured != null:
+		return configured
+
+	var scene_root: Node = get_tree().current_scene
+	if scene_root == null:
+		return null
+	return scene_root.get_node_or_null("GameFlowController") as GameFlowController
 
 
 func _emit_poison_changed() -> void:
