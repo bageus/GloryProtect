@@ -55,9 +55,13 @@ func apply_scalar(target_id: StringName, value: float) -> bool:
 func apply_flag(target_id: StringName) -> bool:
 	match target_id:
 		&"shooter_role_unlocked":
+			if role_unlocked:
+				return false
 			role_unlocked = true
 			return true
 		&"shooter_piercing_bolt":
+			if piercing_enabled:
+				return false
 			piercing_enabled = true
 			return true
 		&"shooter_specialization_sniper":
@@ -68,9 +72,13 @@ func apply_flag(target_id: StringName) -> bool:
 			range_multiplier *= 1.1
 			return true
 		&"shooter_sniper_multi_pierce":
+			if specialization_id != SNIPER or sniper_multi_pierce:
+				return false
 			sniper_multi_pierce = true
 			return true
 		&"shooter_sniper_explosive_fifth":
+			if specialization_id != SNIPER or sniper_explosive_fifth:
+				return false
 			sniper_explosive_fifth = true
 			return true
 		&"shooter_specialization_air_hunter":
@@ -79,9 +87,13 @@ func apply_flag(target_id: StringName) -> bool:
 			specialization_id = AIR_HUNTER
 			return true
 		&"shooter_air_triple_shot":
+			if specialization_id != AIR_HUNTER or air_triple_shot:
+				return false
 			air_triple_shot = true
 			return true
 		&"shooter_air_mark_fifth":
+			if specialization_id != AIR_HUNTER or air_mark_fifth:
+				return false
 			air_mark_fifth = true
 			return true
 		&"shooter_specialization_anchor_hunter":
@@ -90,9 +102,13 @@ func apply_flag(target_id: StringName) -> bool:
 			specialization_id = ANCHOR_HUNTER
 			return true
 		&"shooter_anchor_triple_shot":
+			if specialization_id != ANCHOR_HUNTER or anchor_triple_shot:
+				return false
 			anchor_triple_shot = true
 			return true
 		&"shooter_anchor_knockdown_fifth":
+			if specialization_id != ANCHOR_HUNTER or anchor_knockdown_fifth:
+				return false
 			anchor_knockdown_fifth = true
 			return true
 	return false
