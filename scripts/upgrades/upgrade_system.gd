@@ -73,7 +73,7 @@ func get_card_definition(card_index: int) -> UpgradeDefinition:
 
 
 func get_all_card_definitions() -> Array[UpgradeDefinition]:
-	return catalog.definitions.duplicate()
+	return catalog.get_all_definitions().duplicate()
 
 
 func get_card_id(card_index: int) -> StringName:
@@ -297,7 +297,12 @@ func _get_specialization_seed() -> int:
 	return 0 if deterministic_seed == 0 else deterministic_seed + 1
 
 
-func _on_coins_changed(_previous_amount: int, _current_amount: int, _delta: int, _source: StringName) -> void:
+func _on_coins_changed(
+	_previous_amount: int,
+	_current_amount: int,
+	_delta: int,
+	_source: StringName
+) -> void:
 	_open_offer_if_affordable()
 
 
