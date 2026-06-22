@@ -53,6 +53,8 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 				return _crew != null and _crew.get_melee_upgrades().can_apply_effect(effect)
 			if _is_medic_effect(effect):
 				return _medical != null and _medical.can_apply_upgrade_effect(effect)
+			if _is_shooter_effect(effect):
+				return _crew != null
 			return _runtime != null
 	return false
 
@@ -91,6 +93,10 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 				return _crew.apply_melee_scalar(effect.target_id, effect.scalar_value)
 			if _is_medic_effect(effect):
 				return _medical.apply_upgrade_effect(effect)
+			if _is_shooter_effect(effect):
+				if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
+					return _crew.apply_shooter_flag(effect.target_id)
+				return _crew.apply_shooter_scalar(effect.target_id, effect.scalar_value)
 			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 				_runtime.set_domain_flag(effect.target_id, true)
 				return true
@@ -109,3 +115,7 @@ func _is_melee_effect(effect: UpgradeEffectDefinition) -> bool:
 
 func _is_medic_effect(effect: UpgradeEffectDefinition) -> bool:
 	return String(effect.target_id).begins_with("medic_")
+
+
+func _is_shooter_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("shooter_")
