@@ -2,11 +2,12 @@ class_name UpgradeCatalog
 extends Resource
 
 @export var definitions: Array[UpgradeDefinition] = []
+@export var included_catalogs: Array[UpgradeCatalog] = []
 
 
 func is_valid() -> bool:
 	var seen: Dictionary[StringName, bool] = {}
-	for definition: UpgradeDefinition in definitions:
+	for definition: UpgradeDefinition in get_all_definitions():
 		if definition == null or not definition.is_valid():
 			return false
 		if seen.has(definition.card_id):
@@ -15,8 +16,17 @@ func is_valid() -> bool:
 	return true
 
 
+func get_all_definitions() -> Array[UpgradeDefinition]:
+	var result: Array[UpgradeDefinition] = definitions.duplicate()
+	for included: UpgradeCatalog in included_catalogs:
+		if included == null or included == self:
+			continue
+		result.append_array(included.get_all_definitions())
+	return result
+
+
 func get_definition(card_id: StringName) -> UpgradeDefinition:
-	for definition: UpgradeDefinition in definitions:
+	for definition: UpgradeDefinition in get_all_definitions():
 		if definition != null and definition.card_id == card_id:
 			return definition
 	return null
@@ -24,7 +34,7 @@ func get_definition(card_id: StringName) -> UpgradeDefinition:
 
 func get_available_definitions(runtime: UpgradeRuntime) -> Array[UpgradeDefinition]:
 	var result: Array[UpgradeDefinition] = []
-	for definition: UpgradeDefinition in definitions:
+	for definition: UpgradeDefinition in get_all_definitions():
 		if is_available(definition, runtime):
 			result.append(definition)
 	return result
@@ -62,7 +72,7 @@ func _has_completed_line(
 	branch_id: StringName,
 	runtime: UpgradeRuntime
 ) -> bool:
-	for definition: UpgradeDefinition in definitions:
+	for definition: UpgradeDefinition in get_all_definitions():
 		if definition.branch_id != branch_id:
 			continue
 		if definition.card_type != UpgradeDefinition.CardType.ADVANCED:

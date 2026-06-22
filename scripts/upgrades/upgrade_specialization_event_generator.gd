@@ -59,7 +59,7 @@ func get_specialization_cards(branch_id: StringName) -> Array[UpgradeDefinition]
 	var result: Array[UpgradeDefinition] = []
 	if branch_id == &"" or _runtime.has_specialization(branch_id):
 		return result
-	for definition: UpgradeDefinition in _catalog.definitions:
+	for definition: UpgradeDefinition in _catalog.get_all_definitions():
 		if definition == null:
 			continue
 		if definition.branch_id != branch_id:

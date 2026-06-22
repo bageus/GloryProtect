@@ -25,6 +25,8 @@ func create_plan(
 		return null
 	if not enemy.health.is_alive() or not target.health.is_alive():
 		return null
+	if target.blocks_enemy_jump():
+		return null
 	if enemy.archetype == null:
 		return null
 

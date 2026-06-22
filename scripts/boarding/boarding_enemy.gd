@@ -61,7 +61,8 @@ func configure(
 	melee.configure(
 		archetype.attack_damage,
 		archetype.attack_windup,
-		archetype.attack_cooldown
+		archetype.attack_cooldown,
+		self
 	)
 	visual.configure(archetype)
 	controller.configure(
@@ -102,6 +103,20 @@ func apply_stun(duration_seconds: float) -> void:
 	_stun_remaining = maxf(_stun_remaining, duration_seconds)
 	melee.cancel()
 	stun_changed.emit(enemy_id, _stun_remaining)
+
+
+func apply_platform_knockback(
+	distance: float,
+	source_world_x: float
+) -> void:
+	if distance <= 0.0 or behavior != null or not controller.is_on_platform():
+		return
+	var direction: float = signf(global_position.x - source_world_x)
+	if is_zero_approx(direction):
+		direction = 1.0
+	controller.force_board_at(
+		controller.get_platform_local_x() + direction * distance
+	)
 
 
 func is_stunned() -> bool:

@@ -118,7 +118,7 @@ func _get_catalog_reason(definition: UpgradeDefinition) -> StringName:
 
 func _build_pools() -> Dictionary[StringName, Array]:
 	var pools: Dictionary[StringName, Array] = {}
-	for definition: UpgradeDefinition in _catalog.definitions:
+	for definition: UpgradeDefinition in _catalog.get_all_definitions():
 		if get_unavailability_reason(definition) != &"":
 			continue
 		var pool_id: StringName = (
@@ -165,7 +165,7 @@ func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 
 
 func _has_completed_line(branch_id: StringName) -> bool:
-	for definition: UpgradeDefinition in _catalog.definitions:
+	for definition: UpgradeDefinition in _catalog.get_all_definitions():
 		if definition.branch_id != branch_id:
 			continue
 		if definition.card_type != UpgradeDefinition.CardType.ADVANCED:

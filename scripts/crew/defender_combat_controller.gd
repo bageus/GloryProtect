@@ -9,6 +9,10 @@ var _platform: PlatformController
 var _roles: CrewRoleManager
 var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
+var _locked_enemy: BoardingEnemy
+var _completed_hits: int = 0
+var _double_attack_follow_up_active: bool = false
+var _resolver := MeleeDefenderCombatResolver.new()
 
 
 func configure(
@@ -27,6 +31,10 @@ func configure(
 	_roles = roles
 	_enemies = enemies
 	_melee = melee
+	if not _melee.attack_landed.is_connected(_on_attack_landed):
+		_melee.attack_landed.connect(_on_attack_landed)
+	if not _defender.health.damage_received.is_connected(_on_damage_received):
+		_defender.health.damage_received.connect(_on_damage_received)
 	_configured = true
 
 
@@ -74,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	)
 	if distance <= _balance.defender_attack_range:
 		_defender.movement.pause()
-		_melee.try_start(target.health)
+		_try_start_attack(target)
 		return
 
 	if (
@@ -106,8 +114,14 @@ func is_action_active() -> bool:
 
 
 func cancel() -> void:
+	_locked_enemy = null
+	_double_attack_follow_up_active = false
 	if _melee != null:
 		_melee.cancel()
+
+
+func get_completed_hit_count() -> int:
+	return _completed_hits
 
 
 func _update_moving_assignment_combat() -> void:
@@ -120,7 +134,76 @@ func _update_moving_assignment_combat() -> void:
 		return
 
 	_defender.movement.pause()
-	_melee.try_start(target.health)
+	_try_start_attack(target)
+
+
+func _try_start_attack(target: BoardingEnemy) -> bool:
+	if target == null or not target.health.is_alive():
+		return false
+	if not _melee.try_start(target.health):
+		return false
+	_locked_enemy = target
+	_double_attack_follow_up_active = false
+	return true
+
+
+func _on_attack_landed(
+	_target_health: HealthComponent,
+	damage: int
+) -> void:
+	var primary: BoardingEnemy = _locked_enemy
+	if primary == null or not is_instance_valid(primary):
+		return
+	var was_follow_up: bool = _double_attack_follow_up_active
+	if was_follow_up:
+		_double_attack_follow_up_active = false
+	_completed_hits += 1
+	var upgrades: MeleeDefenderUpgradeRuntime = (
+		_defender.get_melee_upgrades()
+	)
+	if upgrades == null:
+		return
+	_resolver.resolve_primary_hit(
+		_defender,
+		primary,
+		_enemies,
+		upgrades,
+		_completed_hits,
+		damage,
+		_balance.defender_attack_range
+	)
+	if (
+		upgrades.duelist_double_attack
+		and not was_follow_up
+		and primary.health.is_alive()
+		and _melee.queue_follow_up_same_target()
+	):
+		_double_attack_follow_up_active = true
+
+
+func _on_damage_received(
+	_requested_amount: int,
+	_health_damage: int,
+	source_id: StringName,
+	source_node: Node
+) -> void:
+	if source_id != &"melee" or not _defender.health.is_alive():
+		return
+	var attacker: BoardingEnemy = source_node as BoardingEnemy
+	if attacker == null:
+		return
+	var upgrades: MeleeDefenderUpgradeRuntime = (
+		_defender.get_melee_upgrades()
+	)
+	if upgrades == null:
+		return
+	_resolver.resolve_counterattack(
+		_defender,
+		attacker,
+		upgrades,
+		_balance.defender_attack_range,
+		_melee.get_damage()
+	)
 
 
 func _get_target_search_distance(
