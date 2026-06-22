@@ -45,12 +45,23 @@ func _test_specializations() -> void:
 	assert(air.get_damage(1, EnemyBehaviorComponent.TargetDomain.GROUND) == 1)
 	assert(air.apply_flag(&"shooter_air_triple_shot"))
 	assert(air.apply_flag(&"shooter_air_mark_fifth"))
+	assert(not air.apply_flag(&"shooter_sniper_multi_pierce"))
 
 	var anchor := ShooterUpgradeRuntime.new()
 	assert(anchor.apply_flag(&"shooter_specialization_anchor_hunter"))
-	assert(anchor.get_damage(1, EnemyBehaviorComponent.TargetDomain.GROUND) == 2)
+	assert(anchor.get_damage(
+		1,
+		EnemyBehaviorComponent.TargetDomain.GROUND,
+		true
+	) == 2)
+	assert(anchor.get_damage(
+		1,
+		EnemyBehaviorComponent.TargetDomain.GROUND,
+		false
+	) == 1)
 	assert(anchor.apply_flag(&"shooter_anchor_triple_shot"))
 	assert(anchor.apply_flag(&"shooter_anchor_knockdown_fifth"))
+	assert(not anchor.apply_flag(&"shooter_air_mark_fifth"))
 
 
 func _test_reset() -> void:
