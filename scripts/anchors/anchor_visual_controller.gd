@@ -124,6 +124,7 @@ func _draw_chain_links(
 	var length: float = segment.length()
 	if length <= 0.01:
 		return
+
 	var direction: Vector2 = segment / length
 	var link_count: int = maxi(1, ceili(length / CHAIN_LINK_SPACING))
 	var step: float = length / float(link_count)
