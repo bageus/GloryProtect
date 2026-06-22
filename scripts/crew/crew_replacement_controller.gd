@@ -59,6 +59,7 @@ func get_current_respawn_delay() -> float:
 
 
 func reset_run_modifiers() -> void:
+	_pending.clear()
 	_respawn_time_multiplier = 1.0
 	respawn_multiplier_changed.emit(_respawn_time_multiplier)
 
