@@ -1,6 +1,12 @@
 class_name AnchorVisualController
 extends Node2D
 
+const CHAIN_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_chain.png"
+)
+const CHAIN_LINK_SIZE: Vector2 = Vector2(30.0, 30.0)
+const CHAIN_LINK_SPACING: float = 18.0
+
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
 var _balance: AnchorBalance
@@ -100,13 +106,40 @@ func _draw_attached_anchor(
 			overload_pulse
 		)
 
-	draw_line(platform_point, ground_point, rope_color, 4.0)
+	_draw_chain_links(platform_point, ground_point, rope_color)
 	draw_circle(ground_point, 10.0, rope_color)
 	_draw_durability_meter(
 		platform_point.lerp(ground_point, 0.5),
 		durability_ratio,
 		rope_color
 	)
+
+
+func _draw_chain_links(
+	start_point: Vector2,
+	end_point: Vector2,
+	tint: Color
+) -> void:
+	var segment := end_point - start_point
+	var length: float = segment.length()
+	if length <= 0.01:
+		return
+
+	var direction: Vector2 = segment / length
+	var link_count: int = maxi(1, ceili(length / CHAIN_LINK_SPACING))
+	var step: float = length / float(link_count)
+	var rotation: float = direction.angle() - PI * 0.5
+	var link_rect := Rect2(-CHAIN_LINK_SIZE * 0.5, CHAIN_LINK_SIZE)
+
+	for index: int in range(link_count):
+		var link_position := (
+			start_point
+			+ direction * (step * (float(index) + 0.5))
+		)
+		draw_set_transform(link_position, rotation, Vector2.ONE)
+		draw_texture_rect(CHAIN_TEXTURE, link_rect, false, tint)
+
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_durability_meter(
@@ -145,7 +178,9 @@ func _draw_returning_anchor(
 		1.0
 	)
 	var returning_point := ground_point.lerp(platform_point, return_ratio)
-	draw_circle(returning_point, 9.0, Color(0.85, 0.76, 0.46))
+	var return_color := Color(0.85, 0.76, 0.46)
+	_draw_chain_links(platform_point, returning_point, return_color)
+	draw_circle(returning_point, 9.0, return_color)
 
 
 func _draw_silhouette(anchor: AnchorRuntime, ground_point: Vector2) -> void:
