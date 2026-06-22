@@ -16,7 +16,9 @@ func _run_scenario() -> void:
 	await process_frame
 
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
-	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
+	var roles: CrewRoleManager = game.get_node(
+		"World/Platform/CrewRoleManager"
+	)
 	var rejected_reason: StringName = &""
 	roles.assignment_rejected.connect(func(
 		_defender_id: int,
@@ -34,12 +36,41 @@ func _run_scenario() -> void:
 	assert(crew.is_shooter_role_unlocked())
 	rejected_reason = &""
 	roles.request_assignment(0, CrewRole.Id.SHOOTER)
-	await process_frame
-	await process_frame
+	await _wait_for_active_role(roles, 0, CrewRole.Id.SHOOTER)
 	assert(rejected_reason == &"")
-	assert(roles.get_assignment(0).current_role == CrewRole.Id.SHOOTER)
+
+	var defender: Defender = crew.get_defender(0)
+	defender.ranged.phase = RangedAttackComponent.Phase.WINDUP
+	roles.request_assignment(0, CrewRole.Id.FREE_FIGHTER)
+	assert(
+		roles.get_assignment(0).state
+		== CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	)
+	defender.ranged.phase = RangedAttackComponent.Phase.COOLDOWN
+	roles._process(0.0)
+	assert(
+		roles.get_assignment(0).state
+		!= CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	)
 
 	crew.reset_run_modifiers()
 	assert(not crew.is_shooter_role_unlocked())
 	print("Shooter role unlock scenario passed")
 	quit()
+
+
+func _wait_for_active_role(
+	roles: CrewRoleManager,
+	defender_id: int,
+	role_id: int
+) -> void:
+	for _frame: int in range(180):
+		var assignment := roles.get_assignment(defender_id)
+		if (
+			assignment != null
+			and assignment.current_role == role_id
+			and assignment.state == CrewAssignmentRuntime.State.ACTIVE
+		):
+			return
+		await process_frame
+	assert(false, "Timed out waiting for shooter role activation")
