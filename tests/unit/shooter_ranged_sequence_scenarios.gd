@@ -6,10 +6,37 @@ func _init() -> void:
 
 
 func _run_scenarios() -> void:
+	_test_controller_primes_first_attack_profile()
 	_test_three_locked_shots_before_cooldown()
 	_test_sequence_stops_when_locked_target_dies()
 	print("Shooter ranged sequence scenarios passed")
 	quit()
+
+
+func _test_controller_primes_first_attack_profile() -> void:
+	var defender := Defender.new()
+	var flow := GameFlowController.new()
+	var roles := CrewRoleManager.new()
+	var enemies := BoardingEnemyRegistry.new()
+	var crew := CrewManager.new()
+	var ranged := RangedAttackComponent.new()
+	var controller := ShooterCombatController.new()
+	controller.configure(
+		defender,
+		flow,
+		roles,
+		enemies,
+		crew,
+		ranged
+	)
+	assert(ranged.can_start())
+	controller.free()
+	ranged.free()
+	crew.free()
+	enemies.free()
+	roles.free()
+	flow.free()
+	defender.free()
 
 
 func _test_three_locked_shots_before_cooldown() -> void:
@@ -78,7 +105,10 @@ func _make_ranged(owner: Node2D) -> RangedAttackComponent:
 	return ranged
 
 
-func _make_target(position: Vector2, health_points: int) -> HealthComponent:
+func _make_target(
+	position: Vector2,
+	health_points: int
+) -> HealthComponent:
 	var target := Node2D.new()
 	target.global_position = position
 	root.add_child(target)
