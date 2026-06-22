@@ -17,6 +17,8 @@ var _cooldown_duration: float = 0.7
 var _phase: int = Phase.READY
 var _remaining_time: float = 0.0
 var _locked_target: HealthComponent = null
+var _locked_damage: int = 1
+var _locked_cooldown_duration: float = 0.7
 var _follow_up_queued: bool = false
 var _damage_source: Node = null
 
@@ -55,7 +57,7 @@ func tick(delta: float) -> void:
 			if _consume_follow_up():
 				return
 			_phase = Phase.COOLDOWN
-			_remaining_time = _cooldown_duration
+			_remaining_time = _locked_cooldown_duration
 			attack_finished.emit()
 		Phase.COOLDOWN:
 			_phase = Phase.READY
@@ -66,6 +68,8 @@ func try_start(target: HealthComponent) -> bool:
 	if not can_start() or target == null or not target.is_alive():
 		return false
 	_locked_target = target
+	_locked_damage = _damage
+	_locked_cooldown_duration = _cooldown_duration
 	_follow_up_queued = false
 	_phase = Phase.WINDUP
 	_remaining_time = _windup_duration
@@ -106,8 +110,8 @@ func _resolve_locked_attack() -> void:
 		return
 	if not _locked_target.is_alive():
 		return
-	_locked_target.apply_damage(_damage, &"melee", _damage_source)
-	attack_landed.emit(_locked_target, _damage)
+	_locked_target.apply_damage(_locked_damage, &"melee", _damage_source)
+	attack_landed.emit(_locked_target, _locked_damage)
 
 
 func _consume_follow_up() -> bool:
