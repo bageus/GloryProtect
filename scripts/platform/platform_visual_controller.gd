@@ -1,10 +1,21 @@
 class_name PlatformVisualController
 extends Node2D
 
+const PLATFORM_TILE_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_platform.png"
+)
+const PLATFORM_CORE_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_core_platform_energy.png"
+)
+
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
 @export var balance: PlatformBalance
 @export var crew_balance: CrewBalance
+
+@export_group("Asset Visuals")
+@export var platform_core_size: Vector2 = Vector2(112.0, 112.0)
+@export var platform_core_offset: Vector2 = Vector2(0.0, -42.0)
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _steering_input: SteeringInputProvider = get_node(steering_input_path)
@@ -24,13 +35,28 @@ func _draw() -> void:
 		Vector2(platform_width, balance.platform_height)
 	)
 
-	draw_rect(platform_rect, Color(0.16, 0.22, 0.31), true)
-	draw_rect(platform_rect, Color(0.55, 0.69, 0.82), false, 3.0)
+	# The fallback body keeps transparent areas of the tile visually solid.
+	draw_rect(platform_rect, Color(0.12, 0.17, 0.24), true)
+	_draw_platform_tiles(platform_width)
+	draw_rect(platform_rect, Color(0.55, 0.69, 0.82, 0.45), false, 2.0)
 	_draw_cells(platform_width)
 	_draw_replacement_door()
 	_draw_driver_post()
 	_draw_anchor_posts(platform_width)
 	_draw_platform_orb()
+
+
+func _draw_platform_tiles(platform_width: float) -> void:
+	var first_x: float = -platform_width * 0.5
+	for index: int in range(balance.cell_count):
+		var tile_rect := Rect2(
+			Vector2(
+				first_x + float(index) * balance.cell_width,
+				-balance.platform_height * 0.5
+			),
+			Vector2(balance.cell_width, balance.platform_height)
+		)
+		draw_texture_rect(PLATFORM_TILE_TEXTURE, tile_rect, false)
 
 
 func _draw_cells(platform_width: float) -> void:
@@ -41,7 +67,7 @@ func _draw_cells(platform_width: float) -> void:
 		draw_line(
 			Vector2(x, -balance.platform_height * 0.5),
 			Vector2(x, balance.platform_height * 0.5),
-			Color(0.28, 0.36, 0.46),
+			Color(0.82, 0.9, 0.96, 0.18),
 			1.0
 		)
 
@@ -95,18 +121,19 @@ func _draw_anchor_posts(platform_width: float) -> void:
 
 
 func _draw_platform_orb() -> void:
-	var orb_color: Color = Color(0.35, 0.4, 0.45)
-	if _steering_input.driver_available:
-		orb_color = Color(0.35, 0.9, 1.0)
-	draw_circle(Vector2.ZERO, 17.0, orb_color)
-	draw_arc(
-		Vector2.ZERO,
-		25.0,
-		0.0,
-		TAU,
-		48,
-		Color(0.65, 0.96, 1.0),
-		2.0
+	var core_tint := Color.WHITE
+	if not _steering_input.driver_available:
+		core_tint = Color(0.42, 0.46, 0.5, 1.0)
+
+	var core_rect := Rect2(
+		platform_core_offset - platform_core_size * 0.5,
+		platform_core_size
+	)
+	draw_texture_rect(
+		PLATFORM_CORE_TEXTURE,
+		core_rect,
+		false,
+		core_tint
 	)
 
 
