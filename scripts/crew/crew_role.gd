@@ -8,6 +8,7 @@ enum Id {
 	RIGHT_ANCHOR,
 	MEDIC,
 	TURRET,
+	SHOOTER,
 }
 
 
@@ -25,6 +26,8 @@ static func get_display_name(role_id: int) -> String:
 			return "MEDIC"
 		Id.TURRET:
 			return "TURRET"
+		Id.SHOOTER:
+			return "SHOOTER"
 		_:
 			return "UNKNOWN"
 
