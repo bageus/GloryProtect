@@ -86,6 +86,13 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
 				return _turrets.apply_upgrade_effect(effect)
+			if _is_melee_effect(effect):
+				if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
+					return _crew.apply_melee_flag(effect.target_id)
+				return _crew.apply_melee_scalar(
+					effect.target_id,
+					effect.scalar_value
+				)
 			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 				_runtime.set_domain_flag(effect.target_id, true)
 				return true
@@ -96,3 +103,7 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 
 func _is_turret_effect(effect: UpgradeEffectDefinition) -> bool:
 	return String(effect.target_id).begins_with("turret_")
+
+
+func _is_melee_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("melee_")
