@@ -45,6 +45,11 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
 	flow.toggle_manual_pause()
 
+	flow.begin_card_selection()
+	controller.call("_physics_process", 2.0)
+	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
+	flow.finish_card_selection()
+
 	controller.call("_physics_process", 4.9)
 	assert(controller.is_active(target.defender_id))
 	controller.call("_physics_process", 0.1)
