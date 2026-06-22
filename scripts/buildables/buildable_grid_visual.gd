@@ -1,6 +1,11 @@
 class_name BuildableGridVisual
 extends Node2D
 
+const MEDICAL_POST_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_object_healler_post.png"
+)
+const ALPHA_CROP_THRESHOLD: float = 0.08
+
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("BuildableGrid") var grid_path: NodePath
 @export_node_path("BuildableInventory") var inventory_path: NodePath
@@ -9,6 +14,8 @@ extends Node2D
 @export_node_path("TurretSystem") var turret_system_path: NodePath = NodePath("../../TurretSystem")
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath = NodePath("../../BoardingEnemyRegistry")
 @export var balance: BuildableBalance
+@export_range(0.05, 0.5, 0.01) var medical_post_scale: float = 0.24
+@export var medical_post_surface_offset: Vector2 = Vector2.ZERO
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _grid: BuildableGrid = get_node(grid_path)
@@ -18,9 +25,12 @@ extends Node2D
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
+var _medical_source_rect: Rect2
+
 
 func _ready() -> void:
 	assert(balance != null, "BuildableGridVisual requires BuildableBalance")
+	_medical_source_rect = _get_alpha_bounds(MEDICAL_POST_TEXTURE)
 	_grid.buildable_placed.connect(_on_visual_changed)
 	_grid.buildable_moved.connect(_on_visual_changed)
 	_grid.buildable_demolished.connect(_on_visual_changed)
@@ -58,7 +68,7 @@ func _draw_selected_cell() -> void:
 	var local_x: float = _platform.get_cell_local_x(cell_index)
 	var top_y: float = -_platform.get_platform_height() * 0.5
 	var color := Color(0.95, 0.34, 0.22, 0.8)
-	if _grid.is_cell_available(cell_index):
+	if _grid.is_cell_available_for_type(BuildableType.Id.TURRET, cell_index):
 		color = Color(0.25, 0.9, 0.72, 0.8)
 	if _get_buildable_at_cell(cell_index) >= 0:
 		color = Color(0.28, 0.8, 1.0, 0.9)
@@ -81,32 +91,46 @@ func _get_buildable_at_cell(cell_index: int) -> int:
 
 
 func _draw_medical_station(local_x: float) -> void:
-	var width: float = balance.medical_station_width
-	var height: float = balance.medical_station_height
-	var bottom_y: float = balance.medical_station_bottom_y
-	var body := Rect2(
-		Vector2(local_x - width * 0.5, bottom_y - height),
-		Vector2(width, height)
+	var asset_size: Vector2 = _medical_source_rect.size * medical_post_scale
+	var bottom_center := Vector2(
+		local_x + medical_post_surface_offset.x,
+		balance.medical_station_bottom_y + medical_post_surface_offset.y
 	)
-	draw_rect(body, Color(0.18, 0.35, 0.42), true)
-	draw_rect(body, Color(0.52, 0.95, 0.88), false, 2.0)
-	var cross_center := Vector2(local_x, body.position.y + 18.0)
-	draw_rect(
-		Rect2(cross_center + Vector2(-3.0, -10.0), Vector2(6.0, 20.0)),
-		Color(0.92, 1.0, 0.98),
-		true
+	var rect := Rect2(
+		bottom_center - Vector2(asset_size.x * 0.5, asset_size.y),
+		asset_size
 	)
-	draw_rect(
-		Rect2(cross_center + Vector2(-10.0, -3.0), Vector2(20.0, 6.0)),
-		Color(0.92, 1.0, 0.98),
-		true
+	draw_texture_rect_region(
+		MEDICAL_POST_TEXTURE,
+		rect,
+		_medical_source_rect
 	)
-	var shelf_y: float = body.end.y - 15.0
-	draw_line(
-		Vector2(body.position.x + 5.0, shelf_y),
-		Vector2(body.end.x - 5.0, shelf_y),
-		Color(0.62, 0.8, 0.82),
-		2.0
+
+
+func _get_alpha_bounds(texture: Texture2D) -> Rect2:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return Rect2(Vector2.ZERO, texture.get_size())
+	var min_x: int = image.get_width()
+	var min_y: int = image.get_height()
+	var max_x: int = -1
+	var max_y: int = -1
+	for y: int in range(image.get_height()):
+		for x: int in range(image.get_width()):
+			if image.get_pixel(x, y).a <= ALPHA_CROP_THRESHOLD:
+				continue
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+	if max_x < min_x or max_y < min_y:
+		return Rect2(Vector2.ZERO, texture.get_size())
+	return Rect2(
+		Vector2(float(min_x), float(min_y)),
+		Vector2(
+			float(max_x - min_x + 1),
+			float(max_y - min_y + 1)
+		)
 	)
 
 
