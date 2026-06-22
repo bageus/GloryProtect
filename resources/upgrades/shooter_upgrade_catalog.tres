@@ -1,0 +1,286 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=38 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectUnlock"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_role_unlocked"
+
+[sub_resource type="Resource" id="CardUnlock"]
+script = ExtResource("2_definition")
+card_id = &"shooter_unlock"
+branch_id = &"ranged"
+title = "Стрелок"
+description = "Открывает роль стрелка и базовые линии стрелковой ветки."
+card_type = 0
+repeat_limit = 1
+effect = SubResource("EffectUnlock")
+
+[sub_resource type="Resource" id="EffectDamageBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_damage_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardDamageBasic"]
+script = ExtResource("2_definition")
+card_id = &"shooter_damage_basic"
+branch_id = &"ranged"
+title = "Усиленные болты"
+description = "Урон арбалета увеличен на 1."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"shooter_unlock"])
+repeat_limit = 1
+effect = SubResource("EffectDamageBasic")
+
+[sub_resource type="Resource" id="EffectDamageAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_damage_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardDamageAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shooter_damage_advanced"
+branch_id = &"ranged"
+title = "Тяжёлые болты"
+description = "Урон арбалета дополнительно увеличен на 1."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shooter_damage_basic"])
+repeat_limit = 1
+effect = SubResource("EffectDamageAdvanced")
+
+[sub_resource type="Resource" id="EffectRangeBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_range_multiplier"
+scalar_value = 1.2
+
+[sub_resource type="Resource" id="CardRangeBasic"]
+script = ExtResource("2_definition")
+card_id = &"shooter_range_basic"
+branch_id = &"ranged"
+title = "Дальний прицел"
+description = "Радиус стрельбы увеличен на 20%."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"shooter_unlock"])
+repeat_limit = 1
+effect = SubResource("EffectRangeBasic")
+
+[sub_resource type="Resource" id="EffectRangeAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_range_multiplier"
+scalar_value = 1.2
+
+[sub_resource type="Resource" id="CardRangeAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shooter_range_advanced"
+branch_id = &"ranged"
+title = "Оптический модуль"
+description = "Радиус стрельбы дополнительно увеличен на 20%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shooter_range_basic"])
+repeat_limit = 1
+effect = SubResource("EffectRangeAdvanced")
+
+[sub_resource type="Resource" id="EffectCooldownBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_cooldown_multiplier"
+scalar_value = 0.85
+
+[sub_resource type="Resource" id="CardCooldownBasic"]
+script = ExtResource("2_definition")
+card_id = &"shooter_cooldown_basic"
+branch_id = &"ranged"
+title = "Быстрая перезарядка"
+description = "Кулдаун выстрела уменьшен на 15%."
+card_type = 1
+prerequisite_card_ids = Array[StringName]([&"shooter_unlock"])
+repeat_limit = 1
+effect = SubResource("EffectCooldownBasic")
+
+[sub_resource type="Resource" id="EffectCooldownAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shooter_cooldown_multiplier"
+scalar_value = 0.85
+
+[sub_resource type="Resource" id="CardCooldownAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shooter_cooldown_advanced"
+branch_id = &"ranged"
+title = "Боевой механизм"
+description = "Кулдаун выстрела дополнительно уменьшен на 15%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shooter_cooldown_basic"])
+repeat_limit = 1
+effect = SubResource("EffectCooldownAdvanced")
+
+[sub_resource type="Resource" id="EffectPiercing"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_piercing_bolt"
+
+[sub_resource type="Resource" id="CardPiercing"]
+script = ExtResource("2_definition")
+card_id = &"shooter_piercing_bolt"
+branch_id = &"ranged"
+title = "Пробивающий болт"
+description = "Болт поражает следующую цель после основной."
+card_type = 3
+required_completed_branch_id = &"ranged"
+repeat_limit = 1
+effect = SubResource("EffectPiercing")
+
+[sub_resource type="Resource" id="EffectSniper"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_specialization_sniper"
+
+[sub_resource type="Resource" id="CardSniper"]
+script = ExtResource("2_definition")
+card_id = &"shooter_specialization_sniper"
+branch_id = &"ranged"
+title = "Снайпер"
+description = "Урон +1, дальность +10%, приоритет самой сильной цели."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shooter_specialization_air_hunter", &"shooter_specialization_anchor_hunter"])
+repeat_limit = 1
+effect = SubResource("EffectSniper")
+
+[sub_resource type="Resource" id="EffectAirHunter"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_specialization_air_hunter"
+
+[sub_resource type="Resource" id="CardAirHunter"]
+script = ExtResource("2_definition")
+card_id = &"shooter_specialization_air_hunter"
+branch_id = &"ranged"
+title = "Охотник на летающих"
+description = "Урон +1 по летающим, приоритет воздушных целей."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shooter_specialization_sniper", &"shooter_specialization_anchor_hunter"])
+repeat_limit = 1
+effect = SubResource("EffectAirHunter")
+
+[sub_resource type="Resource" id="EffectAnchorHunter"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_specialization_anchor_hunter"
+
+[sub_resource type="Resource" id="CardAnchorHunter"]
+script = ExtResource("2_definition")
+card_id = &"shooter_specialization_anchor_hunter"
+branch_id = &"ranged"
+title = "Охотник на якорях"
+description = "Урон +1 по врагам на тросах, приоритет якорных целей."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shooter_specialization_sniper", &"shooter_specialization_air_hunter"])
+repeat_limit = 1
+effect = SubResource("EffectAnchorHunter")
+
+[sub_resource type="Resource" id="EffectSniperPierce"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_sniper_multi_pierce"
+
+[sub_resource type="Resource" id="CardSniperPierce"]
+script = ExtResource("2_definition")
+card_id = &"shooter_sniper_multi_pierce"
+branch_id = &"ranged"
+title = "Сквозной выстрел"
+description = "Снайперский болт пробивает несколько целей."
+card_type = 5
+required_specialization_id = &"shooter_specialization_sniper"
+repeat_limit = 1
+effect = SubResource("EffectSniperPierce")
+
+[sub_resource type="Resource" id="EffectSniperFifth"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_sniper_explosive_fifth"
+
+[sub_resource type="Resource" id="CardSniperFifth"]
+script = ExtResource("2_definition")
+card_id = &"shooter_sniper_explosive_fifth"
+branch_id = &"ranged"
+title = "Взрывной пятый болт"
+description = "Каждый пятый болт взрывается в точке попадания."
+card_type = 5
+required_specialization_id = &"shooter_specialization_sniper"
+repeat_limit = 1
+effect = SubResource("EffectSniperFifth")
+
+[sub_resource type="Resource" id="EffectAirTriple"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_air_triple_shot"
+
+[sub_resource type="Resource" id="CardAirTriple"]
+script = ExtResource("2_definition")
+card_id = &"shooter_air_triple_shot"
+branch_id = &"ranged"
+title = "Тройной воздушный залп"
+description = "Стрелок выполняет три последовательных выстрела."
+card_type = 5
+required_specialization_id = &"shooter_specialization_air_hunter"
+repeat_limit = 1
+effect = SubResource("EffectAirTriple")
+
+[sub_resource type="Resource" id="EffectAirMark"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_air_mark_fifth"
+
+[sub_resource type="Resource" id="CardAirMark"]
+script = ExtResource("2_definition")
+card_id = &"shooter_air_mark_fifth"
+branch_id = &"ranged"
+title = "Метка воздушной цели"
+description = "Каждый пятый выстрел метит сильнейшую воздушную цель на 10 секунд."
+card_type = 5
+required_specialization_id = &"shooter_specialization_air_hunter"
+repeat_limit = 1
+effect = SubResource("EffectAirMark")
+
+[sub_resource type="Resource" id="EffectAnchorTriple"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_anchor_triple_shot"
+
+[sub_resource type="Resource" id="CardAnchorTriple"]
+script = ExtResource("2_definition")
+card_id = &"shooter_anchor_triple_shot"
+branch_id = &"ranged"
+title = "Тройной якорный залп"
+description = "Стрелок выполняет три последовательных выстрела по якорной цели."
+card_type = 5
+required_specialization_id = &"shooter_specialization_anchor_hunter"
+repeat_limit = 1
+effect = SubResource("EffectAnchorTriple")
+
+[sub_resource type="Resource" id="EffectAnchorFifth"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shooter_anchor_knockdown_fifth"
+
+[sub_resource type="Resource" id="CardAnchorFifth"]
+script = ExtResource("2_definition")
+card_id = &"shooter_anchor_knockdown_fifth"
+branch_id = &"ranged"
+title = "Сбивающий пятый залп"
+description = "Каждый пятый залп гарантированно сбивает врага с троса."
+card_type = 5
+required_specialization_id = &"shooter_specialization_anchor_hunter"
+repeat_limit = 1
+effect = SubResource("EffectAnchorFifth")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardUnlock"), SubResource("CardDamageBasic"), SubResource("CardDamageAdvanced"), SubResource("CardRangeBasic"), SubResource("CardRangeAdvanced"), SubResource("CardCooldownBasic"), SubResource("CardCooldownAdvanced"), SubResource("CardPiercing"), SubResource("CardSniper"), SubResource("CardAirHunter"), SubResource("CardAnchorHunter"), SubResource("CardSniperPierce"), SubResource("CardSniperFifth"), SubResource("CardAirTriple"), SubResource("CardAirMark"), SubResource("CardAnchorTriple"), SubResource("CardAnchorFifth")])
