@@ -71,6 +71,12 @@ func reset_melee_upgrades_for_new_life(
 	upgrades: MeleeDefenderUpgradeRuntime
 ) -> void:
 	_melee_upgrades = upgrades
+	_medic_role_health_bonus = 0
+	_medic_role_active = false
+	_medic_combat_enabled = false
+	_medic_healing_action_active = false
+	_medic_damage_bonus = 0
+	_medic_move_speed_multiplier = 1.0
 	_temporary_attack_speed_multiplier = 1.0
 	_temporary_move_speed_multiplier = 1.0
 	if is_node_ready():
