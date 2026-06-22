@@ -21,7 +21,7 @@ func _on_defender_died(defender_id: int) -> void:
 	if _crew.get_living_count() > 0:
 		return
 	if _revival != null:
-		if _revival.is_revival_scheduled(defender_id):
+		if _revival.is_revival_scheduled():
 			return
 		if _revival.try_schedule_revival(defender_id):
 			return
