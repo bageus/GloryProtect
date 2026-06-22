@@ -22,6 +22,9 @@ func _run_scenario() -> void:
 	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var role_modifiers: MedicRoleModifierController = game.get_node(
+		"World/MedicRoleModifierController"
+	)
 	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	medical.set_physics_process(false)
 
@@ -39,6 +42,7 @@ func _run_scenario() -> void:
 	var patient: Defender = crew.get_defender(0)
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
+	assert(role_modifiers.get_active_medic_id() == medic.defender_id)
 	for defender: Defender in crew.get_all_defenders():
 		defender.combat.set_physics_process(false)
 	medic.teleport_to(patient.position.x)
@@ -72,6 +76,7 @@ func _run_scenario() -> void:
 	medical.call("_physics_process", medical.get_heal_remaining())
 	assert(patient.health.current_health == 2)
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
+	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(not medic.can_medic_role_use_melee())
 	medic.combat.call("_physics_process", 0.0)
 	assert(not medic.melee.is_attacking())
