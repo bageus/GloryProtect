@@ -7,9 +7,13 @@ signal respawn_multiplier_changed(multiplier: float)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
-@export_node_path("CrewRoleManager") var role_manager_path: NodePath
+@export_node_path("CrewRoleManager") var role_manager_path: NodePath = NodePath(
+	"../World/Platform/CrewRoleManager"
+)
 @export_node_path("BoardingMovementResolver") var movement_resolver_path: NodePath
-@export_node_path("CrewPortalVisualController") var portal_visual_path: NodePath
+@export_node_path("PlatformVisualController") var portal_visual_path: NodePath = NodePath(
+	"../World/Platform/PlatformVisualController"
+)
 @export var balance: CrewBalance
 @export var instant_respawn_for_tests: bool = true
 
@@ -25,9 +29,9 @@ var _respawn_time_multiplier: float = 1.0
 @onready var _movement_resolver: BoardingMovementResolver = get_node(
 	movement_resolver_path
 )
-@onready var _portal: CrewPortalVisualController = get_node_or_null(
+@onready var _portal: PlatformVisualController = get_node_or_null(
 	portal_visual_path
-) as CrewPortalVisualController
+) as PlatformVisualController
 
 
 func _ready() -> void:
