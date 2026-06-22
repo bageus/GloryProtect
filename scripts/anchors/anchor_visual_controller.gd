@@ -8,6 +8,7 @@ const CHAIN_LINK_SIZE: Vector2 = Vector2(46.0, 46.0)
 const CHAIN_LINK_SPACING: float = 23.0
 const CHAIN_BACKING_WIDTH: float = 7.0
 const CHAIN_BRIGHTEN_AMOUNT: float = 0.18
+const CHAIN_ALPHA_CROP_THRESHOLD: float = 0.08
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -15,6 +16,14 @@ var _balance: AnchorBalance
 var _is_operator_available: Callable
 var _is_simulation_active: Callable
 var _warning_elapsed: float = 0.0
+var _chain_source_rect: Rect2
+
+
+func _ready() -> void:
+	_chain_source_rect = _get_alpha_bounds(
+		CHAIN_TEXTURE,
+		CHAIN_ALPHA_CROP_THRESHOLD
+	)
 
 
 func configure(
@@ -152,7 +161,12 @@ func _draw_chain_links(
 			+ direction * (step * (float(index) + 0.5))
 		)
 		draw_set_transform(link_position, rotation, Vector2.ONE)
-		draw_texture_rect(CHAIN_TEXTURE, link_rect, false, visible_tint)
+		draw_texture_rect_region(
+			CHAIN_TEXTURE,
+			link_rect,
+			_chain_source_rect,
+			visible_tint
+		)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -225,4 +239,37 @@ func _get_durability_ratio(anchor: AnchorRuntime) -> float:
 		anchor.rope_durability / _balance.rope_max_durability,
 		0.0,
 		1.0
+	)
+
+
+func _get_alpha_bounds(texture: Texture2D, threshold: float) -> Rect2:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return Rect2(Vector2.ZERO, texture.get_size())
+
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var min_x: int = width
+	var min_y: int = height
+	var max_x: int = -1
+	var max_y: int = -1
+
+	for y: int in range(height):
+		for x: int in range(width):
+			if image.get_pixel(x, y).a <= threshold:
+				continue
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+
+	if max_x < min_x or max_y < min_y:
+		return Rect2(Vector2.ZERO, texture.get_size())
+
+	return Rect2(
+		Vector2(float(min_x), float(min_y)),
+		Vector2(
+			float(max_x - min_x + 1),
+			float(max_y - min_y + 1)
+		)
 	)
