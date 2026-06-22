@@ -29,12 +29,14 @@ func _run_scenario() -> void:
 	var target: Defender = crew.get_defender(0)
 	var base_cooldown: float = target.melee.get_cooldown_duration()
 	var base_move_speed: float = target.movement.move_speed
+	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.0))
 	medical.segment_restored.emit(1, target.defender_id, 1)
 	assert(controller.is_active(target.defender_id))
 	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
+	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.15))
 	assert(is_equal_approx(
 		target.melee.get_cooldown_duration(),
-		base_cooldown / 1.15
+		base_cooldown / target.get_temporary_attack_speed_multiplier()
 	))
 	assert(is_equal_approx(target.movement.move_speed, base_move_speed * 1.15))
 
@@ -47,6 +49,7 @@ func _run_scenario() -> void:
 	assert(controller.is_active(target.defender_id))
 	controller.call("_physics_process", 0.1)
 	assert(not controller.is_active(target.defender_id))
+	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.0))
 	assert(is_equal_approx(target.melee.get_cooldown_duration(), base_cooldown))
 	assert(is_equal_approx(target.movement.move_speed, base_move_speed))
 
