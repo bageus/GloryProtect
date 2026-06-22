@@ -137,7 +137,6 @@ func _draw() -> void:
 		_draw_cells(platform_width)
 	_draw_portal()
 	_draw_driver_console()
-	_draw_anchor_posts(platform_width)
 	_draw_platform_orb()
 
 
@@ -286,8 +285,6 @@ func _draw_driver_console() -> void:
 		console_tint
 	)
 
-	# The bottom-center of the cropped lever is the pivot. Only the upper part
-	# moves when steering, while the lower attachment remains fixed in place.
 	var lever_mount: Vector2 = console_center + driver_lever_mount_offset
 	var lever_rect := Rect2(
 		Vector2(
@@ -304,23 +301,6 @@ func _draw_driver_console() -> void:
 		console_tint
 	)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _draw_anchor_posts(platform_width: float) -> void:
-	var offset: float = (
-		platform_width * 0.5
-		- balance.cell_width * balance.anchor_post_cell_inset
-	)
-	for side: float in [-1.0, 1.0]:
-		var post_rect := Rect2(
-			Vector2(
-				side * offset - balance.anchor_post_width * 0.5,
-				-balance.anchor_post_height
-			),
-			Vector2(balance.anchor_post_width, balance.anchor_post_height)
-		)
-		draw_rect(post_rect, Color(0.55, 0.42, 0.22), true)
-		draw_rect(post_rect, Color(0.92, 0.72, 0.35), false, 2.0)
 
 
 func _draw_platform_orb() -> void:
