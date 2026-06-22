@@ -223,8 +223,15 @@ func _on_healing_started(medic_id: int, _target_id: int) -> void:
 
 func _on_healing_stopped(medic_id: int, _target_id: int) -> void:
 	var defender: Defender = _crew.get_defender(medic_id)
-	if defender != null:
-		defender.set_medic_healing_action_active(false)
+	if defender == null:
+		return
+	defender.set_medic_healing_action_active(false)
+	var assignment: CrewAssignmentRuntime = _roles.get_assignment(medic_id)
+	if (
+		assignment != null
+		and assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	):
+		defender.set_medic_role_modifiers(false, false, 0, 1.0)
 
 
 func _on_defender_died(defender_id: int) -> void:
