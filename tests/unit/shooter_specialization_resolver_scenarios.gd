@@ -1,7 +1,6 @@
 extends SceneTree
 
 const ENEMY_SCENE := preload("res://scenes/boarding/boarding_enemy.tscn")
-const DEFENDER_SCENE := preload("res://scenes/crew/defender.tscn")
 const BALANCE: ShooterSpecializationBalance = preload(
 	"res://resources/balance/shooter_specialization_balance.tres"
 )
@@ -25,54 +24,106 @@ func _run_scenarios() -> void:
 func _test_piercing_and_explosion() -> void:
 	var registry := BoardingEnemyRegistry.new()
 	root.add_child(registry)
-	var shooter: Defender = DEFENDER_SCENE.instantiate() as Defender
-	root.add_child(shooter)
-	await process_frame
-	shooter.global_position = Vector2.ZERO
-	var primary: BoardingEnemy = await _make_enemy(registry, Vector2(50.0, 0.0), 5, BoardingEnemyController.State.ON_PLATFORM)
-	var behind_one: BoardingEnemy = await _make_enemy(registry, Vector2(80.0, 0.0), 5, BoardingEnemyController.State.ON_PLATFORM)
-	var behind_two: BoardingEnemy = await _make_enemy(registry, Vector2(110.0, 0.0), 5, BoardingEnemyController.State.ON_PLATFORM)
-	var outside_lane: BoardingEnemy = await _make_enemy(registry, Vector2(90.0, 80.0), 5, BoardingEnemyController.State.ON_PLATFORM)
+	var shooter := Defender.new()
+	shooter.position = Vector2.ZERO
+	var primary: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(50.0, 0.0),
+		5,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var behind_one: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(80.0, 0.0),
+		5,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var behind_two: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(110.0, 0.0),
+		5,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var outside_lane: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(90.0, 80.0),
+		5,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
 	var upgrades := ShooterUpgradeRuntime.new()
 	upgrades.apply_flag(&"shooter_specialization_sniper")
 	upgrades.apply_flag(&"shooter_sniper_multi_pierce")
 	upgrades.apply_flag(&"shooter_sniper_explosive_fifth")
 	var resolver := ShooterCombatResolver.new()
 	resolver.configure(BALANCE)
-	resolver.resolve_bolt_hit(shooter, primary, registry, POLICY, upgrades, 1, 5)
+	resolver.resolve_bolt_hit(
+		shooter,
+		primary,
+		registry,
+		POLICY,
+		upgrades,
+		1,
+		5
+	)
 	assert(behind_one.health.current_health == 3)
 	assert(behind_two.health.current_health == 3)
 	assert(outside_lane.health.current_health == 5)
-	shooter.queue_free()
+	shooter.free()
 	registry.queue_free()
 
 
 func _test_air_mark_selects_strongest_target() -> void:
 	var registry := BoardingEnemyRegistry.new()
 	root.add_child(registry)
-	var shooter: Defender = DEFENDER_SCENE.instantiate() as Defender
-	root.add_child(shooter)
-	await process_frame
-	var primary: BoardingEnemy = await _make_air_enemy(registry, Vector2(20.0, 0.0), 2)
-	var strongest: BoardingEnemy = await _make_air_enemy(registry, Vector2(40.0, 0.0), 6)
-	var weaker: BoardingEnemy = await _make_air_enemy(registry, Vector2(60.0, 0.0), 3)
+	var shooter := Defender.new()
+	var primary: BoardingEnemy = await _make_air_enemy(
+		registry,
+		Vector2(20.0, 0.0),
+		2
+	)
+	var strongest: BoardingEnemy = await _make_air_enemy(
+		registry,
+		Vector2(40.0, 0.0),
+		6
+	)
+	var weaker: BoardingEnemy = await _make_air_enemy(
+		registry,
+		Vector2(60.0, 0.0),
+		3
+	)
 	var upgrades := ShooterUpgradeRuntime.new()
 	upgrades.apply_flag(&"shooter_specialization_air_hunter")
 	upgrades.apply_flag(&"shooter_air_mark_fifth")
 	var resolver := ShooterCombatResolver.new()
 	resolver.configure(BALANCE)
-	resolver.resolve_bolt_hit(shooter, primary, registry, POLICY, upgrades, 1, 5)
+	resolver.resolve_bolt_hit(
+		shooter,
+		primary,
+		registry,
+		POLICY,
+		upgrades,
+		1,
+		5
+	)
 	assert(strongest.is_damage_marked())
 	assert(not weaker.is_damage_marked())
-	assert(is_equal_approx(strongest.health.get_incoming_damage_multiplier(), BALANCE.mark_damage_multiplier))
-	shooter.queue_free()
+	assert(is_equal_approx(
+		strongest.health.get_incoming_damage_multiplier(),
+		BALANCE.mark_damage_multiplier
+	))
+	shooter.free()
 	registry.queue_free()
 
 
 func _test_anchor_knockdown_uses_common_death_flow() -> void:
 	var registry := BoardingEnemyRegistry.new()
 	root.add_child(registry)
-	var climbing: BoardingEnemy = await _make_enemy(registry, Vector2(30.0, 0.0), 5, BoardingEnemyController.State.CLIMBING)
+	var climbing: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(30.0, 0.0),
+		5,
+		BoardingEnemyController.State.CLIMBING
+	)
 	var removed_reason: StringName = &""
 	registry.enemy_removed.connect(func(
 		_enemy_id: int,
