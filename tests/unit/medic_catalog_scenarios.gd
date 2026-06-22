@@ -3,10 +3,14 @@ extends SceneTree
 const CATALOG: UpgradeCatalog = preload(
 	"res://resources/upgrades/medic_upgrade_catalog.tres"
 )
+const DRAW_BALANCE: UpgradeDrawBalance = preload(
+	"res://resources/upgrades/upgrade_draw_balance.tres"
+)
 
 
 func _init() -> void:
 	_test_unlock_and_progress_rules()
+	_test_unlock_weight_rule()
 	_test_line_and_individual_prerequisites()
 	_test_specialization_exclusivity()
 	print("Medic catalog scenarios passed")
@@ -31,6 +35,22 @@ func _test_unlock_and_progress_rules() -> void:
 	assert(runtime.record_card(speed))
 	assert(runtime.get_branch_progress(&"healer") == 2)
 	assert(runtime.is_branch_ready_for_specialization(&"healer"))
+
+
+func _test_unlock_weight_rule() -> void:
+	var runtime := UpgradeRuntime.new()
+	var generator := UpgradeDrawGenerator.new()
+	generator.configure(DRAW_BALANCE, CATALOG, runtime, 25)
+	var starting_weight: int = generator.get_branch_weight(&"healer")
+	assert(starting_weight == 10)
+	var station: UpgradeDefinition = CATALOG.get_definition(&"medic_station")
+	assert(runtime.record_card(station))
+	generator.apply_selected_card(station)
+	assert(generator.get_branch_weight(&"healer") == starting_weight)
+	var amount: UpgradeDefinition = CATALOG.get_definition(&"medic_heal_amount_basic")
+	assert(runtime.record_card(amount))
+	generator.apply_selected_card(amount)
+	assert(generator.get_branch_weight(&"healer") == starting_weight + 3)
 
 
 func _test_line_and_individual_prerequisites() -> void:
