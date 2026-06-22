@@ -30,7 +30,8 @@ func _test_begun_shot_keeps_original_target() -> void:
 	profile.maximum_range = 200.0
 	ranged.configure(profile, owner, flow)
 	assert(ranged.try_start(first))
-	second.get_parent().global_position = Vector2(5.0, 0.0)
+	var second_node: Node2D = second.get_parent() as Node2D
+	second_node.global_position = Vector2(5.0, 0.0)
 	ranged.tick(0.1)
 	ranged.tick(0.1)
 	assert(first.current_health == 2)
