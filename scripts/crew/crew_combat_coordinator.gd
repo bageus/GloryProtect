@@ -35,7 +35,8 @@ func _configure_defender(defender: Defender) -> void:
 	defender.melee.configure(
 		balance.defender_attack_damage,
 		balance.defender_attack_windup,
-		balance.defender_attack_cooldown
+		balance.defender_attack_cooldown,
+		defender
 	)
 	defender.combat.configure(
 		defender,
@@ -45,6 +46,14 @@ func _configure_defender(defender: Defender) -> void:
 		_roles,
 		_enemies,
 		defender.melee
+	)
+	defender.shooter_combat.configure(
+		defender,
+		_game_flow,
+		_roles,
+		_enemies,
+		_crew,
+		defender.ranged
 	)
 
 
