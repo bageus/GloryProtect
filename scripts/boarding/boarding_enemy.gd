@@ -4,6 +4,7 @@ extends Node2D
 signal died(enemy_id: int, reason: StringName)
 signal visual_state_changed(enemy_id: int, state_id: StringName)
 signal stun_changed(enemy_id: int, remaining_seconds: float)
+signal damage_mark_changed(enemy_id: int, remaining_seconds: float)
 
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("MeleeAttackComponent") var melee_path: NodePath
@@ -15,6 +16,8 @@ var archetype: BoardingEnemyArchetype
 var behavior: EnemyBehaviorComponent
 var _dead: bool = false
 var _stun_remaining: float = 0.0
+var _damage_mark_remaining: float = 0.0
+var _damage_mark_multiplier: float = 1.0
 var _game_flow: GameFlowController
 
 @onready var health: HealthComponent = get_node(health_path)
@@ -28,12 +31,18 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _stun_remaining <= 0.0 or _game_flow == null:
+	if _game_flow == null or not _game_flow.is_world_simulation_active():
 		return
-	if not _game_flow.is_world_simulation_active():
-		return
-	_stun_remaining = maxf(0.0, _stun_remaining - maxf(0.0, delta))
-	stun_changed.emit(enemy_id, _stun_remaining)
+	var safe_delta: float = maxf(0.0, delta)
+	if _stun_remaining > 0.0:
+		_stun_remaining = maxf(0.0, _stun_remaining - safe_delta)
+		stun_changed.emit(enemy_id, _stun_remaining)
+	if _damage_mark_remaining > 0.0:
+		_damage_mark_remaining = maxf(0.0, _damage_mark_remaining - safe_delta)
+		if _damage_mark_remaining <= 0.0:
+			_damage_mark_multiplier = 1.0
+			health.set_incoming_damage_multiplier(1.0)
+		damage_mark_changed.emit(enemy_id, _damage_mark_remaining)
 
 
 func set_enemy_id(value: int) -> void:
@@ -57,6 +66,8 @@ func configure(
 	archetype = profile
 	_game_flow = game_flow
 	_stun_remaining = 0.0
+	_damage_mark_remaining = 0.0
+	_damage_mark_multiplier = 1.0
 	health.configure(archetype.max_health)
 	melee.configure(
 		archetype.attack_damage,
@@ -106,6 +117,30 @@ func apply_stun(duration_seconds: float) -> bool:
 	return true
 
 
+func apply_damage_mark(
+	duration_seconds: float,
+	damage_multiplier: float
+) -> bool:
+	if duration_seconds <= 0.0 or damage_multiplier <= 1.0:
+		return false
+	if _dead or not health.is_alive():
+		return false
+	_damage_mark_remaining = maxf(_damage_mark_remaining, duration_seconds)
+	_damage_mark_multiplier = maxf(_damage_mark_multiplier, damage_multiplier)
+	health.set_incoming_damage_multiplier(_damage_mark_multiplier)
+	damage_mark_changed.emit(enemy_id, _damage_mark_remaining)
+	return true
+
+
+func knock_down_from_anchor(
+	reason: StringName = &"shooter_anchor_knockdown"
+) -> bool:
+	if _dead or not health.is_alive() or not is_counted_as_climbing():
+		return false
+	kill(reason)
+	return true
+
+
 func apply_platform_knockback(
 	distance: float,
 	source_world_x: float
@@ -128,11 +163,28 @@ func get_stun_remaining() -> float:
 	return maxf(0.0, _stun_remaining)
 
 
+func is_damage_marked() -> bool:
+	return _damage_mark_remaining > 0.0
+
+
+func get_damage_mark_remaining() -> float:
+	return maxf(0.0, _damage_mark_remaining)
+
+
+func get_target_domain() -> int:
+	if behavior != null:
+		return behavior.target_domain
+	return EnemyBehaviorComponent.TargetDomain.GROUND
+
+
 func kill(reason: StringName) -> void:
 	if _dead:
 		return
 	_dead = true
 	_stun_remaining = 0.0
+	_damage_mark_remaining = 0.0
+	_damage_mark_multiplier = 1.0
+	health.set_incoming_damage_multiplier(1.0)
 	if behavior != null:
 		behavior.stop()
 	controller.stop()
