@@ -16,6 +16,14 @@ func is_valid() -> bool:
 	return true
 
 
+func get_all_definitions() -> Array[UpgradeDefinition]:
+	var result: Array[UpgradeDefinition] = definitions.duplicate()
+	for included: UpgradeCatalog in included_catalogs:
+		if included == null or included == self:
+			continue
+		result.append_array(included.get_all_definitions())
+	return result
+
 
 func get_definition(card_id: StringName) -> UpgradeDefinition:
 	for definition: UpgradeDefinition in get_all_definitions():
