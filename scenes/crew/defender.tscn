@@ -29,7 +29,7 @@ script = ExtResource("8_durability")
 [node name="StatusEffectComponent" type="Node" parent="."]
 script = ExtResource("7_status")
 health_path = NodePath("../HealthComponent")
-game_flow_path = NodePath("../../../../GameFlowController")
+game_flow_path = NodePath("../../../../../GameFlowController")
 
 [node name="DefenderMovement" type="Node" parent="."]
 script = ExtResource("3_movement")
