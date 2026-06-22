@@ -59,6 +59,7 @@ func get_current_respawn_delay() -> float:
 
 
 func reset_run_modifiers() -> void:
+	_pending.clear()
 	_respawn_time_multiplier = 1.0
 	respawn_multiplier_changed.emit(_respawn_time_multiplier)
 
@@ -78,6 +79,17 @@ func get_pending_count() -> int:
 	return _pending.size()
 
 
+func complete_replacement_now(defender_id: int) -> Defender:
+	_pending.erase(defender_id)
+	var spawn_x: float = _movement_resolver.find_nearest_defender_slot(
+		balance.replacement_door_local_x
+	)
+	var defender: Defender = _crew.replace_defender(defender_id, spawn_x)
+	if defender != null:
+		replacement_completed.emit(defender_id, defender)
+	return defender
+
+
 func get_summary() -> String:
 	if _pending.is_empty():
 		return "НЕТ"
@@ -95,6 +107,9 @@ func get_summary() -> String:
 
 
 func _on_defender_died(defender_id: int) -> void:
+	var current: Defender = _crew.get_defender(defender_id)
+	if current != null and current.health.is_alive():
+		return
 	if _pending.has(defender_id):
 		return
 	var runtime: CrewReplacementRuntime = CrewReplacementRuntime.new(
@@ -108,10 +123,4 @@ func _on_defender_died(defender_id: int) -> void:
 func _complete_replacement(defender_id: int) -> void:
 	if not _pending.has(defender_id):
 		return
-	_pending.erase(defender_id)
-	var spawn_x: float = _movement_resolver.find_nearest_defender_slot(
-		balance.replacement_door_local_x
-	)
-	var defender: Defender = _crew.replace_defender(defender_id, spawn_x)
-	if defender != null:
-		replacement_completed.emit(defender_id, defender)
+	complete_replacement_now(defender_id)

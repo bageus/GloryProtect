@@ -3,6 +3,15 @@ extends SceneTree
 const CATALOG: UpgradeCatalog = preload(
 	"res://resources/upgrades/active_game_upgrade_catalog.tres"
 )
+const TURRET: UpgradeCatalog = preload(
+	"res://resources/upgrades/turret_branch_upgrade_catalog.tres"
+)
+const MELEE: UpgradeCatalog = preload(
+	"res://resources/upgrades/melee_defender_upgrade_catalog.tres"
+)
+const MEDIC: UpgradeCatalog = preload(
+	"res://resources/upgrades/medic_upgrade_catalog.tres"
+)
 
 
 func _init() -> void:
@@ -11,14 +20,31 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	assert(CATALOG.is_valid())
+	var expected_count: int = (
+		TURRET.get_all_definitions().size()
+		+ MELEE.get_all_definitions().size()
+		+ MEDIC.get_all_definitions().size()
+	)
+	assert(CATALOG.get_all_definitions().size() == expected_count)
 	assert(CATALOG.get_definition(&"common_add_defender") != null)
-	assert(CATALOG.get_definition(&"common_turret_post") != null)
+	assert(CATALOG.get_definition(&"turret_post") != null)
+	assert(CATALOG.get_definition(&"turret_heavy_explosive_fifth") != null)
+	assert(CATALOG.get_definition(&"turret_electric_orb_fifth") != null)
 	assert(CATALOG.get_definition(&"melee_damage_basic") != null)
 	assert(CATALOG.get_definition(&"melee_specialization_heavy") != null)
-	assert(CATALOG.get_all_definitions().size() > CATALOG.definitions.size())
+	assert(CATALOG.get_definition(&"medic_station") != null)
+	assert(CATALOG.get_definition(&"medic_specialization_field") != null)
+	_test_upgrade_system_catalog_api(expected_count)
 	_test_melee_specialization_offer()
 	print("Active upgrade catalog scenarios passed")
 	quit()
+
+
+func _test_upgrade_system_catalog_api(expected_count: int) -> void:
+	var system := UpgradeSystem.new()
+	system.catalog = CATALOG
+	assert(system.get_all_card_definitions().size() == expected_count)
+	system.free()
 
 
 func _test_melee_specialization_offer() -> void:

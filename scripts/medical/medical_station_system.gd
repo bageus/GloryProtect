@@ -6,19 +6,25 @@ signal healing_started(medic_id: int, target_id: int)
 signal healing_progress(medic_id: int, target_id: int, remaining: float)
 signal segment_restored(medic_id: int, target_id: int, amount: int)
 signal healing_stopped(medic_id: int, target_id: int)
+signal upgrades_changed
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("BuildableGrid") var buildable_grid_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
 @export var balance: BuildableBalance
+@export var upgrade_balance: MedicUpgradeBalance = preload(
+	"res://resources/balance/medic_specialization_balance.tres"
+)
 
+var upgrades := MedicUpgradeRuntime.new()
 var _station_buildable_id: int = -1
 var _station_local_x: float = 0.0
 var _medic_id: int = -1
 var _target_id: int = -1
 var _heal_remaining: float = 0.0
 var _cycle_active: bool = false
+var _station_disable_pending: bool = false
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _grid: BuildableGrid = get_node(buildable_grid_path)
@@ -28,26 +34,33 @@ var _cycle_active: bool = false
 
 func _ready() -> void:
 	assert(balance != null, "MedicalStationSystem requires BuildableBalance")
+	assert(upgrade_balance != null and upgrade_balance.is_valid())
 	_grid.buildable_placed.connect(_on_buildable_changed)
 	_grid.buildable_moved.connect(_on_buildable_moved)
 	_grid.buildable_demolished.connect(_on_buildable_demolished)
 	_grid.grid_reset.connect(_on_grid_reset)
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	call_deferred("_sync_station")
 
 
 func _physics_process(delta: float) -> void:
 	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
-	if _station_buildable_id < 0:
-		return
-
-	var medic: Defender = _get_active_medic()
-	if medic == null:
-		_stop_cycle()
-		return
 
 	if _cycle_active:
-		_update_active_cycle(medic, maxf(0.0, delta))
+		var active_medic: Defender = _get_active_medic()
+		if active_medic == null:
+			_stop_cycle()
+			return
+		_update_active_cycle(active_medic, maxf(0.0, delta))
+		return
+
+	if _station_buildable_id < 0:
+		return
+	var medic: Defender = _get_active_medic()
+	if medic == null:
+		return
+	if medic.melee.is_attacking():
 		return
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(medic.defender_id)
@@ -62,8 +75,44 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_move_defender_to(medic, target.position.x)
-	if absf(medic.position.x - target.position.x) <= balance.heal_range:
+	if absf(medic.position.x - target.position.x) <= get_current_heal_range():
 		_begin_cycle(medic, target)
+
+
+func can_apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
+	return upgrades.can_apply_effect(effect)
+
+
+func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
+	if not can_apply_upgrade_effect(effect):
+		return false
+	var applied: bool = false
+	match effect.effect_type:
+		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+			applied = upgrades.apply_scalar(effect.target_id, effect.scalar_value)
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
+			applied = upgrades.apply_flag(effect.target_id)
+	if applied:
+		upgrades_changed.emit()
+	return applied
+
+
+func reset_upgrade_runtime() -> void:
+	_stop_cycle()
+	upgrades.reset()
+	upgrades_changed.emit()
+
+
+func get_current_heal_amount() -> int:
+	return upgrades.get_heal_amount(balance.heal_amount)
+
+
+func get_current_heal_interval() -> float:
+	return upgrades.get_heal_interval(balance.heal_interval)
+
+
+func get_current_heal_range() -> float:
+	return upgrades.get_heal_range(balance.heal_range)
 
 
 func is_healing_cycle_active(defender_id: int) -> bool:
@@ -91,17 +140,18 @@ func get_heal_remaining() -> float:
 
 
 func get_summary() -> String:
+	if _cycle_active:
+		return "лекарь %d → %d | %.1f с%s" % [
+			_medic_id + 1,
+			_target_id + 1,
+			get_heal_remaining(),
+			" | пост демонтирован" if not has_station() else "",
+		]
 	if not has_station():
 		return "медпост отсутствует"
 	var owner_id: int = _roles.get_role_owner(CrewRole.Id.MEDIC)
 	if owner_id < 0:
 		return "медпост свободен"
-	if _cycle_active:
-		return "лекарь %d → %d | %.1f с" % [
-			owner_id + 1,
-			_target_id + 1,
-			get_heal_remaining(),
-		]
 	return "лекарь %d ожидает/движется" % (owner_id + 1)
 
 
@@ -149,7 +199,7 @@ func _choose_healing_target(medic: Defender) -> Defender:
 func _begin_cycle(medic: Defender, target: Defender) -> void:
 	_medic_id = medic.defender_id
 	_target_id = target.defender_id
-	_heal_remaining = balance.heal_interval
+	_heal_remaining = _get_cycle_interval(target)
 	_cycle_active = true
 	_roles.set_external_role_action_active(
 		_medic_id,
@@ -171,8 +221,8 @@ func _update_active_cycle(medic: Defender, delta: float) -> void:
 		return
 
 	_move_defender_to(medic, target.position.x)
-	if absf(medic.position.x - target.position.x) > balance.heal_range:
-		_heal_remaining = balance.heal_interval
+	if absf(medic.position.x - target.position.x) > get_current_heal_range():
+		_heal_remaining = _get_cycle_interval(target)
 		healing_progress.emit(_medic_id, _target_id, _heal_remaining)
 		return
 
@@ -182,9 +232,21 @@ func _update_active_cycle(medic: Defender, delta: float) -> void:
 	if _heal_remaining > 0.0:
 		return
 
-	target.health.heal(balance.heal_amount)
-	segment_restored.emit(_medic_id, _target_id, balance.heal_amount)
+	var previous_health: int = target.health.current_health
+	target.health.heal(get_current_heal_amount())
+	var restored: int = target.health.current_health - previous_health
+	segment_restored.emit(_medic_id, _target_id, restored)
 	_stop_cycle()
+
+
+func _get_cycle_interval(target: Defender) -> float:
+	var interval: float = get_current_heal_interval()
+	if (
+		upgrades.field_emergency_enabled
+		and target.health.current_health <= upgrade_balance.emergency_health_threshold
+	):
+		interval *= upgrade_balance.emergency_heal_interval_multiplier
+	return maxf(0.01, interval)
 
 
 func _move_defender_to(defender: Defender, local_x: float) -> void:
@@ -203,6 +265,17 @@ func _stop_cycle() -> void:
 	var previous_medic: int = _medic_id
 	var previous_target: int = _target_id
 	var was_active: bool = _cycle_active
+	var pending_role: int = -1
+	var pending_station: int = -1
+	if _station_disable_pending and previous_medic >= 0:
+		var assignment: CrewAssignmentRuntime = _roles.get_assignment(previous_medic)
+		if (
+			assignment != null
+			and assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+			and assignment.target_role != CrewRole.Id.MEDIC
+		):
+			pending_role = assignment.target_role
+			pending_station = assignment.target_station_id
 	if previous_medic >= 0:
 		_roles.set_external_role_action_active(
 			previous_medic,
@@ -215,6 +288,15 @@ func _stop_cycle() -> void:
 	_heal_remaining = 0.0
 	if was_active:
 		healing_stopped.emit(previous_medic, previous_target)
+	if _station_disable_pending:
+		_station_disable_pending = false
+		_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
+		if previous_medic >= 0 and pending_role >= 0:
+			_roles.request_assignment(
+				previous_medic,
+				pending_role,
+				pending_station
+			)
 
 
 func _sync_station() -> void:
@@ -224,14 +306,18 @@ func _sync_station() -> void:
 	if medical_id < 0:
 		_station_buildable_id = -1
 		_station_local_x = 0.0
-		_stop_cycle()
-		_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
+		if _cycle_active:
+			_station_disable_pending = true
+		else:
+			_station_disable_pending = false
+			_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
 		station_availability_changed.emit(false, 0.0)
 		return
 
 	var snapshot: BuildableSnapshot = _grid.get_snapshot(medical_id)
 	_station_buildable_id = medical_id
 	_station_local_x = snapshot.local_x
+	_station_disable_pending = false
 	_roles.set_dynamic_role_station(
 		CrewRole.Id.MEDIC,
 		true,
@@ -271,3 +357,11 @@ func _on_buildable_demolished(
 
 func _on_grid_reset() -> void:
 	_sync_station()
+
+
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
+		return
+	reset_upgrade_runtime()
