@@ -20,14 +20,14 @@ func is_valid_target(enemy: BoardingEnemy) -> bool:
 		return false
 	if not enemy.health.is_alive():
 		return false
-	if enemy.get_target_domain() == EnemyBehaviorComponent.TargetDomain.AIR:
+	if _get_target_domain(enemy) == EnemyBehaviorComponent.TargetDomain.AIR:
 		return allow_air
 	if enemy.is_counted_as_climbing():
 		return allow_climbing
-	if enemy.is_counted_as_boarded():
-		return allow_boarded
 	if enemy.get_state() == BoardingEnemyController.State.JUMPING:
 		return allow_jumping
+	if enemy.is_counted_as_boarded():
+		return allow_boarded
 	return false
 
 
@@ -38,9 +38,15 @@ func get_priority_score(enemy: BoardingEnemy, origin: Vector2) -> float:
 		PriorityMode.STRONGEST:
 			return float(enemy.health.current_health) * 10000.0 - origin.distance_squared_to(enemy.global_position)
 		PriorityMode.AIR_FIRST:
-			var air_bonus: float = 1000000.0 if enemy.get_target_domain() == EnemyBehaviorComponent.TargetDomain.AIR else 0.0
+			var air_bonus: float = 1000000.0 if _get_target_domain(enemy) == EnemyBehaviorComponent.TargetDomain.AIR else 0.0
 			return air_bonus - origin.distance_squared_to(enemy.global_position)
 		PriorityMode.ANCHOR_FIRST:
 			var anchor_bonus: float = 1000000.0 if enemy.is_counted_as_climbing() else 0.0
 			return anchor_bonus - origin.distance_squared_to(enemy.global_position)
 	return -origin.distance_squared_to(enemy.global_position)
+
+
+func _get_target_domain(enemy: BoardingEnemy) -> int:
+	if enemy.behavior != null:
+		return enemy.behavior.target_domain
+	return EnemyBehaviorComponent.TargetDomain.GROUND
