@@ -114,11 +114,15 @@ func apply_flag(target_id: StringName) -> bool:
 	return false
 
 
-func get_damage(base_damage: int, target_domain: int) -> int:
+func get_damage(
+	base_damage: int,
+	target_domain: int,
+	target_is_climbing: bool = false
+) -> int:
 	var result: int = maxi(1, base_damage + damage_bonus)
 	if specialization_id == AIR_HUNTER and target_domain == EnemyBehaviorComponent.TargetDomain.AIR:
 		result += 1
-	if specialization_id == ANCHOR_HUNTER and target_domain == EnemyBehaviorComponent.TargetDomain.GROUND:
+	if specialization_id == ANCHOR_HUNTER and target_is_climbing:
 		result += 1
 	return result
 
