@@ -107,7 +107,13 @@ func is_cell_occupied(cell_index: int) -> bool:
 
 
 func is_cell_available(cell_index: int) -> bool:
-	return is_cell_available_for_type(BuildableType.Id.TURRET, cell_index)
+	return (
+		is_cell_available_for_type(BuildableType.Id.TURRET, cell_index)
+		or is_cell_available_for_type(
+			BuildableType.Id.MEDICAL_STATION,
+			cell_index
+		)
+	)
 
 
 func is_cell_available_for_type(type_id: int, cell_index: int) -> bool:
@@ -132,24 +138,26 @@ func find_nearest_available_cell_for_type(
 ) -> int:
 	var candidates: Array[int] = []
 	if type_id == BuildableType.Id.MEDICAL_STATION:
-		candidates = [balance.default_medical_cell]
+		candidates.append(balance.default_medical_cell)
 	elif type_id == BuildableType.Id.TURRET:
 		candidates = balance.turret_cell_indices.duplicate()
 	else:
 		return -1
 
-	candidates.sort_custom(
-		func(a: int, b: int) -> bool:
-			return abs(a - preferred_cell) < abs(b - preferred_cell)
-	)
+	var best_cell: int = -1
+	var best_distance: int = 2147483647
 	for cell_index: int in candidates:
-		if _is_cell_available_for_type(
+		if not _is_cell_available_for_type(
 			type_id,
 			cell_index,
 			ignored_buildable_id
 		):
-			return cell_index
-	return -1
+			continue
+		var distance: int = absi(cell_index - preferred_cell)
+		if distance < best_distance:
+			best_distance = distance
+			best_cell = cell_index
+	return best_cell
 
 
 func get_cell_local_x(cell_index: int) -> float:
