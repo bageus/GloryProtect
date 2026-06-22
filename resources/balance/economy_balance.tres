@@ -6,4 +6,4 @@
 script = ExtResource("1_balance")
 starting_coins = 0
 boarding_enemy_base_reward = 1
-rewarded_boarding_death_reasons = Array[StringName]([&"combat", &"anchor_path_closed"])
+rewarded_boarding_death_reasons = Array[StringName]([&"combat", &"anchor_path_closed", &"shooter_anchor_knockdown"])
