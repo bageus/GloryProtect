@@ -41,8 +41,8 @@ func _fix_panel_layout(panel: CrewCommandPanel) -> void:
 	left_panel.anchor_right = 0.5
 	left_panel.anchor_top = 1.0
 	left_panel.anchor_bottom = 1.0
-	left_panel.offset_left = -360.0
-	left_panel.offset_right = -62.0
+	left_panel.offset_left = -620.0
+	left_panel.offset_right = -180.0
 	left_panel.offset_top = -90.0
 	left_panel.offset_bottom = -5.0
 
@@ -51,7 +51,7 @@ func _fix_panel_layout(panel: CrewCommandPanel) -> void:
 	right_panel.anchor_right = 0.5
 	right_panel.anchor_top = 1.0
 	right_panel.anchor_bottom = 1.0
-	right_panel.offset_left = 62.0
-	right_panel.offset_right = 360.0
+	right_panel.offset_left = 180.0
+	right_panel.offset_right = 620.0
 	right_panel.offset_top = -90.0
 	right_panel.offset_bottom = -5.0

@@ -108,7 +108,7 @@ func _process(_delta: float) -> void:
 
 
 func _create_crew_command_panel() -> void:
-	var panel := CrewCommandPanel.new()
+	var panel := CrewCommandPanelFixed.new()
 	panel.name = "CrewCommandPanel"
 	panel.configure(
 		_game_flow,
