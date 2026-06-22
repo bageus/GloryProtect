@@ -3,37 +3,37 @@
 [ext_resource type="Script" path="res://scripts/ui/strategic_minimap.gd" id="1_minimap"]
 
 [node name="StrategicMinimap" type="Control"]
-custom_minimum_size = Vector2(640, 150)
+custom_minimum_size = Vector2(640, 96)
 layout_mode = 3
 anchor_right = 1.0
-offset_bottom = 150.0
+offset_bottom = 96.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("1_minimap")
 
 [node name="TitleLabel" type="Label" parent="."]
 layout_mode = 1
-anchor_right = 0.24
-offset_left = 14.0
-offset_top = 7.0
-offset_right = -4.0
-offset_bottom = 34.0
+anchor_right = 0.21
+offset_left = 10.0
+offset_top = 3.0
+offset_right = -2.0
+offset_bottom = 25.0
 theme_override_colors/font_color = Color(0.78, 0.88, 1, 1)
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 13
 text = "СТРАТЕГИЧЕСКАЯ ЛИНИЯ"
 vertical_alignment = 1
 
 [node name="SummaryLabel" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.22
-anchor_right = 0.72
-offset_left = 4.0
-offset_top = 7.0
-offset_right = -4.0
-offset_bottom = 34.0
+anchor_left = 0.2
+anchor_right = 0.7
+offset_left = 2.0
+offset_top = 3.0
+offset_right = -2.0
+offset_bottom = 25.0
 theme_override_colors/font_color = Color(0.9, 0.94, 1, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 13
 text = "Волна: 0   |   Группы: 0   |   Враги: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -41,14 +41,14 @@ vertical_alignment = 1
 [node name="NextWaveLabel" type="Label" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
-anchor_left = 0.7
+anchor_left = 0.69
 anchor_right = 1.0
-offset_left = 4.0
-offset_top = 7.0
-offset_right = -14.0
-offset_bottom = 34.0
+offset_left = 2.0
+offset_top = 3.0
+offset_right = -10.0
+offset_bottom = 25.0
 theme_override_colors/font_color = Color(1, 0.86, 0.48, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 13
 text = "Следующая: 0.0 с   |   размер: 0"
 horizontal_alignment = 2
 vertical_alignment = 1
