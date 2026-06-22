@@ -35,13 +35,12 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var panel_rect := Rect2(Vector2.ZERO, size)
-	draw_rect(panel_rect, Color(0.025, 0.035, 0.055, 0.95), true)
+	draw_rect(Rect2(Vector2.ZERO, size), Color(0.025, 0.035, 0.055, 0.95), true)
 	draw_line(
-		Vector2(0.0, 36.0),
-		Vector2(size.x, 36.0),
+		Vector2(0.0, 27.0),
+		Vector2(size.x, 27.0),
 		Color(0.22, 0.32, 0.46, 0.95),
-		2.0
+		1.0
 	)
 	draw_line(
 		Vector2(0.0, size.y - 1.0),
@@ -54,10 +53,10 @@ func _draw() -> void:
 	if section_count <= 0:
 		return
 
-	var margin_x: float = 12.0
-	var lane_top: float = 43.0
-	var lane_bottom: float = size.y - 10.0
-	var shield_bar_height: float = 18.0
+	var margin_x: float = 8.0
+	var lane_top: float = 30.0
+	var lane_bottom: float = size.y - 5.0
+	var shield_bar_height: float = 14.0
 	var shield_bar_y: float = lane_bottom - shield_bar_height
 	var lane_width: float = (size.x - margin_x * 2.0) / float(section_count)
 
@@ -111,8 +110,8 @@ func _draw_section_lanes(
 		var health_ratio: float = clampf(health_percent / 100.0, 0.0, 1.0)
 		var health_color: Color = _get_health_color(section_id)
 		var bar_rect := Rect2(
-			Vector2(lane_x + 10.0, shield_bar_y),
-			Vector2(maxf(1.0, lane_width - 20.0), shield_bar_height)
+			Vector2(lane_x + 6.0, shield_bar_y),
+			Vector2(maxf(1.0, lane_width - 12.0), shield_bar_height)
 		)
 		draw_rect(bar_rect, Color(0.09, 0.11, 0.15, 0.96), true)
 		draw_rect(
@@ -123,31 +122,23 @@ func _draw_section_lanes(
 			health_color,
 			true
 		)
-		draw_rect(
-			bar_rect,
-			Color(0.55, 0.68, 0.82, 0.9),
-			false,
-			1.0
-		)
+		draw_rect(bar_rect, Color(0.55, 0.68, 0.82, 0.9), false, 1.0)
 
 		var section_color: Color = _shield.get_section_color(section_id)
 		draw_circle(
-			Vector2(bar_rect.position.x + 9.0, bar_rect.get_center().y),
-			4.0,
+			Vector2(bar_rect.position.x + 7.0, bar_rect.get_center().y),
+			3.0,
 			section_color
 		)
 
-		var text: String = "%d   %d%%" % [
-			section_id + 1,
-			roundi(health_percent),
-		]
+		var text := "%d  %d%%" % [section_id + 1, roundi(health_percent)]
 		draw_string(
 			ThemeDB.fallback_font,
-			bar_rect.position + Vector2(0.0, 13.0),
+			bar_rect.position + Vector2(0.0, 11.0),
 			text,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			bar_rect.size.x,
-			12,
+			10,
 			Color.WHITE
 		)
 
@@ -163,8 +154,8 @@ func _draw_groups(
 		0.001,
 		_waves.balance.maximum_lane_offset
 	)
-	var near_y: float = shield_bar_y - 12.0
-	var far_y: float = lane_top + 14.0
+	var near_y: float = shield_bar_y - 7.0
+	var far_y: float = lane_top + 7.0
 
 	for snapshot: StrategicGroupSnapshot in _waves.get_group_snapshots():
 		var section_id: int = mini(
@@ -181,25 +172,17 @@ func _draw_groups(
 			1.0
 		)
 		var position := Vector2(
-			lane_center_x + offset_ratio * lane_width * 0.24,
+			lane_center_x + offset_ratio * lane_width * 0.2,
 			lerpf(
 				near_y,
 				far_y,
 				clampf(snapshot.map_distance, 0.0, 1.0)
 			)
 		)
-		var target_position := Vector2(lane_center_x, shield_bar_y)
-		draw_line(
-			position,
-			target_position,
-			Color(0.62, 0.12, 0.12, 0.24),
-			1.0
-		)
-
 		var mass_radius: float = clampf(
-			6.0 + sqrt(float(snapshot.enemy_count)) * 1.7,
-			7.0,
-			18.0
+			4.0 + sqrt(float(snapshot.enemy_count)) * 1.2,
+			5.0,
+			11.0
 		)
 		var mass_color := Color(0.88, 0.18, 0.18, 0.92)
 		if snapshot.is_impacting:
@@ -207,7 +190,7 @@ func _draw_groups(
 			mass_color = Color(1.0, 0.32, 0.08, pulse)
 			draw_circle(
 				position,
-				mass_radius + 5.0,
+				mass_radius + 3.0,
 				Color(1.0, 0.12, 0.04, 0.18)
 			)
 		draw_circle(position, mass_radius, mass_color)
@@ -216,17 +199,17 @@ func _draw_groups(
 			mass_radius,
 			0.0,
 			TAU,
-			20,
+			16,
 			Color(0.12, 0.02, 0.02),
-			2.0
+			1.0
 		)
 		draw_string(
 			ThemeDB.fallback_font,
-			position + Vector2(-mass_radius, 4.0),
+			position + Vector2(-mass_radius, 3.0),
 			str(snapshot.enemy_count),
 			HORIZONTAL_ALIGNMENT_CENTER,
 			mass_radius * 2.0,
-			12,
+			9,
 			Color.WHITE
 		)
 
