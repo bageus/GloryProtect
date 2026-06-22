@@ -115,7 +115,7 @@ func multiply_movement_speed(multiplier: float) -> bool:
 		return false
 	_movement_speed_multiplier *= multiplier
 	for defender: Defender in get_all_defenders():
-		defender.movement.configure(get_current_movement_speed())
+		defender.set_base_movement_speed(get_current_movement_speed())
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	return true
 
@@ -134,8 +134,9 @@ func reset_run_modifiers() -> void:
 	_shooter_upgrades.reset()
 	for defender: Defender in get_all_defenders():
 		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
-		defender.shooter_combat.reset_for_run()
-		defender.movement.configure(get_current_movement_speed())
+		defender.set_base_movement_speed(get_current_movement_speed())
+		if defender.shooter_combat != null:
+			defender.shooter_combat.reset_for_run()
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	melee_upgrades_changed.emit()
 	shooter_upgrades_changed.emit()
@@ -200,7 +201,7 @@ func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	)
 	defender.name = "Defender%d" % (defender_id + 1)
 	add_child(defender)
-	defender.movement.configure(get_current_movement_speed())
+	defender.set_base_movement_speed(get_current_movement_speed())
 	defender.teleport_to(spawn_local_x)
 	defender.died.connect(_on_defender_died)
 	_defenders[defender_id] = defender
@@ -211,7 +212,7 @@ func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 func _refresh_melee_upgrades() -> void:
 	for defender: Defender in get_all_defenders():
 		defender.apply_melee_upgrades(_melee_upgrades)
-		defender.movement.configure(get_current_movement_speed())
+		defender.set_base_movement_speed(get_current_movement_speed())
 	melee_upgrades_changed.emit()
 
 
