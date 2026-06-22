@@ -416,3 +416,4 @@ func _get_alpha_bounds(texture: Texture2D) -> Rect2:
 			float(max_x - min_x + 1),
 			float(max_y - min_y + 1)
 		)
+	)
