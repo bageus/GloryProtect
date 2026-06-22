@@ -20,11 +20,12 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	assert(CATALOG.is_valid())
-	assert(CATALOG.get_all_definitions().size() == (
+	var expected_count: int = (
 		TURRET.get_all_definitions().size()
 		+ MELEE.get_all_definitions().size()
 		+ MEDIC.get_all_definitions().size()
-	))
+	)
+	assert(CATALOG.get_all_definitions().size() == expected_count)
 	assert(CATALOG.get_definition(&"common_add_defender") != null)
 	assert(CATALOG.get_definition(&"turret_post") != null)
 	assert(CATALOG.get_definition(&"turret_heavy_explosive_fifth") != null)
@@ -33,9 +34,17 @@ func _run_scenarios() -> void:
 	assert(CATALOG.get_definition(&"melee_specialization_heavy") != null)
 	assert(CATALOG.get_definition(&"medic_station") != null)
 	assert(CATALOG.get_definition(&"medic_specialization_field") != null)
+	_test_upgrade_system_catalog_api(expected_count)
 	_test_melee_specialization_offer()
 	print("Active upgrade catalog scenarios passed")
 	quit()
+
+
+func _test_upgrade_system_catalog_api(expected_count: int) -> void:
+	var system := UpgradeSystem.new()
+	system.catalog = CATALOG
+	assert(system.get_all_card_definitions().size() == expected_count)
+	system.free()
 
 
 func _test_melee_specialization_offer() -> void:
