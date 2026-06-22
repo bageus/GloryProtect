@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ShooterTargetPolicy" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/crew/shooter_target_policy.gd" id="1_policy"]
+
+[resource]
+script = ExtResource("1_policy")
+allow_boarded = true
+allow_climbing = true
+allow_air = true
+allow_jumping = true
+priority_mode = 0
