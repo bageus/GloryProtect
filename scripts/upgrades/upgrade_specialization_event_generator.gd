@@ -5,7 +5,6 @@ var _catalog: UpgradeCatalog
 var _runtime: UpgradeRuntime
 var _rng := RandomNumberGenerator.new()
 
-
 func configure(
 	catalog: UpgradeCatalog,
 	runtime: UpgradeRuntime,
@@ -17,17 +16,14 @@ func configure(
 	_runtime = runtime
 	set_seed(seed)
 
-
 func set_seed(seed: int) -> void:
 	if seed == 0:
 		_rng.randomize()
 	else:
 		_rng.seed = seed
 
-
 func has_ready_event() -> bool:
 	return not get_ready_event_branches().is_empty()
-
 
 func get_ready_event_branches() -> Array[StringName]:
 	var result: Array[StringName] = []
@@ -36,13 +32,11 @@ func get_ready_event_branches() -> Array[StringName]:
 			result.append(branch_id)
 	return result
 
-
 func choose_ready_branch() -> StringName:
 	var branches: Array[StringName] = get_ready_event_branches()
 	if branches.is_empty():
 		return &""
 	return branches[_rng.randi_range(0, branches.size() - 1)]
-
 
 func generate_event_offer(branch_id: StringName = &"") -> Array[UpgradeDefinition]:
 	var selected_branch: StringName = branch_id
@@ -53,7 +47,6 @@ func generate_event_offer(branch_id: StringName = &"") -> Array[UpgradeDefinitio
 	if not _runtime.is_branch_ready_for_specialization(selected_branch):
 		return []
 	return get_specialization_cards(selected_branch)
-
 
 func get_specialization_cards(branch_id: StringName) -> Array[UpgradeDefinition]:
 	var result: Array[UpgradeDefinition] = []

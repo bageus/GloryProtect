@@ -17,8 +17,12 @@ func _ready() -> void:
 	_game_flow.run_state_changed.connect(_on_upgrade_run_state_changed)
 
 
+func can_apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
+	return upgrades.can_apply_effect(effect)
+
+
 func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
-	if effect == null:
+	if not can_apply_upgrade_effect(effect):
 		return false
 	match effect.effect_type:
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
@@ -31,8 +35,7 @@ func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
 func reset_upgrade_runtime() -> void:
 	upgrades.reset()
 	for runtime: TurretRuntime in _runtimes.values():
-		runtime.cooldown_remaining = 0.0
-		runtime.completed_volleys = 0
+		runtime.reset_combat_state()
 
 
 func get_current_damage() -> int:
@@ -52,17 +55,14 @@ func get_specialization_id() -> StringName:
 
 
 func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
-	runtime.cooldown_remaining = maxf(
-		0.0,
-		runtime.cooldown_remaining - delta
-	)
+	runtime.cooldown_remaining = maxf(0.0, runtime.cooldown_remaining - delta)
 	var operator_id: int = _get_operational_operator_id(runtime.buildable_id)
 	if operator_id < 0:
-		_cancel_shot(runtime)
+		_cancel_runtime_action(runtime)
 		runtime.operator_id = -1
 		return
 	if runtime.operator_id >= 0 and runtime.operator_id != operator_id:
-		_cancel_shot(runtime)
+		_cancel_runtime_action(runtime)
 	runtime.operator_id = operator_id
 
 	if runtime.firing:
@@ -72,9 +72,7 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 		return
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(operator_id)
-	if assignment == null:
-		return
-	if assignment.state != CrewAssignmentRuntime.State.ACTIVE:
+	if assignment == null or assignment.state != CrewAssignmentRuntime.State.ACTIVE:
 		return
 	if runtime.cooldown_remaining > 0.0:
 		return
@@ -87,8 +85,13 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 		TurretGeometry.get_world_pivot(_platform, snapshot, balance),
 		get_current_range()
 	)
-	if target != null:
-		_begin_shot(runtime, target)
+	if target == null:
+		if runtime.is_volley_active():
+			runtime.close_volley(get_current_cooldown())
+		return
+	if not runtime.is_volley_active():
+		runtime.begin_volley(upgrades.get_shots_per_next_volley(runtime))
+	_begin_shot(runtime, target)
 
 
 func _complete_shot(runtime: TurretRuntime) -> void:
@@ -96,9 +99,7 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 	var target: BoardingEnemy = _enemies.get_enemy(target_enemy_id)
 	var hit: bool = false
 	if target != null and _selector.is_still_targetable(target):
-		var snapshot: BuildableSnapshot = _grid.get_snapshot(
-			runtime.buildable_id
-		)
+		var snapshot: BuildableSnapshot = _grid.get_snapshot(runtime.buildable_id)
 		if snapshot != null:
 			var origin: Vector2 = TurretGeometry.get_world_pivot(
 				_platform,
@@ -108,10 +109,12 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 			hit = _combat_resolver.resolve_shot(
 				target,
 				origin,
+				get_current_range(),
 				_enemies,
 				upgrades,
-				runtime,
-				balance.turret_damage
+				balance.turret_damage,
+				runtime.is_next_shot_fifth(),
+				runtime.is_next_volley_fifth()
 			) > 0
 	_roles.set_external_role_action_active(
 		runtime.operator_id,
@@ -120,6 +123,13 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 	)
 	runtime.finish_shot(get_current_cooldown())
 	shot_completed.emit(runtime.buildable_id, target_enemy_id, hit)
+
+
+func _cancel_runtime_action(runtime: TurretRuntime) -> void:
+	if runtime.firing:
+		_cancel_shot(runtime)
+	elif runtime.is_volley_active():
+		runtime.cancel_shot()
 
 
 func _on_upgrade_run_state_changed(previous_state: int, new_state: int) -> void:

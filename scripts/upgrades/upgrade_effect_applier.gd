@@ -50,11 +50,6 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 					_turrets != null
 					and _turrets.can_apply_upgrade_effect(effect)
 				)
-			if _is_melee_effect(effect):
-				return (
-					_crew != null
-					and _crew.get_melee_upgrades().can_apply_effect(effect)
-				)
 			return _runtime != null
 	return false
 

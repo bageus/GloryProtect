@@ -97,12 +97,13 @@ func attach_special_behavior(
 	behavior.configure(self, game_flow)
 
 
-func apply_stun(duration_seconds: float) -> void:
+func apply_stun(duration_seconds: float) -> bool:
 	if duration_seconds <= 0.0 or _dead or not health.is_alive():
-		return
+		return false
 	_stun_remaining = maxf(_stun_remaining, duration_seconds)
 	melee.cancel()
 	stun_changed.emit(enemy_id, _stun_remaining)
+	return true
 
 
 func apply_platform_knockback(
