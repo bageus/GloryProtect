@@ -93,7 +93,8 @@ func _physics_process(_delta: float) -> void:
 	var profile: RangedAttackProfile = base_profile.duplicate(true) as RangedAttackProfile
 	profile.damage = upgrades.get_damage(
 		base_profile.damage,
-		target.get_target_domain()
+		target.get_target_domain(),
+		target.is_counted_as_climbing()
 	)
 	profile.maximum_range = search_range
 	profile.cooldown_duration = upgrades.get_cooldown(
