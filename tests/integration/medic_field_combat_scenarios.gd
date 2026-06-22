@@ -22,6 +22,9 @@ func _run_scenario() -> void:
 	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var role_modifiers: MedicRoleModifierController = game.get_node(
+		"World/MedicRoleModifierController"
+	)
 	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
 	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) >= 0)
@@ -76,12 +79,20 @@ func _run_scenario() -> void:
 	assert(medic.can_medic_role_use_melee())
 	medic.combat.call("_physics_process", 0.0)
 	assert(medic.melee.is_attacking())
+	roles.request_assignment(medic.defender_id, CrewRole.Id.FREE_FIGHTER)
+	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
+	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
+	await process_frame
+	assert(role_modifiers.get_active_medic_id() == medic.defender_id)
+	assert(medic.can_medic_role_use_melee())
+	assert(medic.melee.get_damage() == 2)
 	medic.melee.tick(0.4)
 	assert(not target.health.is_alive())
+	medic.melee.tick(medic.melee.get_cooldown_duration())
 
-	roles.request_assignment(medic.defender_id, CrewRole.Id.FREE_FIGHTER)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.FREE_FIGHTER)
 	await process_frame
+	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(not medic.can_medic_role_use_melee())
 	assert(is_equal_approx(
 		medic.movement.move_speed,
