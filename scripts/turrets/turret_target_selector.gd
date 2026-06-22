@@ -9,9 +9,7 @@ func get_nearest_target(
 ) -> BoardingEnemy:
 	var nearest: BoardingEnemy = null
 	var nearest_distance_squared: float = maximum_range * maximum_range
-	for enemy: BoardingEnemy in registry.get_all_enemies():
-		if not _is_valid_target(enemy):
-			continue
+	for enemy: BoardingEnemy in registry.get_turret_targets():
 		var distance_squared: float = world_origin.distance_squared_to(
 			enemy.global_position
 		)
@@ -29,15 +27,8 @@ func get_nearest_target(
 
 
 func is_still_targetable(enemy: BoardingEnemy) -> bool:
-	return _is_valid_target(enemy)
-
-
-func _is_valid_target(enemy: BoardingEnemy) -> bool:
-	if enemy == null or not is_instance_valid(enemy):
-		return false
-	if not enemy.health.is_alive():
-		return false
 	return (
-		enemy.get_state() == BoardingEnemyController.State.CLIMBING
-		or enemy.is_on_platform()
+		enemy != null
+		and is_instance_valid(enemy)
+		and enemy.is_targetable_by_turret()
 	)

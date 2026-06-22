@@ -17,12 +17,28 @@ var _cooldown_duration: float = 0.7
 var _phase: int = Phase.READY
 var _remaining_time: float = 0.0
 var _locked_target: HealthComponent = null
+var _follow_up_queued: bool = false
+var _damage_source: Node = null
 
 
-func configure(damage: int, windup_duration: float, cooldown_duration: float) -> void:
+func configure(
+	damage: int,
+	windup_duration: float,
+	cooldown_duration: float,
+	damage_source: Node = null
+) -> void:
 	_damage = maxi(1, damage)
 	_windup_duration = maxf(0.01, windup_duration)
 	_cooldown_duration = maxf(0.01, cooldown_duration)
+	_damage_source = damage_source
+
+
+func get_damage() -> int:
+	return _damage
+
+
+func get_cooldown_duration() -> float:
+	return _cooldown_duration
 
 
 func tick(delta: float) -> void:
@@ -36,6 +52,8 @@ func tick(delta: float) -> void:
 	match _phase:
 		Phase.WINDUP:
 			_resolve_locked_attack()
+			if _consume_follow_up():
+				return
 			_phase = Phase.COOLDOWN
 			_remaining_time = _cooldown_duration
 			attack_finished.emit()
@@ -48,9 +66,19 @@ func try_start(target: HealthComponent) -> bool:
 	if not can_start() or target == null or not target.is_alive():
 		return false
 	_locked_target = target
+	_follow_up_queued = false
 	_phase = Phase.WINDUP
 	_remaining_time = _windup_duration
 	attack_started.emit(target)
+	return true
+
+
+func queue_follow_up_same_target() -> bool:
+	if _phase != Phase.WINDUP:
+		return false
+	if not is_instance_valid(_locked_target) or not _locked_target.is_alive():
+		return false
+	_follow_up_queued = true
 	return true
 
 
@@ -70,6 +98,7 @@ func cancel() -> void:
 	_phase = Phase.READY
 	_remaining_time = 0.0
 	_locked_target = null
+	_follow_up_queued = false
 
 
 func _resolve_locked_attack() -> void:
@@ -77,5 +106,17 @@ func _resolve_locked_attack() -> void:
 		return
 	if not _locked_target.is_alive():
 		return
-	_locked_target.apply_damage(_damage)
+	_locked_target.apply_damage(_damage, &"melee", _damage_source)
 	attack_landed.emit(_locked_target, _damage)
+
+
+func _consume_follow_up() -> bool:
+	if not _follow_up_queued:
+		return false
+	_follow_up_queued = false
+	if not is_instance_valid(_locked_target) or not _locked_target.is_alive():
+		return false
+	_phase = Phase.WINDUP
+	_remaining_time = _windup_duration
+	attack_started.emit(_locked_target)
+	return true

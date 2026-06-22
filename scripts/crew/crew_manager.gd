@@ -5,11 +5,16 @@ signal crew_initialized
 signal defender_spawned(defender_id: int, defender: Defender)
 signal defender_died(defender_id: int)
 signal defender_replaced(defender_id: int, defender: Defender)
+signal crew_size_changed(previous_size: int, current_size: int)
+signal movement_speed_multiplier_changed(multiplier: float)
+signal melee_upgrades_changed
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
 
 var _defenders: Dictionary[int, Defender] = {}
+var _movement_speed_multiplier: float = 1.0
+var _melee_upgrades := MeleeDefenderUpgradeRuntime.new()
 
 
 func _ready() -> void:
@@ -34,6 +39,79 @@ func get_all_defenders() -> Array[Defender]:
 	for defender_id: int in ids:
 		result.append(_defenders[defender_id])
 	return result
+
+
+func get_total_count() -> int:
+	return _defenders.size()
+
+
+func can_add_defender() -> bool:
+	return get_total_count() < balance.maximum_defender_count
+
+
+func add_defender(spawn_local_x: float = NAN) -> Defender:
+	if not can_add_defender():
+		return null
+	var defender_id: int = 0
+	while _defenders.has(defender_id):
+		defender_id += 1
+	if defender_id >= balance.maximum_defender_count:
+		return null
+	var resolved_x: float = (
+		balance.replacement_door_local_x
+		if is_nan(spawn_local_x)
+		else spawn_local_x
+	)
+	var previous_size: int = get_total_count()
+	var defender: Defender = _spawn_defender(defender_id, resolved_x)
+	crew_size_changed.emit(previous_size, get_total_count())
+	return defender
+
+
+func apply_melee_scalar(target_id: StringName, value: float) -> bool:
+	if not _melee_upgrades.apply_scalar(target_id, value):
+		return false
+	_refresh_melee_upgrades()
+	return true
+
+
+func apply_melee_flag(target_id: StringName) -> bool:
+	if not _melee_upgrades.apply_flag(target_id):
+		return false
+	_refresh_melee_upgrades()
+	return true
+
+
+func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
+	return _melee_upgrades
+
+
+func multiply_movement_speed(multiplier: float) -> bool:
+	if multiplier <= 0.0:
+		return false
+	_movement_speed_multiplier *= multiplier
+	for defender: Defender in get_all_defenders():
+		defender.movement.configure(get_current_movement_speed())
+	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
+	return true
+
+
+func get_movement_speed_multiplier() -> float:
+	return _movement_speed_multiplier
+
+
+func get_current_movement_speed() -> float:
+	return balance.defender_move_speed * _movement_speed_multiplier
+
+
+func reset_run_modifiers() -> void:
+	_movement_speed_multiplier = 1.0
+	_melee_upgrades.reset()
+	for defender: Defender in get_all_defenders():
+		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
+		defender.movement.configure(get_current_movement_speed())
+	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
+	melee_upgrades_changed.emit()
 
 
 func get_living_defenders() -> Array[Defender]:
@@ -87,14 +165,27 @@ func _spawn_starting_crew() -> void:
 func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	var defender: Defender = defender_scene.instantiate() as Defender
 	assert(defender != null, "Defender scene root must use Defender script")
-	defender.configure(defender_id, balance, _get_defender_color(defender_id))
+	defender.configure(
+		defender_id,
+		balance,
+		_get_defender_color(defender_id),
+		_melee_upgrades
+	)
 	defender.name = "Defender%d" % (defender_id + 1)
 	add_child(defender)
+	defender.movement.configure(get_current_movement_speed())
 	defender.teleport_to(spawn_local_x)
 	defender.died.connect(_on_defender_died)
 	_defenders[defender_id] = defender
 	defender_spawned.emit(defender_id, defender)
 	return defender
+
+
+func _refresh_melee_upgrades() -> void:
+	for defender: Defender in get_all_defenders():
+		defender.apply_melee_upgrades(_melee_upgrades)
+		defender.movement.configure(get_current_movement_speed())
+	melee_upgrades_changed.emit()
 
 
 func _get_defender_color(defender_id: int) -> Color:

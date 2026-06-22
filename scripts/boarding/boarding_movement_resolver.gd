@@ -32,7 +32,7 @@ func resolve_ground_x(
 	for other: BoardingEnemy in _enemies.get_all_enemies():
 		if other == enemy or not other.health.is_alive():
 			continue
-		if not _is_ground_state(other.get_state()):
+		if not other.is_counted_as_ground():
 			continue
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
@@ -266,7 +266,7 @@ func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
 	for other: BoardingEnemy in _enemies.get_all_enemies():
 		if other == enemy or not other.health.is_alive():
 			continue
-		if not _is_ground_state(other.get_state()):
+		if not other.is_counted_as_ground():
 			continue
 		if (
 			absf(other.global_position.x - world_x)
@@ -291,13 +291,6 @@ func _is_defender_slot_free(local_x: float) -> bool:
 		):
 			return false
 	return true
-
-
-func _is_ground_state(enemy_state: int) -> bool:
-	return (
-		enemy_state == BoardingEnemyController.State.WAITING_WITHOUT_PATH
-		or enemy_state == BoardingEnemyController.State.RUNNING_TO_ANCHOR
-	)
 
 
 func _clamp_enemy_to_platform(

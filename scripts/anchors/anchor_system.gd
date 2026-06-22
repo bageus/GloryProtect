@@ -6,12 +6,24 @@ signal anchor_attached(anchor_id: int)
 signal anchor_removed(anchor_id: int)
 signal anchor_overload_started(anchor_id: int)
 signal anchor_broken(anchor_id: int)
+signal anchor_recovery_started(
+	anchor_id: int,
+	source: StringName,
+	removed_enemy_count: int
+)
+signal rope_durability_changed(
+	anchor_id: int,
+	current_durability: float,
+	maximum_durability: float
+)
+signal rope_destroyed(anchor_id: int, source: StringName)
 signal command_rejected(anchor_id: int, reason: StringName)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath
+@export_node_path("BoardingEnemyRegistry") var enemy_registry_path := NodePath("../BoardingEnemyRegistry")
 @export var balance: AnchorBalance
 @export var left_operator_assigned: bool = true
 @export var right_operator_assigned: bool = true
@@ -22,12 +34,15 @@ var _operations: AnchorOperationQueue = AnchorOperationQueue.new()
 var _constraints: AnchorConstraintProvider = AnchorConstraintProvider.new()
 var _overload: AnchorOverloadController = AnchorOverloadController.new()
 var _commands: AnchorCommandController = AnchorCommandController.new()
+var _rope_durability: AnchorRopeDurability = AnchorRopeDurability.new()
+var _recovery: AnchorBreakRecoveryController = AnchorBreakRecoveryController.new()
 var _visual: AnchorVisualController
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
+@onready var _enemy_registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
 
 func _ready() -> void:
@@ -70,7 +85,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			request_remove_all()
 		_:
 			return
-
 	get_viewport().set_input_as_handled()
 
 
@@ -80,6 +94,28 @@ func toggle_anchor(anchor_id: int) -> void:
 
 func request_remove_all() -> void:
 	_commands.request_remove_all()
+
+
+func apply_rope_damage(
+	anchor_id: int,
+	amount: float,
+	source: StringName = &"unknown"
+) -> bool:
+	return _rope_durability.apply_damage(anchor_id, amount, source)
+
+
+func get_rope_snapshot(anchor_id: int) -> AnchorRopeSnapshot:
+	return _rope_durability.get_snapshot(anchor_id)
+
+
+func get_all_rope_snapshots() -> Array[AnchorRopeSnapshot]:
+	return _rope_durability.get_all_snapshots()
+
+
+func get_anchor_state(anchor_id: int) -> int:
+	if not _store.is_valid(anchor_id):
+		return -1
+	return _store.get_anchor(anchor_id).state
 
 
 func is_in_installation_zone() -> bool:
@@ -185,6 +221,13 @@ func _configure_components() -> void:
 		_operations,
 		Callable(self, "is_operator_assigned")
 	)
+	_rope_durability.configure(_store, balance)
+	_recovery.configure(
+		_store,
+		_operations,
+		_constraints,
+		_enemy_registry
+	)
 	_constraints.update_full_fix_state()
 
 
@@ -195,6 +238,11 @@ func _connect_component_signals() -> void:
 	_overload.anchor_broken.connect(_on_anchor_broken)
 	_commands.anchor_removed.connect(_on_anchor_removed)
 	_commands.command_rejected.connect(_on_command_rejected)
+	_rope_durability.durability_changed.connect(
+		_on_rope_durability_changed
+	)
+	_rope_durability.rope_destroyed.connect(_on_rope_destroyed)
+	_recovery.recovery_started.connect(_on_recovery_started)
 
 
 func _create_visual_controller() -> void:
@@ -205,7 +253,8 @@ func _create_visual_controller() -> void:
 		_store,
 		_geometry,
 		balance,
-		Callable(self, "is_operator_assigned")
+		Callable(self, "is_operator_assigned"),
+		Callable(_game_flow, "is_world_simulation_active")
 	)
 
 
@@ -232,11 +281,42 @@ func _on_overload_started(anchor_id: int) -> void:
 
 
 func _on_anchor_broken(anchor_id: int) -> void:
+	_recovery.recover(anchor_id, &"wind_overload")
 	anchor_broken.emit(anchor_id)
 
 
 func _on_anchor_removed(anchor_id: int) -> void:
 	anchor_removed.emit(anchor_id)
+
+
+func _on_rope_durability_changed(
+	anchor_id: int,
+	current_durability: float,
+	maximum_durability: float
+) -> void:
+	rope_durability_changed.emit(
+		anchor_id,
+		current_durability,
+		maximum_durability
+	)
+
+
+func _on_rope_destroyed(anchor_id: int, source: StringName) -> void:
+	_recovery.recover(anchor_id, source)
+	rope_destroyed.emit(anchor_id, source)
+	anchor_broken.emit(anchor_id)
+
+
+func _on_recovery_started(
+	anchor_id: int,
+	source: StringName,
+	removed_enemy_count: int
+) -> void:
+	anchor_recovery_started.emit(
+		anchor_id,
+		source,
+		removed_enemy_count
+	)
 
 
 func _on_command_rejected(anchor_id: int, reason: StringName) -> void:

@@ -21,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0.015, 0.02, 0.035, 0.88)
+color = Color(0.015, 0.02, 0.035, 0.94)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -32,31 +32,39 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Center"]
-custom_minimum_size = Vector2(700, 390)
+custom_minimum_size = Vector2(1120, 650)
 layout_mode = 2
 
 [node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 26
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 26
+theme_override_constants/margin_left = 28
+theme_override_constants/margin_top = 22
+theme_override_constants/margin_right = 28
+theme_override_constants/margin_bottom = 22
 
 [node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 10
 
 [node name="OfferLabel" type="Label" parent="Center/Panel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
+theme_override_font_sizes/font_size = 26
 text = "ВЫБЕРИТЕ КАРТОЧКУ"
+horizontal_alignment = 1
+
+[node name="ModeLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.68, 0.82, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "ОБЫЧНОЕ ПРЕДЛОЖЕНИЕ"
 horizontal_alignment = 1
 
 [node name="CostLabel" type="Label" parent="Center/Panel/Margin/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 19
 text = "Стоимость"
 horizontal_alignment = 1
 
@@ -64,12 +72,22 @@ horizontal_alignment = 1
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 18
+theme_override_constants/separation = 16
 alignment = 1
 
 [node name="InfoLabel" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.76, 0.84, 1)
-text = "Карточки пока одинаковы и не применяют игровой эффект. Выбор: кнопка мыши или клавиши 1/2."
+text = "Выбор: мышь или 1/2/3. Диагностика доступности: F9."
 horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="DiagnosticsLabel" type="Label" parent="Center/Panel/Margin/VBox"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.82, 0.86, 0.92, 1)
+theme_override_font_sizes/font_size = 13
+text = "ДИАГНОСТИКА"
 autowrap_mode = 2

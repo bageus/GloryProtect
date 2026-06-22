@@ -1,0 +1,300 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=38 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectDamageBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_damage_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardDamageBasic"]
+script = ExtResource("2_definition")
+card_id = &"melee_damage_basic"
+branch_id = &"melee"
+title = "Острые клинки"
+description = "Урон мечом всех защитников увеличен на 1."
+card_type = 1
+repeat_limit = 1
+effect = SubResource("EffectDamageBasic")
+
+[sub_resource type="Resource" id="EffectDamageAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_damage_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardDamageAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"melee_damage_advanced"
+branch_id = &"melee"
+title = "Закалённые клинки"
+description = "Урон мечом всех защитников дополнительно увеличен на 1."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"melee_damage_basic"])
+repeat_limit = 1
+effect = SubResource("EffectDamageAdvanced")
+
+[sub_resource type="Resource" id="EffectCooldownBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_cooldown_multiplier"
+scalar_value = 0.85
+
+[sub_resource type="Resource" id="CardCooldownBasic"]
+script = ExtResource("2_definition")
+card_id = &"melee_cooldown_basic"
+branch_id = &"melee"
+title = "Быстрые удары"
+description = "Кулдаун атак защитников уменьшен на 15%."
+card_type = 1
+repeat_limit = 1
+effect = SubResource("EffectCooldownBasic")
+
+[sub_resource type="Resource" id="EffectCooldownAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_cooldown_multiplier"
+scalar_value = 0.85
+
+[sub_resource type="Resource" id="CardCooldownAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"melee_cooldown_advanced"
+branch_id = &"melee"
+title = "Боевой ритм"
+description = "Кулдаун атак защитников дополнительно уменьшен на 15%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"melee_cooldown_basic"])
+repeat_limit = 1
+effect = SubResource("EffectCooldownAdvanced")
+
+[sub_resource type="Resource" id="EffectHealthBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_health_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardHealthBasic"]
+script = ExtResource("2_definition")
+card_id = &"melee_health_basic"
+branch_id = &"melee"
+title = "Крепкие защитники"
+description = "Максимальное здоровье всех защитников увеличено на 1."
+card_type = 1
+repeat_limit = 1
+effect = SubResource("EffectHealthBasic")
+
+[sub_resource type="Resource" id="EffectHealthAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_health_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardHealthAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"melee_health_advanced"
+branch_id = &"melee"
+title = "Стальная выносливость"
+description = "Максимальное здоровье всех защитников дополнительно увеличено на 1."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"melee_health_basic"])
+repeat_limit = 1
+effect = SubResource("EffectHealthAdvanced")
+
+[sub_resource type="Resource" id="EffectMaximumSurvivability"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_health_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardMaximumSurvivability"]
+script = ExtResource("2_definition")
+card_id = &"melee_individual_max_survivability"
+branch_id = &"melee"
+title = "Максимальная живучесть"
+description = "Максимальное здоровье всех защитников увеличено ещё на 1."
+card_type = 3
+repeat_limit = 1
+effect = SubResource("EffectMaximumSurvivability")
+
+[sub_resource type="Resource" id="EffectArmor"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"melee_armor_bonus"
+scalar_value = 1.0
+
+[sub_resource type="Resource" id="CardArmor"]
+script = ExtResource("2_definition")
+card_id = &"melee_individual_armor"
+branch_id = &"melee"
+title = "Броня для защитников"
+description = "Все защитники получают 1 отдельный сегмент брони."
+card_type = 3
+repeat_limit = 1
+effect = SubResource("EffectArmor")
+
+[sub_resource type="Resource" id="EffectHeavySpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_specialization_heavy"
+
+[sub_resource type="Resource" id="CardHeavySpecialization"]
+script = ExtResource("2_definition")
+card_id = &"melee_specialization_heavy"
+branch_id = &"melee"
+title = "Тяжёлые защитники"
+description = "Здоровье +1. Враги не могут перепрыгивать тяжёлых защитников."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"melee_specialization_duelist", &"melee_specialization_assault"])
+repeat_limit = 1
+effect = SubResource("EffectHeavySpecialization")
+
+[sub_resource type="Resource" id="EffectDuelistSpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_specialization_duelist"
+
+[sub_resource type="Resource" id="CardDuelistSpecialization"]
+script = ExtResource("2_definition")
+card_id = &"melee_specialization_duelist"
+branch_id = &"melee"
+title = "Дуэлянты"
+description = "Кулдаун атак уменьшен на 25%."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"melee_specialization_heavy", &"melee_specialization_assault"])
+repeat_limit = 1
+effect = SubResource("EffectDuelistSpecialization")
+
+[sub_resource type="Resource" id="EffectAssaultSpecialization"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_specialization_assault"
+
+[sub_resource type="Resource" id="CardAssaultSpecialization"]
+script = ExtResource("2_definition")
+card_id = &"melee_specialization_assault"
+branch_id = &"melee"
+title = "Штурмовики"
+description = "Основные удары наносят 1 дополнительный урон врагам за целью."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"melee_specialization_heavy", &"melee_specialization_duelist"])
+repeat_limit = 1
+effect = SubResource("EffectAssaultSpecialization")
+
+[sub_resource type="Resource" id="EffectHeavyShield"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_heavy_shield"
+
+[sub_resource type="Resource" id="CardHeavyShield"]
+script = ExtResource("2_definition")
+card_id = &"melee_heavy_shield"
+branch_id = &"melee"
+title = "Тяжёлый щит"
+description = "Все защитники получают 2 сегмента брони."
+card_type = 5
+required_specialization_id = &"melee_specialization_heavy"
+repeat_limit = 1
+effect = SubResource("EffectHeavyShield")
+
+[sub_resource type="Resource" id="EffectHeavyBash"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_heavy_shield_bash"
+
+[sub_resource type="Resource" id="CardHeavyBash"]
+script = ExtResource("2_definition")
+card_id = &"melee_heavy_shield_bash"
+branch_id = &"melee"
+title = "Пятый удар щитом"
+description = "Каждый пятый удар повреждает до двух врагов за целью и отталкивает их."
+card_type = 5
+required_specialization_id = &"melee_specialization_heavy"
+repeat_limit = 1
+effect = SubResource("EffectHeavyBash")
+
+[sub_resource type="Resource" id="EffectDuelistIsolated"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_duelist_isolated_damage"
+
+[sub_resource type="Resource" id="CardDuelistIsolated"]
+script = ExtResource("2_definition")
+card_id = &"melee_duelist_isolated_damage"
+branch_id = &"melee"
+title = "Идеальная дуэль"
+description = "Изолированная основная цель получает ещё 1 урон."
+card_type = 5
+required_specialization_id = &"melee_specialization_duelist"
+repeat_limit = 1
+effect = SubResource("EffectDuelistIsolated")
+
+[sub_resource type="Resource" id="EffectDuelistDouble"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_duelist_double_attack"
+
+[sub_resource type="Resource" id="CardDuelistDouble"]
+script = ExtResource("2_definition")
+card_id = &"melee_duelist_double_attack"
+branch_id = &"melee"
+title = "Двойная атака"
+description = "Дуэлянт выполняет две последовательные атаки по зафиксированной цели."
+card_type = 5
+required_specialization_id = &"melee_specialization_duelist"
+repeat_limit = 1
+effect = SubResource("EffectDuelistDouble")
+
+[sub_resource type="Resource" id="EffectDuelistCounter"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_duelist_counterattack"
+
+[sub_resource type="Resource" id="CardDuelistCounter"]
+script = ExtResource("2_definition")
+card_id = &"melee_duelist_counterattack"
+branch_id = &"melee"
+title = "Контратака"
+description = "После полученного удара дуэлянт немедленно отвечает ближайшему врагу."
+card_type = 5
+required_specialization_id = &"melee_specialization_duelist"
+repeat_limit = 1
+effect = SubResource("EffectDuelistCounter")
+
+[sub_resource type="Resource" id="EffectAssaultBack"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_assault_back_attack"
+
+[sub_resource type="Resource" id="CardAssaultBack"]
+script = ExtResource("2_definition")
+card_id = &"melee_assault_back_attack"
+branch_id = &"melee"
+title = "Бой в окружении"
+description = "При враге за спиной штурмовик наносит два удара вперёд и один назад."
+card_type = 5
+required_specialization_id = &"melee_specialization_assault"
+repeat_limit = 1
+effect = SubResource("EffectAssaultBack")
+
+[sub_resource type="Resource" id="EffectAssaultGuard"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"melee_assault_lethal_guard"
+
+[sub_resource type="Resource" id="CardAssaultGuard"]
+script = ExtResource("2_definition")
+card_id = &"melee_assault_lethal_guard"
+branch_id = &"melee"
+title = "Последний рубеж"
+description = "Один раз за жизнь смертельный урон оставляет защитнику 1 здоровье."
+card_type = 5
+required_specialization_id = &"melee_specialization_assault"
+repeat_limit = 1
+effect = SubResource("EffectAssaultGuard")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardDamageBasic"), SubResource("CardDamageAdvanced"), SubResource("CardCooldownBasic"), SubResource("CardCooldownAdvanced"), SubResource("CardHealthBasic"), SubResource("CardHealthAdvanced"), SubResource("CardMaximumSurvivability"), SubResource("CardArmor"), SubResource("CardHeavySpecialization"), SubResource("CardDuelistSpecialization"), SubResource("CardAssaultSpecialization"), SubResource("CardHeavyShield"), SubResource("CardHeavyBash"), SubResource("CardDuelistIsolated"), SubResource("CardDuelistDouble"), SubResource("CardDuelistCounter"), SubResource("CardAssaultBack"), SubResource("CardAssaultGuard")])

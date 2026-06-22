@@ -61,7 +61,7 @@ func set_health(section_id: int, value: float) -> void:
 		section_id,
 		next_health,
 		balance.max_health,
-		get_health_percent(section_id)
+		get_display_health_percent(section_id)
 	)
 
 	if previous_health > 0.0 and is_zero_approx(next_health):
@@ -78,6 +78,10 @@ func get_health_percent(section_id: int) -> float:
 	if not is_valid_section(section_id) or balance.max_health <= 0.0:
 		return 0.0
 	return _health[section_id] / balance.max_health * 100.0
+
+
+func get_display_health_percent(section_id: int) -> float:
+	return clampf(get_health_percent(section_id), 0.0, 100.0)
 
 
 func is_critical(section_id: int) -> bool:
@@ -103,7 +107,10 @@ func get_state_summary() -> String:
 	var parts := PackedStringArray()
 	for section_id in range(get_section_count()):
 		parts.append(
-			"%d:%.0f%%" % [section_id + 1, get_health_percent(section_id)]
+			"%d:%.0f%%" % [
+				section_id + 1,
+				get_display_health_percent(section_id),
+			]
 		)
 	return "  ".join(parts)
 
