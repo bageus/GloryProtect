@@ -68,6 +68,10 @@ func get_selected_cell_index() -> int:
 	return selected_cell_index
 
 
+func select_cell(cell_index: int) -> void:
+	_select_cell(cell_index)
+
+
 func get_summary() -> String:
 	return "выбрана клетка %d" % (selected_cell_index + 1)
 
@@ -86,23 +90,42 @@ func _unlock_medical_station() -> void:
 
 
 func _place_or_move_medical_station() -> void:
-	if not _inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION):
-		command_feedback.emit(&"medical_station_locked")
-		return
 	var medical_id: int = _grid.get_buildable_id_by_type(
 		BuildableType.Id.MEDICAL_STATION
 	)
+
 	if medical_id < 0:
+		if not _inventory.can_deploy(BuildableType.Id.MEDICAL_STATION, 0):
+			_inventory.unlock(BuildableType.Id.MEDICAL_STATION)
+		if not _inventory.can_deploy(BuildableType.Id.MEDICAL_STATION, 0):
+			command_feedback.emit(&"medical_station_unlock_failed")
+			return
+		var target_cell: int = _grid.find_nearest_available_cell(
+			selected_cell_index
+		)
+		if target_cell < 0:
+			command_feedback.emit(&"medical_station_place_failed")
+			return
+		_select_cell(target_cell)
 		medical_id = _grid.place(
 			BuildableType.Id.MEDICAL_STATION,
-			selected_cell_index
+			target_cell
 		)
 		if medical_id >= 0:
 			command_feedback.emit(&"medical_station_placed")
 		else:
 			command_feedback.emit(&"medical_station_place_failed")
 		return
-	if _grid.move(medical_id, selected_cell_index):
+
+	var move_cell: int = _grid.find_nearest_available_cell(
+		selected_cell_index,
+		medical_id
+	)
+	if move_cell < 0:
+		command_feedback.emit(&"medical_station_move_failed")
+		return
+	_select_cell(move_cell)
+	if _grid.move(medical_id, move_cell):
 		command_feedback.emit(&"medical_station_moved")
 	else:
 		command_feedback.emit(&"medical_station_move_failed")
