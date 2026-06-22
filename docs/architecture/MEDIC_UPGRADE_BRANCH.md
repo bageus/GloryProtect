@@ -38,6 +38,7 @@ A healing cycle stores its calculated duration when it begins. A later upgrade, 
 `Здоровье для лекаря` and `Броня для лекаря` belong to the active medic role.
 
 - Global melee health and medic-role health are composed independently.
+- Global melee armor and medic-role armor are separate pools; new base armor does not refill spent role armor.
 - Ordinary reassignment transfers only the remaining medic health and armor pools.
 - Reassigning the post cannot refill spent role armor.
 - A medic death synchronously snapshots the old operator before deferred replacement and creates a fresh life-scoped role reserve for the next operator.
@@ -58,11 +59,11 @@ Ordinary healing does not restore any armor layer.
 
 `MedicAttackDefinition` explicitly defines the weapon as `MELEE_SWORD`. The specialization grants `+15%` movement speed to the active medic. The combat card enables the existing `MeleeAttackComponent` and adds `+1` damage on top of ordinary melee upgrades.
 
-An active healing cycle remains indivisible and temporarily blocks the field-medic melee exception. A melee attack that already started finishes before healing can begin, and an active healing cycle blocks a new attack. The emergency card applies the provisional `0.5` interval multiplier when the locked target begins the cycle at `1 HP`.
+An active healing cycle remains indivisible and temporarily blocks the field-medic melee exception. A melee attack that already started finishes before healing can begin, and an active healing cycle blocks a new attack. When reassignment is already waiting, completion of the heal removes field-combat modifiers synchronously so a nearby enemy cannot start a new attack and extend the old assignment. The emergency card applies the provisional `0.5` interval multiplier when the locked target begins the cycle at `1 HP`.
 
 ## Combat stimulant
 
-A successful heal applies `+15%` attack speed and `+15%` movement speed for `5 seconds`. The effect composes with global crew and role modifiers, refreshes on another successful heal and freezes during manual pause or card selection. Reconfiguring attack speed does not reset an already active melee windup or cooldown.
+A successful heal applies `+15%` attack speed and `+15%` movement speed for `5 seconds`. The effect composes with global crew and role modifiers, refreshes on another successful heal and freezes during manual pause or card selection. Reconfiguring attack speed does not reset an already active melee windup or cooldown. `Defender.get_temporary_attack_speed_multiplier()` exposes the read-only multiplier so ranged roles can compose the same stimulant without reaching private state.
 
 The revival card has a `60 second` run-scoped cooldown. The first eligible defender death while the cooldown is ready reserves an immediate deferred replacement. Any reserved revival transaction suppresses zero-crew defeat, including a same-frame wipe where other defenders die after the selected revival target. The deferred replacement runs only after the current death-signal dispatch, preventing the old role-death handler from marking the new defender dead.
 
@@ -74,7 +75,9 @@ Chain therapy heals the second-most-injured living defender for the provisional 
 
 ## Station and run lifecycle
 
-Moving the medical station during an active cycle does not cancel that cycle. The medic finishes the operation and then moves to the new post. Demolishing the station stops the current cycle safely, releases the role and leaves the obtained unlock available for later placement.
+Moving the medical station during an active cycle does not cancel that cycle. The medic finishes the operation and then moves to the new post.
+
+Demolishing the station also preserves the already active cycle. `MedicalStationSystem` immediately reports that the post is absent and prevents new cycles, but temporarily keeps the occupied medic station registered until the locked heal resolves. The restored segment and post-heal specialization effects are applied normally; only then is the medic role released. Rebuilding the post before completion converts the pending removal into relocation to the new cell.
 
 `MedicalStationSystem.reset_upgrade_runtime()` explicitly stops an active cycle before clearing upgrades, so a pending reassignment cannot remain blocked by signal ordering. A new run also clears stimulant timers, revival cooldown/reservation, role pools, temporary armor/guard and all pending ordinary crew replacements.
 
@@ -86,7 +89,7 @@ Moving the medical station during an active cycle does not cancel that cycle. Th
 - `melee_defender_upgrade_catalog.tres`;
 - `medic_upgrade_catalog.tres`.
 
-This avoids duplicating the base catalog while keeping turret, melee and medic cards active in the real game scene.
+This avoids duplicating the base catalog while keeping turret, melee and medic cards active in the real game scene. `UpgradeSystem.get_all_card_definitions()` delegates to `UpgradeCatalog.get_all_definitions()` so included catalogs are also visible through the public diagnostics/UI API.
 
 ## Tests
 
