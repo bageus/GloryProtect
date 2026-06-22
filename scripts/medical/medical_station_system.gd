@@ -24,6 +24,7 @@ var _medic_id: int = -1
 var _target_id: int = -1
 var _heal_remaining: float = 0.0
 var _cycle_active: bool = false
+var _station_disable_pending: bool = false
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _grid: BuildableGrid = get_node(buildable_grid_path)
@@ -45,16 +46,19 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
-	if _station_buildable_id < 0:
-		return
-
-	var medic: Defender = _get_active_medic()
-	if medic == null:
-		_stop_cycle()
-		return
 
 	if _cycle_active:
-		_update_active_cycle(medic, maxf(0.0, delta))
+		var active_medic: Defender = _get_active_medic()
+		if active_medic == null:
+			_stop_cycle()
+			return
+		_update_active_cycle(active_medic, maxf(0.0, delta))
+		return
+
+	if _station_buildable_id < 0:
+		return
+	var medic: Defender = _get_active_medic()
+	if medic == null:
 		return
 	if medic.melee.is_attacking():
 		return
@@ -136,17 +140,18 @@ func get_heal_remaining() -> float:
 
 
 func get_summary() -> String:
+	if _cycle_active:
+		return "лекарь %d → %d | %.1f с%s" % [
+			_medic_id + 1,
+			_target_id + 1,
+			get_heal_remaining(),
+			" | пост демонтирован" if not has_station() else "",
+		]
 	if not has_station():
 		return "медпост отсутствует"
 	var owner_id: int = _roles.get_role_owner(CrewRole.Id.MEDIC)
 	if owner_id < 0:
 		return "медпост свободен"
-	if _cycle_active:
-		return "лекарь %d → %d | %.1f с" % [
-			owner_id + 1,
-			_target_id + 1,
-			get_heal_remaining(),
-		]
 	return "лекарь %d ожидает/движется" % (owner_id + 1)
 
 
@@ -272,6 +277,9 @@ func _stop_cycle() -> void:
 	_heal_remaining = 0.0
 	if was_active:
 		healing_stopped.emit(previous_medic, previous_target)
+	if _station_disable_pending:
+		_station_disable_pending = false
+		_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
 
 
 func _sync_station() -> void:
@@ -281,14 +289,18 @@ func _sync_station() -> void:
 	if medical_id < 0:
 		_station_buildable_id = -1
 		_station_local_x = 0.0
-		_stop_cycle()
-		_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
+		if _cycle_active:
+			_station_disable_pending = true
+		else:
+			_station_disable_pending = false
+			_roles.set_dynamic_role_station(CrewRole.Id.MEDIC, false)
 		station_availability_changed.emit(false, 0.0)
 		return
 
 	var snapshot: BuildableSnapshot = _grid.get_snapshot(medical_id)
 	_station_buildable_id = medical_id
 	_station_local_x = snapshot.local_x
+	_station_disable_pending = false
 	_roles.set_dynamic_role_station(
 		CrewRole.Id.MEDIC,
 		true,
