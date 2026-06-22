@@ -10,6 +10,7 @@ signal depleted
 
 var current_health: int = 3
 var _durability: DefenderDurabilityComponent
+var _incoming_damage_multiplier: float = 1.0
 
 
 func _ready() -> void:
@@ -20,6 +21,7 @@ func _ready() -> void:
 func configure(new_max_health: int) -> void:
 	max_health = maxi(1, new_max_health)
 	current_health = max_health
+	_incoming_damage_multiplier = 1.0
 	if is_node_ready():
 		health_changed.emit(current_health, max_health)
 
@@ -40,13 +42,24 @@ func set_durability_component(durability: DefenderDurabilityComponent) -> void:
 	_durability = durability
 
 
+func set_incoming_damage_multiplier(multiplier: float) -> void:
+	_incoming_damage_multiplier = maxf(0.0, multiplier)
+
+
+func get_incoming_damage_multiplier() -> float:
+	return _incoming_damage_multiplier
+
+
 func apply_damage(amount: int, source_id: StringName = &"generic", source_node: Node = null) -> void:
 	if amount <= 0 or current_health <= 0:
 		return
-	var resolved_amount: int = amount
+	var requested_amount: int = maxi(0, roundi(float(amount) * _incoming_damage_multiplier))
+	if requested_amount <= 0:
+		return
+	var resolved_amount: int = requested_amount
 	if _durability != null and is_instance_valid(_durability):
-		resolved_amount = _durability.resolve_incoming_damage(amount, current_health)
-	damage_received.emit(amount, resolved_amount, source_id, source_node)
+		resolved_amount = _durability.resolve_incoming_damage(requested_amount, current_health)
+	damage_received.emit(requested_amount, resolved_amount, source_id, source_node)
 	if resolved_amount <= 0:
 		return
 	var previous_health: int = current_health
