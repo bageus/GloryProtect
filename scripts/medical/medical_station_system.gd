@@ -94,6 +94,7 @@ func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
 
 
 func reset_upgrade_runtime() -> void:
+	_stop_cycle()
 	upgrades.reset()
 	upgrades_changed.emit()
 
