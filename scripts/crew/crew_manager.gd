@@ -8,6 +8,7 @@ signal defender_replaced(defender_id: int, defender: Defender)
 signal crew_size_changed(previous_size: int, current_size: int)
 signal movement_speed_multiplier_changed(multiplier: float)
 signal melee_upgrades_changed
+signal shooter_upgrades_changed
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
@@ -15,6 +16,7 @@ signal melee_upgrades_changed
 var _defenders: Dictionary[int, Defender] = {}
 var _movement_speed_multiplier: float = 1.0
 var _melee_upgrades := MeleeDefenderUpgradeRuntime.new()
+var _shooter_upgrades := ShooterUpgradeRuntime.new()
 
 
 func _ready() -> void:
@@ -86,6 +88,28 @@ func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
 	return _melee_upgrades
 
 
+func apply_shooter_scalar(target_id: StringName, value: float) -> bool:
+	if not _shooter_upgrades.apply_scalar(target_id, value):
+		return false
+	shooter_upgrades_changed.emit()
+	return true
+
+
+func apply_shooter_flag(target_id: StringName) -> bool:
+	if not _shooter_upgrades.apply_flag(target_id):
+		return false
+	shooter_upgrades_changed.emit()
+	return true
+
+
+func get_shooter_upgrades() -> ShooterUpgradeRuntime:
+	return _shooter_upgrades
+
+
+func is_shooter_role_unlocked() -> bool:
+	return _shooter_upgrades.role_unlocked
+
+
 func multiply_movement_speed(multiplier: float) -> bool:
 	if multiplier <= 0.0:
 		return false
@@ -107,11 +131,15 @@ func get_current_movement_speed() -> float:
 func reset_run_modifiers() -> void:
 	_movement_speed_multiplier = 1.0
 	_melee_upgrades.reset()
+	_shooter_upgrades.reset()
 	for defender: Defender in get_all_defenders():
 		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
 		defender.set_base_movement_speed(get_current_movement_speed())
+		if defender.shooter_combat != null:
+			defender.shooter_combat.reset_for_run()
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	melee_upgrades_changed.emit()
+	shooter_upgrades_changed.emit()
 
 
 func get_living_defenders() -> Array[Defender]:

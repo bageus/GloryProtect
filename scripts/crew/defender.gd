@@ -10,7 +10,9 @@ signal died(defender_id: int)
 @export_node_path("DefenderMovement") var movement_path: NodePath
 @export_node_path("DefenderVisual") var visual_path: NodePath
 @export_node_path("MeleeAttackComponent") var melee_path: NodePath
+@export_node_path("RangedAttackComponent") var ranged_path: NodePath
 @export_node_path("DefenderCombatController") var combat_path: NodePath
+@export_node_path("ShooterCombatController") var shooter_combat_path: NodePath
 
 var defender_id: int = -1
 var _balance: CrewBalance
@@ -34,7 +36,9 @@ var _temporary_move_speed_multiplier: float = 1.0
 @onready var movement: DefenderMovement = get_node(movement_path)
 @onready var visual: DefenderVisual = get_node(visual_path)
 @onready var melee: MeleeAttackComponent = get_node(melee_path)
+@onready var ranged: RangedAttackComponent = get_node(ranged_path)
 @onready var combat: DefenderCombatController = get_node(combat_path)
+@onready var shooter_combat: ShooterCombatController = get_node(shooter_combat_path)
 
 
 func _ready() -> void:
@@ -59,9 +63,7 @@ func configure(
 		_apply_configuration(false)
 
 
-func apply_melee_upgrades(
-	upgrades: MeleeDefenderUpgradeRuntime
-) -> void:
+func apply_melee_upgrades(upgrades: MeleeDefenderUpgradeRuntime) -> void:
 	_melee_upgrades = upgrades
 	if is_node_ready():
 		_apply_configuration(false)
@@ -93,10 +95,7 @@ func set_base_movement_speed(speed: float) -> void:
 		_refresh_action_configuration()
 
 
-func set_medic_role_health_pool(
-	max_bonus: int,
-	current_bonus: int
-) -> void:
+func set_medic_role_health_pool(max_bonus: int, current_bonus: int) -> void:
 	var previous_base_max: int = maxi(
 		1,
 		health.max_health - _medic_role_health_bonus
@@ -108,11 +107,7 @@ func set_medic_role_health_pool(
 		false
 	)
 	health.set_health(
-		base_current + clampi(
-			current_bonus,
-			0,
-			_medic_role_health_bonus
-		)
+		base_current + clampi(current_bonus, 0, _medic_role_health_bonus)
 	)
 
 
@@ -218,7 +213,7 @@ func is_moving() -> bool:
 
 
 func is_combat_action_active() -> bool:
-	return combat.is_action_active()
+	return combat.is_action_active() or shooter_combat.is_action_active()
 
 
 func _apply_configuration(reset_life_state: bool) -> void:
@@ -287,5 +282,6 @@ func _on_depleted() -> void:
 	clear_temporary_action_multipliers()
 	movement.stop()
 	combat.cancel()
+	shooter_combat.cancel()
 	visible = false
 	died.emit(defender_id)

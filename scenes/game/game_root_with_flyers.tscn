@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -9,10 +9,11 @@
 [ext_resource type="Script" path="res://scripts/upgrades/medic_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
 [ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
-[ext_resource type="Script" path="res://scripts/medical/medic_role_modifier_controller.gd" id="10_medic_roles"]
-[ext_resource type="Script" path="res://scripts/medical/medic_stimulant_controller.gd" id="11_stimulant"]
-[ext_resource type="Script" path="res://scripts/medical/medic_protective_healing_controller.gd" id="12_protective"]
-[ext_resource type="Script" path="res://scripts/medical/medic_revival_controller.gd" id="13_revival"]
+[ext_resource type="Script" path="res://scripts/crew/shooter_crew_role_manager.gd" id="10_shooter_roles"]
+[ext_resource type="Script" path="res://scripts/medical/medic_role_modifier_controller.gd" id="11_medic_roles"]
+[ext_resource type="Script" path="res://scripts/medical/medic_stimulant_controller.gd" id="12_stimulant"]
+[ext_resource type="Script" path="res://scripts/medical/medic_protective_healing_controller.gd" id="13_protective"]
+[ext_resource type="Script" path="res://scripts/medical/medic_revival_controller.gd" id="14_revival"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -26,30 +27,33 @@ medical_system_path = NodePath("../World/MedicalStationSystem")
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
 
+[node name="CrewRoleManager" parent="World/Platform"]
+script = ExtResource("10_shooter_roles")
+
 [node name="TurretSystem" parent="World"]
 script = ExtResource("8_turret_system")
 upgrade_balance = ExtResource("9_turret_balance")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
-script = ExtResource("10_medic_roles")
+script = ExtResource("11_medic_roles")
 game_flow_path = NodePath("../../GameFlowController")
 crew_manager_path = NodePath("../Platform/CrewManager")
 role_manager_path = NodePath("../Platform/CrewRoleManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicStimulantController" type="Node" parent="World"]
-script = ExtResource("11_stimulant")
+script = ExtResource("12_stimulant")
 game_flow_path = NodePath("../../GameFlowController")
 crew_manager_path = NodePath("../Platform/CrewManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicProtectiveHealingController" type="Node" parent="World"]
-script = ExtResource("12_protective")
+script = ExtResource("13_protective")
 crew_manager_path = NodePath("../Platform/CrewManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicRevivalController" type="Node" parent="World"]
-script = ExtResource("13_revival")
+script = ExtResource("14_revival")
 game_flow_path = NodePath("../../GameFlowController")
 crew_manager_path = NodePath("../Platform/CrewManager")
 replacement_controller_path = NodePath("../../CrewReplacementController")
