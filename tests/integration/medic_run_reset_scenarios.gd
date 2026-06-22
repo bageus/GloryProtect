@@ -31,6 +31,9 @@ func _run_scenario() -> void:
 	var revival: MedicRevivalController = game.get_node(
 		"World/MedicRevivalController"
 	)
+	var replacements: CrewReplacementController = game.get_node(
+		"CrewReplacementController"
+	)
 	stimulant.set_physics_process(false)
 	revival.set_physics_process(false)
 
@@ -77,9 +80,12 @@ func _run_scenario() -> void:
 	crew.get_defender(0).health.set_health(0)
 	crew.get_defender(1).health.set_health(0)
 	crew.get_defender(last_id).health.set_health(0)
+	assert(flow.state == GameFlowController.RunState.RUNNING)
+	assert(revival.is_revival_scheduled())
 	assert(revival.get_cooldown_remaining() > 0.0)
 	await process_frame
 	assert(crew.get_living_count() == 1)
+	assert(replacements.get_pending_count() == 2)
 
 	flow.start_run()
 	await process_frame
@@ -96,6 +102,7 @@ func _run_scenario() -> void:
 	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(role_modifiers.get_stored_health_segments() == 0)
 	assert(role_modifiers.get_stored_armor_segments() == 0)
+	assert(replacements.get_pending_count() == 0)
 	assert(not medical.has_station())
 	for defender: Defender in crew.get_all_defenders():
 		assert(defender.get_medic_role_health_bonus() == 0)
