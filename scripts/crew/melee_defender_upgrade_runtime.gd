@@ -132,11 +132,15 @@ func _can_apply_scalar(target_id: StringName, value: float) -> bool:
 
 
 func _can_apply_flag(target_id: StringName) -> bool:
+	var is_specialization: bool = (
+		target_id == &"melee_specialization_heavy"
+		or target_id == &"melee_specialization_duelist"
+		or target_id == &"melee_specialization_assault"
+	)
+	if is_specialization:
+		return specialization_id == &""
+
 	match target_id:
-		&"melee_specialization_heavy",
-		&"melee_specialization_duelist",
-		&"melee_specialization_assault":
-			return specialization_id == &""
 		&"melee_heavy_shield":
 			return specialization_id == HEAVY and not heavy_shield_enabled
 		&"melee_heavy_shield_bash":
