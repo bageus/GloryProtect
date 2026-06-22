@@ -2,6 +2,7 @@ class_name FlyingEnemySpawnDirector
 extends Node
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
+@export_node_path("StrategicWaveDirector") var wave_director_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("AnchorPathRegistry") var path_registry_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
@@ -13,11 +14,14 @@ extends Node
 @export var enemy_scene: PackedScene
 @export var boarding_balance: BoardingBalance
 @export var profile: FlyingEnemyProfile
+@export_range(0, 100, 1) var first_flying_wave_number: int = 10
 
 var _spawn_remaining: float = 0.0
+var _flying_unlocked: bool = false
 var _rng := RandomNumberGenerator.new()
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
+@onready var _wave_director: StrategicWaveDirector = get_node(wave_director_path)
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _paths: AnchorPathRegistry = get_node(path_registry_path)
 @onready var _registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
@@ -40,6 +44,14 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
+	if _wave_director.get_wave_number() < first_flying_wave_number:
+		_flying_unlocked = false
+		return
+	if not _flying_unlocked:
+		_flying_unlocked = true
+		reset_spawn_timer()
+		return
+
 	_spawn_remaining = maxf(0.0, _spawn_remaining - delta)
 	if _spawn_remaining > 0.0:
 		return
@@ -89,4 +101,5 @@ func _on_run_state_changed(previous_state: int, new_state: int) -> void:
 		return
 	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
 		return
+	_flying_unlocked = false
 	reset_spawn_timer()
