@@ -1,6 +1,14 @@
 class_name TurretVisualController
 extends Node2D
 
+const TURRET_POST_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_object_turret_post.png"
+)
+const ALPHA_CROP_THRESHOLD: float = 0.08
+
+@export_range(0.05, 0.5, 0.01) var turret_asset_scale: float = 0.24
+@export var turret_surface_offset: Vector2 = Vector2.ZERO
+
 var _visuals: Dictionary[int, TurretVisualRuntime] = {}
 var _platform: PlatformController
 var _grid: BuildableGrid
@@ -9,6 +17,7 @@ var _input: TurretDebugInput
 var _enemies: BoardingEnemyRegistry
 var _balance: BuildableBalance
 var _configured: bool = false
+var _turret_source_rect: Rect2
 
 
 func configure(
@@ -31,6 +40,7 @@ func configure(
 func _ready() -> void:
 	assert(_configured, "TurretVisualController must be configured")
 	assert(_balance != null, "TurretVisualController requires BuildableBalance")
+	_turret_source_rect = _get_alpha_bounds(TURRET_POST_TEXTURE)
 	_turrets.turret_registered.connect(_on_turret_registered)
 	_turrets.turret_removed.connect(_on_turret_removed)
 	_turrets.shot_started.connect(_on_shot_started)
@@ -138,39 +148,21 @@ func _draw_turret_body(
 	var alpha: float = _balance.turret_inactive_alpha
 	if operational:
 		alpha = 1.0
-	var width: float = _balance.turret_width
-	var height: float = _balance.turret_height
-	var bottom_y: float = pivot.y + height * 0.58
-	var base_rect := Rect2(
-		Vector2(pivot.x - width * 0.5, bottom_y - 12.0),
-		Vector2(width, 12.0)
+
+	var asset_size: Vector2 = _turret_source_rect.size * turret_asset_scale
+	var bottom_center := Vector2(
+		pivot.x + turret_surface_offset.x,
+		_balance.turret_bottom_y + turret_surface_offset.y
 	)
-	draw_rect(base_rect, _with_alpha(Color(0.25, 0.31, 0.42), alpha), true)
-	draw_rect(
-		base_rect,
-		_with_alpha(Color(0.68, 0.82, 0.96), alpha),
-		false,
-		2.0
+	var asset_rect := Rect2(
+		bottom_center - Vector2(asset_size.x * 0.5, asset_size.y),
+		asset_size
 	)
-	draw_line(
-		Vector2(pivot.x, base_rect.position.y),
-		pivot,
-		_with_alpha(Color(0.52, 0.65, 0.78), alpha),
-		8.0
-	)
-	draw_circle(
-		pivot,
-		width * 0.28,
-		_with_alpha(Color(0.22, 0.48, 0.67), alpha)
-	)
-	draw_arc(
-		pivot,
-		width * 0.28,
-		0.0,
-		TAU,
-		24,
-		_with_alpha(Color(0.76, 0.93, 1.0), alpha),
-		2.0
+	draw_texture_rect_region(
+		TURRET_POST_TEXTURE,
+		asset_rect,
+		_turret_source_rect,
+		Color(1.0, 1.0, 1.0, alpha)
 	)
 
 	var aim_direction: Vector2 = _get_aim_direction(pivot, runtime)
@@ -180,12 +172,6 @@ func _draw_turret_body(
 		_balance.turret_barrel_length - recoil
 	)
 	var muzzle: Vector2 = pivot + aim_direction * barrel_length
-	draw_line(
-		pivot,
-		muzzle,
-		_with_alpha(Color(0.62, 0.82, 0.94), alpha),
-		7.0
-	)
 
 	if firing:
 		_draw_charge(buildable_id, pivot, muzzle)
@@ -195,16 +181,17 @@ func _draw_turret_body(
 	var indicator_color := Color(0.25, 0.95, 0.75, alpha)
 	if not operational:
 		indicator_color = Color(1.0, 0.35, 0.25, alpha)
-	draw_circle(pivot + Vector2(0.0, width * 0.4), 3.5, indicator_color)
+	draw_circle(
+		asset_rect.position + Vector2(asset_rect.size.x * 0.5, 8.0),
+		3.5,
+		indicator_color
+	)
 
 	if selected:
-		draw_arc(
-			pivot,
-			width * 0.44,
-			0.0,
-			TAU,
-			32,
+		draw_rect(
+			asset_rect.grow(4.0),
 			Color(1.0, 0.84, 0.3),
+			false,
 			3.0
 		)
 
@@ -321,10 +308,6 @@ func _get_recoil(runtime: TurretVisualRuntime) -> float:
 	)
 
 
-func _with_alpha(color: Color, alpha: float) -> Color:
-	return Color(color.r, color.g, color.b, color.a * alpha)
-
-
 func _update_target_position(runtime: TurretVisualRuntime) -> void:
 	if runtime.target_enemy_id < 0:
 		return
@@ -401,3 +384,35 @@ func _on_buildable_moved(
 
 func _on_selected_turret_changed(_buildable_id: int) -> void:
 	queue_redraw()
+
+
+func _get_alpha_bounds(texture: Texture2D) -> Rect2:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return Rect2(Vector2.ZERO, texture.get_size())
+
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var min_x: int = width
+	var min_y: int = height
+	var max_x: int = -1
+	var max_y: int = -1
+
+	for y: int in range(height):
+		for x: int in range(width):
+			if image.get_pixel(x, y).a <= ALPHA_CROP_THRESHOLD:
+				continue
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+
+	if max_x < min_x or max_y < min_y:
+		return Rect2(Vector2.ZERO, texture.get_size())
+
+	return Rect2(
+		Vector2(float(min_x), float(min_y)),
+		Vector2(
+			float(max_x - min_x + 1),
+			float(max_y - min_y + 1)
+		)
