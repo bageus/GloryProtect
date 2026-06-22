@@ -87,9 +87,23 @@ func _unlock_turret() -> void:
 
 
 func _place_new_turret() -> void:
+	var deployed_count: int = _grid.get_count_by_type(BuildableType.Id.TURRET)
+	if not _inventory.can_deploy(BuildableType.Id.TURRET, deployed_count):
+		_inventory.unlock(BuildableType.Id.TURRET)
+	if not _inventory.can_deploy(BuildableType.Id.TURRET, deployed_count):
+		command_feedback.emit(&"turret_unlock_limit")
+		return
+
+	var target_cell: int = _grid.find_nearest_available_cell(
+		_buildable_input.get_selected_cell_index()
+	)
+	if target_cell < 0:
+		command_feedback.emit(&"turret_place_failed")
+		return
+	_buildable_input.select_cell(target_cell)
 	var buildable_id: int = _grid.place(
 		BuildableType.Id.TURRET,
-		_buildable_input.get_selected_cell_index()
+		target_cell
 	)
 	if buildable_id < 0:
 		command_feedback.emit(&"turret_place_failed")
@@ -116,10 +130,15 @@ func _move_selected_turret() -> void:
 	if selected_turret_id < 0:
 		command_feedback.emit(&"turret_missing")
 		return
-	if _grid.move(
-		selected_turret_id,
-		_buildable_input.get_selected_cell_index()
-	):
+	var target_cell: int = _grid.find_nearest_available_cell(
+		_buildable_input.get_selected_cell_index(),
+		selected_turret_id
+	)
+	if target_cell < 0:
+		command_feedback.emit(&"turret_move_failed")
+		return
+	_buildable_input.select_cell(target_cell)
+	if _grid.move(selected_turret_id, target_cell):
 		command_feedback.emit(&"turret_moved")
 	else:
 		command_feedback.emit(&"turret_move_failed")
