@@ -4,11 +4,31 @@ extends Node2D
 const CHAIN_TEXTURE: Texture2D = preload(
 	"res://visual/tiles/tile_chain.png"
 )
+const CLAMP_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_object_clamp.png"
+)
+const WINCH_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_object_winch_post.png"
+)
+const ANCHOR_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_object_anchor.png"
+)
+
 const CHAIN_LINK_SIZE: Vector2 = Vector2(46.0, 46.0)
 const CHAIN_LINK_SPACING: float = 23.0
 const CHAIN_BACKING_WIDTH: float = 7.0
 const CHAIN_BRIGHTEN_AMOUNT: float = 0.18
-const CHAIN_ALPHA_CROP_THRESHOLD: float = 0.08
+const ALPHA_CROP_THRESHOLD: float = 0.08
+
+@export_group("Anchor Assets")
+@export var clamp_size: Vector2 = Vector2(76.0, 58.0)
+@export var clamp_ground_offset: Vector2 = Vector2(0.0, 4.0)
+@export var clamp_chain_connection_offset: Vector2 = Vector2(0.0, -34.0)
+@export var anchor_size: Vector2 = Vector2(58.0, 72.0)
+@export var stowed_chain_length: float = 28.0
+@export var winch_size: Vector2 = Vector2(94.0, 88.0)
+@export var winch_vertical_offset: float = -76.0
+@export var winch_horizontal_offset: float = 0.0
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -17,13 +37,16 @@ var _is_operator_available: Callable
 var _is_simulation_active: Callable
 var _warning_elapsed: float = 0.0
 var _chain_source_rect: Rect2
+var _clamp_source_rect: Rect2
+var _winch_source_rect: Rect2
+var _anchor_source_rect: Rect2
 
 
 func _ready() -> void:
-	_chain_source_rect = _get_alpha_bounds(
-		CHAIN_TEXTURE,
-		CHAIN_ALPHA_CROP_THRESHOLD
-	)
+	_chain_source_rect = _get_alpha_bounds(CHAIN_TEXTURE)
+	_clamp_source_rect = _get_alpha_bounds(CLAMP_TEXTURE)
+	_winch_source_rect = _get_alpha_bounds(WINCH_TEXTURE)
+	_anchor_source_rect = _get_alpha_bounds(ANCHOR_TEXTURE)
 
 
 func configure(
@@ -52,42 +75,123 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	if _store == null:
 		return
-	for anchor in _store.get_all():
+	_draw_winch_posts()
+	for anchor: AnchorRuntime in _store.get_all():
 		_draw_anchor(anchor)
 
 
+func _draw_winch_posts() -> void:
+	var left_outer: Vector2 = _geometry.get_platform_attachment_world(0)
+	var left_inner: Vector2 = _geometry.get_platform_attachment_world(1)
+	var right_inner: Vector2 = _geometry.get_platform_attachment_world(2)
+	var right_outer: Vector2 = _geometry.get_platform_attachment_world(3)
+	var left_center := Vector2(
+		(left_outer.x + left_inner.x) * 0.5 + winch_horizontal_offset,
+		left_outer.y + winch_vertical_offset
+	)
+	var right_center := Vector2(
+		(right_inner.x + right_outer.x) * 0.5 - winch_horizontal_offset,
+		right_outer.y + winch_vertical_offset
+	)
+	_draw_winch(
+		left_center,
+		false,
+		bool(_is_operator_available.call(AnchorRuntime.Side.LEFT))
+	)
+	_draw_winch(
+		right_center,
+		true,
+		bool(_is_operator_available.call(AnchorRuntime.Side.RIGHT))
+	)
+
+
+func _draw_winch(center: Vector2, mirrored: bool, operator_available: bool) -> void:
+	var tint := Color.WHITE
+	if not operator_available:
+		tint = Color(0.52, 0.55, 0.58, 1.0)
+	var rect := Rect2(-winch_size * 0.5, winch_size)
+	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
+	draw_set_transform(center, 0.0, scale)
+	draw_texture_rect_region(
+		WINCH_TEXTURE,
+		rect,
+		_winch_source_rect,
+		tint
+	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
 func _draw_anchor(anchor: AnchorRuntime) -> void:
-	var platform_point := _geometry.get_platform_attachment_world(anchor.anchor_id)
+	var platform_point: Vector2 = _geometry.get_platform_attachment_world(
+		anchor.anchor_id
+	)
 
-	if anchor.is_holding():
-		_draw_attached_anchor(
-			anchor,
-			platform_point,
-			_geometry.get_runtime_ground_point(anchor)
-		)
-		return
+	match anchor.state:
+		AnchorRuntime.State.STOWED:
+			_draw_stowed_anchor(anchor, platform_point)
+			_draw_available_clamp(anchor)
+		AnchorRuntime.State.QUEUED:
+			_draw_stowed_anchor(anchor, platform_point)
+			_draw_clamp(
+				anchor.target_ground_point,
+				_get_clamp_tint(anchor)
+			)
+		AnchorRuntime.State.INSTALLING:
+			_draw_installing_anchor(anchor, platform_point)
+		AnchorRuntime.State.ATTACHED, AnchorRuntime.State.OVERLOADED:
+			_draw_attached_anchor(
+				anchor,
+				platform_point,
+				_geometry.get_runtime_ground_point(anchor)
+			)
+		AnchorRuntime.State.RETURNING:
+			_draw_returning_anchor(
+				anchor,
+				platform_point,
+				_geometry.get_runtime_ground_point(anchor)
+			)
 
-	if anchor.state == AnchorRuntime.State.RETURNING:
-		_draw_returning_anchor(
-			anchor,
-			platform_point,
-			_geometry.get_runtime_ground_point(anchor)
-		)
-		return
 
-	if (
-		anchor.state == AnchorRuntime.State.QUEUED
-		or anchor.state == AnchorRuntime.State.INSTALLING
-	):
-		_draw_silhouette(anchor, anchor.target_ground_point)
-		return
+func _draw_stowed_anchor(
+	anchor: AnchorRuntime,
+	platform_point: Vector2
+) -> void:
+	var anchor_top := platform_point + Vector2(0.0, stowed_chain_length)
+	var tint := Color.WHITE
+	if not bool(_is_operator_available.call(anchor.side)):
+		tint = Color(0.68, 0.7, 0.72, 1.0)
+	_draw_chain_links(platform_point, anchor_top, tint)
+	_draw_anchor_asset(anchor_top, tint)
 
+
+func _draw_available_clamp(anchor: AnchorRuntime) -> void:
 	if _geometry.get_current_installation_orb_id() < 0:
 		return
-	_draw_silhouette(
-		anchor,
-		_geometry.get_current_silhouette_ground_point(anchor.anchor_id)
+	_draw_clamp(
+		_geometry.get_current_silhouette_ground_point(anchor.anchor_id),
+		_get_clamp_tint(anchor)
 	)
+
+
+func _draw_installing_anchor(
+	anchor: AnchorRuntime,
+	platform_point: Vector2
+) -> void:
+	var ground_point: Vector2 = anchor.target_ground_point
+	var visual_ground_point: Vector2 = _get_clamp_connection_point(ground_point)
+	var progress_ratio: float = clampf(
+		anchor.operation_progress / maxf(_balance.install_duration, 0.01),
+		0.0,
+		1.0
+	)
+	var anchor_top: Vector2 = platform_point.lerp(
+		visual_ground_point,
+		progress_ratio
+	)
+	var tint := Color(0.92, 0.82, 0.55, 1.0)
+	_draw_clamp(ground_point, _get_clamp_tint(anchor))
+	_draw_chain_links(platform_point, anchor_top, tint)
+	_draw_anchor_asset(anchor_top, tint)
 
 
 func _draw_attached_anchor(
@@ -117,13 +221,36 @@ func _draw_attached_anchor(
 			overload_pulse
 		)
 
-	_draw_chain_links(platform_point, ground_point, rope_color)
-	draw_circle(ground_point, 10.0, rope_color)
+	var connection_point: Vector2 = _get_clamp_connection_point(ground_point)
+	_draw_clamp(ground_point, Color.WHITE)
+	_draw_chain_links(platform_point, connection_point, rope_color)
+	# The anchor head itself is hidden once it has locked into the ground clamp.
 	_draw_durability_meter(
-		platform_point.lerp(ground_point, 0.5),
+		platform_point.lerp(connection_point, 0.5),
 		durability_ratio,
 		rope_color
 	)
+
+
+func _draw_returning_anchor(
+	anchor: AnchorRuntime,
+	platform_point: Vector2,
+	ground_point: Vector2
+) -> void:
+	var return_ratio: float = clampf(
+		anchor.operation_progress / maxf(_balance.return_duration, 0.01),
+		0.0,
+		1.0
+	)
+	var connection_point: Vector2 = _get_clamp_connection_point(ground_point)
+	var returning_top: Vector2 = connection_point.lerp(
+		platform_point + Vector2(0.0, stowed_chain_length),
+		return_ratio
+	)
+	var return_color := Color(0.85, 0.76, 0.46)
+	_draw_clamp(ground_point, Color.WHITE)
+	_draw_chain_links(platform_point, returning_top, return_color)
+	_draw_anchor_asset(returning_top, return_color.lightened(0.12))
 
 
 func _draw_chain_links(
@@ -131,7 +258,7 @@ func _draw_chain_links(
 	end_point: Vector2,
 	tint: Color
 ) -> void:
-	var segment := end_point - start_point
+	var segment: Vector2 = end_point - start_point
 	var length: float = segment.length()
 	if length <= 0.01:
 		return
@@ -146,7 +273,6 @@ func _draw_chain_links(
 	var backing_color: Color = visible_tint
 	backing_color.a = 0.4
 
-	# A bright backing prevents the texture from disappearing against dark ground.
 	draw_line(
 		start_point,
 		end_point,
@@ -169,6 +295,49 @@ func _draw_chain_links(
 		)
 
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_anchor_asset(anchor_top: Vector2, tint: Color) -> void:
+	var rect := Rect2(
+		Vector2(-anchor_size.x * 0.5, 0.0),
+		anchor_size
+	)
+	draw_set_transform(anchor_top, 0.0, Vector2.ONE)
+	draw_texture_rect_region(
+		ANCHOR_TEXTURE,
+		rect,
+		_anchor_source_rect,
+		tint
+	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_clamp(ground_point: Vector2, tint: Color) -> void:
+	var bottom_center: Vector2 = ground_point + clamp_ground_offset
+	var rect := Rect2(
+		bottom_center + Vector2(-clamp_size.x * 0.5, -clamp_size.y),
+		clamp_size
+	)
+	draw_texture_rect_region(
+		CLAMP_TEXTURE,
+		rect,
+		_clamp_source_rect,
+		tint
+	)
+
+
+func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
+	if not bool(_is_operator_available.call(anchor.side)):
+		return Color(0.48, 0.5, 0.53, 0.78)
+	if anchor.state == AnchorRuntime.State.QUEUED:
+		return Color(1.0, 0.82, 0.35, 0.92)
+	if anchor.state == AnchorRuntime.State.INSTALLING:
+		return Color(0.5, 0.88, 1.0, 0.96)
+	return Color(0.52, 1.0, 0.65, 0.9)
+
+
+func _get_clamp_connection_point(ground_point: Vector2) -> Vector2:
+	return ground_point + clamp_chain_connection_offset
 
 
 func _draw_durability_meter(
@@ -196,42 +365,6 @@ func _draw_durability_meter(
 	)
 
 
-func _draw_returning_anchor(
-	anchor: AnchorRuntime,
-	platform_point: Vector2,
-	ground_point: Vector2
-) -> void:
-	var return_ratio := clampf(
-		anchor.operation_progress / _balance.return_duration,
-		0.0,
-		1.0
-	)
-	var returning_point := ground_point.lerp(platform_point, return_ratio)
-	var return_color := Color(0.85, 0.76, 0.46)
-	_draw_chain_links(platform_point, returning_point, return_color)
-	draw_circle(returning_point, 9.0, return_color)
-
-
-func _draw_silhouette(anchor: AnchorRuntime, ground_point: Vector2) -> void:
-	var operator_available: bool = _is_operator_available.call(anchor.side)
-	var silhouette_color := Color(0.28, 0.95, 0.48, 0.75)
-
-	if not operator_available:
-		silhouette_color = Color(0.45, 0.48, 0.52, 0.65)
-	elif anchor.state == AnchorRuntime.State.QUEUED:
-		silhouette_color = Color(1.0, 0.78, 0.2, 0.8)
-	elif anchor.state == AnchorRuntime.State.INSTALLING:
-		silhouette_color = Color(0.35, 0.78, 1.0, 0.85)
-
-	draw_circle(ground_point, 14.0, silhouette_color)
-	draw_line(
-		ground_point + Vector2(-9.0, 15.0),
-		ground_point + Vector2(9.0, 15.0),
-		silhouette_color,
-		4.0
-	)
-
-
 func _get_durability_ratio(anchor: AnchorRuntime) -> float:
 	if _balance.rope_max_durability <= 0.0:
 		return 0.0
@@ -242,7 +375,7 @@ func _get_durability_ratio(anchor: AnchorRuntime) -> float:
 	)
 
 
-func _get_alpha_bounds(texture: Texture2D, threshold: float) -> Rect2:
+func _get_alpha_bounds(texture: Texture2D) -> Rect2:
 	var image: Image = texture.get_image()
 	if image == null or image.is_empty():
 		return Rect2(Vector2.ZERO, texture.get_size())
@@ -256,7 +389,7 @@ func _get_alpha_bounds(texture: Texture2D, threshold: float) -> Rect2:
 
 	for y: int in range(height):
 		for x: int in range(width):
-			if image.get_pixel(x, y).a <= threshold:
+			if image.get_pixel(x, y).a <= ALPHA_CROP_THRESHOLD:
 				continue
 			min_x = mini(min_x, x)
 			min_y = mini(min_y, y)
