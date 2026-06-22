@@ -29,10 +29,12 @@ const GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE: Texture2D = preload(
 
 @export_group("Asset Visuals")
 @export var ground_tile_size: Vector2 = Vector2(128.0, 128.0)
-@export_range(0.0, 8.0, 0.25) var ground_tile_overlap: float = 1.0
+@export_range(0.0, 24.0, 0.25) var ground_tile_overlap: float = 8.0
+@export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export var ground_tile_vertical_offset: float = 0.0
-@export var ground_core_half_size: Vector2 = Vector2(96.0, 128.0)
-@export var ground_core_vertical_offset: float = 0.0
+@export var ground_core_half_size: Vector2 = Vector2(128.0, 128.0)
+@export_range(0.0, 8.0, 0.25) var ground_core_seam_overlap: float = 2.0
+@export var ground_core_vertical_offset: float = 12.0
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _registry: GroundOrbRegistry = get_node(registry_path)
@@ -40,11 +42,34 @@ const GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE: Texture2D = preload(
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 
 var _ground_tile_source_rect: Rect2
+var _ground_core_left_energy_source_rect: Rect2
+var _ground_core_left_noenergy_source_rect: Rect2
+var _ground_core_right_energy_source_rect: Rect2
+var _ground_core_right_noenergy_source_rect: Rect2
 
 
 func _ready() -> void:
 	assert(platform_balance != null, "GroundOrbVisualController requires PlatformBalance")
-	_ground_tile_source_rect = _get_used_texture_rect(GROUND_TILE_TEXTURE)
+	_ground_tile_source_rect = _get_alpha_bounds(
+		GROUND_TILE_TEXTURE,
+		alpha_crop_threshold
+	)
+	_ground_core_left_energy_source_rect = _get_alpha_bounds(
+		GROUND_CORE_VISUAL_LEFT_ENERGY_TEXTURE,
+		alpha_crop_threshold
+	)
+	_ground_core_left_noenergy_source_rect = _get_alpha_bounds(
+		GROUND_CORE_VISUAL_LEFT_NOENERGY_TEXTURE,
+		alpha_crop_threshold
+	)
+	_ground_core_right_energy_source_rect = _get_alpha_bounds(
+		GROUND_CORE_VISUAL_RIGHT_ENERGY_TEXTURE,
+		alpha_crop_threshold
+	)
+	_ground_core_right_noenergy_source_rect = _get_alpha_bounds(
+		GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE,
+		alpha_crop_threshold
+	)
 	queue_redraw()
 
 
@@ -132,6 +157,16 @@ func _draw_ground_core(
 		if is_charging
 		else GROUND_CORE_VISUAL_RIGHT_NOENERGY_TEXTURE
 	)
+	var visual_left_source_rect: Rect2 = (
+		_ground_core_left_energy_source_rect
+		if is_charging
+		else _ground_core_left_noenergy_source_rect
+	)
+	var visual_right_source_rect: Rect2 = (
+		_ground_core_right_energy_source_rect
+		if is_charging
+		else _ground_core_right_noenergy_source_rect
+	)
 	var visual_brightness: float = clampf(brightness, 0.55, 1.0)
 	var tint := Color(
 		visual_brightness,
@@ -141,17 +176,43 @@ func _draw_ground_core(
 	)
 	var center := position + Vector2(0.0, ground_core_vertical_offset)
 	var half_height: float = ground_core_half_size.y * 0.5
+	var seam_half_overlap: float = ground_core_seam_overlap * 0.5
+
+	# Each half occupies exactly one ground tile. Their inner edges meet at the
+	# shared tile boundary in the center, with a tiny overlap to hide a seam.
 	var left_rect := Rect2(
-		center + Vector2(-ground_core_half_size.x, -half_height),
-		ground_core_half_size
+		center + Vector2(
+			-ground_core_half_size.x,
+			-half_height
+		),
+		Vector2(
+			ground_core_half_size.x + seam_half_overlap,
+			ground_core_half_size.y
+		)
 	)
 	var right_rect := Rect2(
-		center + Vector2(0.0, -half_height),
-		ground_core_half_size
+		center + Vector2(
+			-seam_half_overlap,
+			-half_height
+		),
+		Vector2(
+			ground_core_half_size.x + seam_half_overlap,
+			ground_core_half_size.y
+		)
 	)
 
-	draw_texture_rect(visual_left_texture, left_rect, false, tint)
-	draw_texture_rect(visual_right_texture, right_rect, false, tint)
+	draw_texture_rect_region(
+		visual_left_texture,
+		left_rect,
+		visual_left_source_rect,
+		tint
+	)
+	draw_texture_rect_region(
+		visual_right_texture,
+		right_rect,
+		visual_right_source_rect,
+		tint
+	)
 
 
 func _draw_contact_zone(orb_id: int) -> void:
@@ -202,14 +263,34 @@ func _draw_active_contact() -> void:
 	)
 
 
-func _get_used_texture_rect(texture: Texture2D) -> Rect2:
+func _get_alpha_bounds(texture: Texture2D, threshold: float) -> Rect2:
 	var image: Image = texture.get_image()
 	if image == null or image.is_empty():
 		return Rect2(Vector2.ZERO, texture.get_size())
-	var used_rect: Rect2i = image.get_used_rect()
-	if used_rect.size.x <= 0 or used_rect.size.y <= 0:
+
+	var width: int = image.get_width()
+	var height: int = image.get_height()
+	var min_x: int = width
+	var min_y: int = height
+	var max_x: int = -1
+	var max_y: int = -1
+
+	for y: int in range(height):
+		for x: int in range(width):
+			if image.get_pixel(x, y).a <= threshold:
+				continue
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+
+	if max_x < min_x or max_y < min_y:
 		return Rect2(Vector2.ZERO, texture.get_size())
+
 	return Rect2(
-		Vector2(used_rect.position),
-		Vector2(used_rect.size)
+		Vector2(float(min_x), float(min_y)),
+		Vector2(
+			float(max_x - min_x + 1),
+			float(max_y - min_y + 1)
+		)
 	)
