@@ -79,16 +79,20 @@ func _compact_command_panel(panel: CrewCommandPanel) -> void:
 	right_panel.offset_top = -90.0
 	right_panel.offset_bottom = -5.0
 
-	for side_panel: PanelContainer in [left_panel, right_panel]:
-		for node: Node in side_panel.find_children("*", "Button", true, false):
-			var button := node as Button
-			button.custom_minimum_size = Vector2(42.0, 70.0)
-			button.add_theme_font_size_override("font_size", 10)
-			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_compact_side_buttons(left_panel)
+	_compact_side_buttons(right_panel)
+
+
+func _compact_side_buttons(side_panel: PanelContainer) -> void:
+	for node: Node in side_panel.find_children("*", "Button", true, false):
+		var button := node as Button
+		button.custom_minimum_size = Vector2(42.0, 70.0)
+		button.add_theme_font_size_override("font_size", 10)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 func _connect_grid(grid: BuildableGrid, panel: CrewCommandPanel) -> void:
-	if _active_grid != null:
+	if is_instance_valid(_active_grid):
 		var old_callable := Callable(self, "_on_buildable_placed")
 		if _active_grid.buildable_placed.is_connected(old_callable):
 			_active_grid.buildable_placed.disconnect(old_callable)
@@ -104,7 +108,10 @@ func _on_buildable_placed(
 	type_id: int,
 	cell_index: int
 ) -> void:
-	if type_id != BuildableType.Id.TURRET or _active_panel == null:
+	if (
+		type_id != BuildableType.Id.TURRET
+		or not is_instance_valid(_active_panel)
+	):
 		return
 	var defender_id: int = int(
 		_active_panel.call("_get_free_fighter_at_cell", cell_index)
