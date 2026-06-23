@@ -22,8 +22,11 @@ func get_cost_for_completed_count(completed_count: int) -> int:
 	var multiplier_steps: int = (
 		safe_completed_count - linear_offer_count + 1
 	)
+	var maximum_safe_cost: int = floori(
+		float(MAX_COST) / float(post_linear_multiplier)
+	)
 	for _step: int in range(multiplier_steps):
-		if cost > MAX_COST / post_linear_multiplier:
+		if cost > maximum_safe_cost:
 			return MAX_COST
 		cost *= post_linear_multiplier
 	return cost
