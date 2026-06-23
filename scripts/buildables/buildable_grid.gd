@@ -49,8 +49,6 @@ func move(buildable_id: int, cell_index: int) -> bool:
 	var runtime: BuildableRuntime = _buildables[buildable_id]
 	if runtime.cell_index == cell_index:
 		return true
-	if runtime.type_id == BuildableType.Id.MEDICAL_STATION:
-		return false
 	if not _is_cell_available_for_type(
 		runtime.type_id,
 		cell_index,
@@ -138,7 +136,7 @@ func find_nearest_available_cell_for_type(
 ) -> int:
 	var candidates: Array[int] = []
 	if type_id == BuildableType.Id.MEDICAL_STATION:
-		candidates.append(balance.default_medical_cell)
+		candidates = balance.get_medical_cell_indices()
 	elif type_id == BuildableType.Id.TURRET:
 		candidates = balance.turret_cell_indices.duplicate()
 	else:
@@ -212,7 +210,7 @@ func _is_cell_available_for_type(
 	if not _platform.is_valid_cell(cell_index):
 		return false
 	if type_id == BuildableType.Id.MEDICAL_STATION:
-		if cell_index != balance.default_medical_cell:
+		if not balance.is_medical_cell(cell_index):
 			return false
 	elif type_id == BuildableType.Id.TURRET:
 		if not balance.is_turret_cell(cell_index):
