@@ -101,13 +101,31 @@ func _test_specialization_offer_and_extras() -> void:
 	events.configure(CATALOG, runtime, 24)
 	var offer: Array[UpgradeDefinition] = events.generate_event_offer(&"ranged")
 	assert(offer.size() == 3)
-	assert(runtime.record_card(CATALOG.get_definition(
+	var air_specialization: UpgradeDefinition = CATALOG.get_definition(
 		&"shooter_specialization_air_hunter"
-	)))
-	assert(CATALOG.is_available(
-		CATALOG.get_definition(&"shooter_air_triple_shot"),
+	)
+	assert(runtime.record_card(air_specialization))
+	assert(not CATALOG.is_available(
+		CATALOG.get_definition(&"shooter_specialization_sniper"),
 		runtime
 	))
+	assert(not CATALOG.is_available(
+		CATALOG.get_definition(&"shooter_specialization_anchor_hunter"),
+		runtime
+	))
+	var triple: UpgradeDefinition = CATALOG.get_definition(
+		&"shooter_air_triple_shot"
+	)
+	var mark: UpgradeDefinition = CATALOG.get_definition(
+		&"shooter_air_mark_fifth"
+	)
+	assert(CATALOG.is_available(triple, runtime))
+	assert(CATALOG.is_available(mark, runtime))
+	assert(runtime.record_card(triple))
+	assert(not CATALOG.is_available(triple, runtime))
+	assert(CATALOG.is_available(mark, runtime))
+	assert(runtime.record_card(mark))
+	assert(not CATALOG.is_available(mark, runtime))
 	assert(not CATALOG.is_available(
 		CATALOG.get_definition(&"shooter_sniper_multi_pierce"),
 		runtime
