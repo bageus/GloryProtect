@@ -13,12 +13,46 @@ func _init() -> void:
 
 
 func _run_scenarios() -> void:
+	_test_catalog_titles_match_rules()
+	_test_ranged_branch_weight_and_unlock_behavior()
 	_test_unlock_gates_base_lines()
 	_test_unlock_does_not_advance_specialization()
 	_test_piercing_requires_completed_line()
 	_test_specialization_offer_and_extras()
 	print("Shooter upgrade catalog scenarios passed")
 	quit()
+
+
+func _test_catalog_titles_match_rules() -> void:
+	var expected_titles: Dictionary[StringName, String] = {
+		&"shooter_unlock": "Стрелок",
+		&"shooter_damage_basic": "Улучшенный выстрел арбалета",
+		&"shooter_damage_advanced": "Мощный выстрел арбалета",
+		&"shooter_range_basic": "Увеличенный радиус стрелка",
+		&"shooter_range_advanced": "Мощный радиус стрелка",
+		&"shooter_cooldown_basic": "Ускоренная атака стрелков",
+		&"shooter_cooldown_advanced": "Мощное ускорение атаки стрелков",
+		&"shooter_piercing_bolt": "Пробивающий болт",
+		&"shooter_specialization_sniper": "Снайпер",
+		&"shooter_specialization_air_hunter": "Охотник на летающих врагов",
+		&"shooter_specialization_anchor_hunter": "Охотник на якорях",
+	}
+	for card_id: StringName in expected_titles:
+		var definition: UpgradeDefinition = CATALOG.get_definition(card_id)
+		assert(definition != null)
+		assert(definition.title == expected_titles[card_id])
+
+
+func _test_ranged_branch_weight_and_unlock_behavior() -> void:
+	var runtime := UpgradeRuntime.new()
+	var generator := UpgradeDrawGenerator.new()
+	generator.configure(DRAW_BALANCE, CATALOG, runtime, 24)
+	var starting_weight: int = generator.get_branch_weight(&"ranged")
+	assert(starting_weight > 0)
+	var unlock: UpgradeDefinition = CATALOG.get_definition(&"shooter_unlock")
+	assert(unlock != null)
+	generator.apply_selected_card(unlock)
+	assert(generator.get_branch_weight(&"ranged") == starting_weight)
 
 
 func _test_unlock_gates_base_lines() -> void:
