@@ -6,6 +6,11 @@ on:
     paths:
       - tools/generate_crew_command_panel_split.py
       - .github/workflows/generate-crew-panel-split.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - tools/generate_crew_command_panel_split.py
+      - .github/workflows/generate-crew-panel-split.yml
 
 permissions:
   contents: read
