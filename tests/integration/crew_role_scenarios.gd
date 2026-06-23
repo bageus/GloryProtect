@@ -52,9 +52,21 @@ func _run_scenarios() -> void:
 
 	await _wait_until_assignment_active(roles, 0)
 	assert(roles.get_assignment(0).current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(
+		roles.get_role_owner(CrewRole.Id.DRIVER) == -1,
+		"Driver station remained reserved after releasing defender 0"
+	)
+	assert(
+		roles.get_assignment(1).state == CrewAssignmentRuntime.State.ACTIVE,
+		"Defender 1 was not active before requesting the driver role"
+	)
 
 	roles.request_assignment(1, CrewRole.Id.DRIVER)
 	await process_frame
+	assert(
+		roles.get_assignment(1).target_role == CrewRole.Id.DRIVER,
+		"Driver assignment request was rejected"
+	)
 	assert(not steering.driver_available)
 
 	await _wait_until_assignment_active(roles, 1)
