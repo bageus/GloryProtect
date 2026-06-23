@@ -18,6 +18,7 @@ var _locked_enemy: BoardingEnemy
 var _active_policy: ShooterTargetPolicy
 var _completed_bolts := 0
 var _completed_volleys := 0
+var _current_volley_hit_count := 0
 
 
 func configure(
@@ -101,6 +102,7 @@ func _physics_process(_delta: float) -> void:
 		shot_count = 3
 	if _ranged.try_start_sequence(target.health, shot_count):
 		_locked_enemy = target
+		_current_volley_hit_count = 0
 		_defender.movement.pause()
 
 
@@ -116,6 +118,7 @@ func is_action_active() -> bool:
 func cancel() -> void:
 	_locked_enemy = null
 	_active_policy = null
+	_current_volley_hit_count = 0
 	if _ranged != null:
 		_ranged.cancel()
 
@@ -158,6 +161,7 @@ func _on_attack_landed(
 ) -> void:
 	if _locked_enemy == null or not is_instance_valid(_locked_enemy):
 		return
+	_current_volley_hit_count += 1
 	_completed_bolts += 1
 	_resolver.resolve_bolt_hit(
 		_defender,
@@ -171,11 +175,13 @@ func _on_attack_landed(
 
 
 func _on_attack_finished() -> void:
-	_completed_volleys += 1
-	_resolver.resolve_volley_finished(
-		_locked_enemy,
-		_crew.get_shooter_upgrades(),
-		_completed_volleys
-	)
+	if _current_volley_hit_count > 0:
+		_completed_volleys += 1
+		_resolver.resolve_volley_finished(
+			_locked_enemy,
+			_crew.get_shooter_upgrades(),
+			_completed_volleys
+		)
 	_locked_enemy = null
 	_active_policy = null
+	_current_volley_hit_count = 0
