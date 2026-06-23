@@ -5,13 +5,13 @@ const CHAIN_TEXTURE: Texture2D = preload(
 	"res://visual/tiles/tile_chain_base_01.png"
 )
 const CLAMP_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_clamp.png"
+	"res://visual/objects/asset_clamp.png"
 )
 const WINCH_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_winch_post.png"
+	"res://visual/objects/asset_winch_01.png"
 )
 const ANCHOR_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_anchor.png"
+	"res://visual/objects/asset_anchor.png"
 )
 const CHAIN_BACKING_WIDTH := 7.0
 const CHAIN_BRIGHTEN_AMOUNT := 0.18
