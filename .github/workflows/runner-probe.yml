@@ -1,4 +1,4 @@
-name: CI fixes diagnostic
+name: Medical station diagnostic
 
 on:
   pull_request:
@@ -17,10 +17,10 @@ jobs:
     env:
       GODOT_VERSION: "4.6.2"
     steps:
-      - name: Checkout CI fixes branch
+      - name: Checkout medical station fix branch
         uses: actions/checkout@v4
         with:
-          ref: ci-fixes-104-105
+          ref: fix/medical-station-movement-113
 
       - name: Install Godot
         shell: bash
@@ -48,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-fixes-godot-log
+          name: medical-station-godot-log
           path: /tmp/godot-scenarios.log
           if-no-files-found: error
 
