@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE := preload("res://scenes/game/game_root.tscn")
+const DRIVER_ATTACK_TEST_MAX_FRAMES := 90
 
 
 func _init() -> void:
@@ -70,9 +71,26 @@ func _run_scenarios() -> void:
 
 	var driver: Defender = crew.get_defender(0)
 	var driver_health_before: int = driver.health.current_health
-	var attacking_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(0.0)
-	await _wait_physics_frames(40)
-	assert(driver.health.current_health < driver_health_before)
+	var attack_spawn_x: float = driver.position.x - 30.0
+	var attacking_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(
+		attack_spawn_x
+	)
+	if attacking_enemy == null:
+		push_error("Failed to spawn driver attack test enemy")
+		quit(1)
+		return
+	var driver_was_hit: bool = await _wait_for_health_loss(
+		driver.health,
+		driver_health_before,
+		DRIVER_ATTACK_TEST_MAX_FRAMES
+	)
+	if not driver_was_hit:
+		push_error(
+			"Platform enemy did not damage the driver within %d physics frames"
+			% DRIVER_ATTACK_TEST_MAX_FRAMES
+		)
+		quit(1)
+		return
 	assert(is_instance_valid(attacking_enemy))
 	attacking_enemy.kill(&"test_cleanup")
 	await _wait_physics_frames(1)
@@ -89,6 +107,18 @@ func _run_scenarios() -> void:
 
 	print("Boarding enemy scenarios passed")
 	quit()
+
+
+func _wait_for_health_loss(
+	health: HealthComponent,
+	initial_health: int,
+	max_frames: int
+) -> bool:
+	for _frame: int in range(max_frames):
+		if health.current_health < initial_health:
+			return true
+		await physics_frame
+	return health.current_health < initial_health
 
 
 func _wait_physics_frames(frame_count: int) -> void:
