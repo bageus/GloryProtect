@@ -15,6 +15,7 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	await _test_piercing_and_explosion()
+	await _test_angled_piercing_follows_bolt_vector()
 	await _test_air_mark_selects_strongest_target()
 	await _test_anchor_knockdown_uses_common_death_flow()
 	print("Shooter specialization resolver scenarios passed")
@@ -83,6 +84,49 @@ func _test_piercing_and_explosion() -> void:
 	assert(outside_lane.health.current_health == 5)
 	assert(invalid_ground.health.current_health == 5)
 	assert(outside_range.health.current_health == 5)
+	shooter.free()
+	registry.queue_free()
+
+
+func _test_angled_piercing_follows_bolt_vector() -> void:
+	var registry := BoardingEnemyRegistry.new()
+	root.add_child(registry)
+	var shooter := Defender.new()
+	shooter.position = Vector2.ZERO
+	var primary: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(50.0, 50.0),
+		3,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var inline: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(80.0, 80.0),
+		3,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var horizontal_only: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(90.0, 50.0),
+		3,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
+	var upgrades := ShooterUpgradeRuntime.new()
+	upgrades.apply_flag(&"shooter_piercing_bolt")
+	var resolver := ShooterCombatResolver.new()
+	resolver.configure(BALANCE)
+	resolver.resolve_bolt_hit(
+		shooter,
+		primary,
+		registry,
+		POLICY,
+		upgrades,
+		1,
+		1,
+		150.0
+	)
+	assert(inline.health.current_health == 2)
+	assert(horizontal_only.health.current_health == 3)
 	shooter.free()
 	registry.queue_free()
 
