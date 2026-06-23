@@ -37,17 +37,22 @@ func reset() -> void:
 func apply_scalar(target_id: StringName, value: float) -> bool:
 	match target_id:
 		&"shooter_damage_bonus":
+			if value <= 0.0:
+				return false
 			damage_bonus += roundi(value)
 			return true
 		&"shooter_range_multiplier":
-			if value <= 0.0:
+			if value < 1.0:
 				return false
-			range_multiplier *= value
+			range_multiplier += value - 1.0
 			return true
 		&"shooter_cooldown_multiplier":
-			if value <= 0.0:
+			if value <= 0.0 or value > 1.0:
 				return false
-			cooldown_multiplier *= value
+			cooldown_multiplier = maxf(
+				0.01,
+				cooldown_multiplier - (1.0 - value)
+			)
 			return true
 	return false
 
@@ -69,7 +74,7 @@ func apply_flag(target_id: StringName) -> bool:
 				return false
 			specialization_id = SNIPER
 			damage_bonus += 1
-			range_multiplier *= 1.1
+			range_multiplier += 0.1
 			return true
 		&"shooter_sniper_multi_pierce":
 			if specialization_id != SNIPER or sniper_multi_pierce:
