@@ -6,6 +6,7 @@ extends Resource
 @export var rewarded_boarding_death_reasons: Array[StringName] = [
 	&"combat",
 	&"anchor_path_closed",
+	&"shooter_anchor_knockdown",
 ]
 
 

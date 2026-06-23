@@ -14,9 +14,7 @@ extends Node
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _roles: CrewRoleManager = get_node(role_manager_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
-@onready var _movement_resolver: BoardingMovementResolver = get_node(
-	movement_resolver_path
-)
+@onready var _movement_resolver: BoardingMovementResolver = get_node(movement_resolver_path)
 
 
 func _ready() -> void:
@@ -45,6 +43,14 @@ func _configure_defender(defender: Defender) -> void:
 		_roles,
 		_enemies,
 		defender.melee
+	)
+	defender.shooter_combat.configure(
+		defender,
+		_game_flow,
+		_roles,
+		_enemies,
+		_crew,
+		defender.ranged
 	)
 
 

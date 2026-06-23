@@ -22,6 +22,7 @@ var remaining_time: float = 0.0
 var locked_target: HealthComponent
 var projectile_position := Vector2.ZERO
 var projectile_target_position := Vector2.ZERO
+var _remaining_follow_up_shots: int = 0
 
 
 func configure(
@@ -39,7 +40,13 @@ func configure(
 
 
 func try_start(target: HealthComponent) -> bool:
+	return try_start_sequence(target, 1)
+
+
+func try_start_sequence(target: HealthComponent, shot_count: int) -> bool:
 	if not can_start() or target == null or not target.is_alive():
+		return false
+	if shot_count <= 0:
 		return false
 	var target_node: Node2D = target.get_parent() as Node2D
 	if target_node == null or owner_node == null:
@@ -47,9 +54,8 @@ func try_start(target: HealthComponent) -> bool:
 	if owner_node.global_position.distance_to(target_node.global_position) > profile.maximum_range:
 		return false
 	locked_target = target
-	phase = Phase.WINDUP
-	remaining_time = profile.windup_duration
-	attack_started.emit(target)
+	_remaining_follow_up_shots = shot_count - 1
+	_begin_windup()
 	return true
 
 
@@ -67,6 +73,7 @@ func cancel() -> void:
 	locked_target = null
 	projectile_position = Vector2.ZERO
 	projectile_target_position = Vector2.ZERO
+	_remaining_follow_up_shots = 0
 
 
 func _physics_process(delta: float) -> void:
@@ -87,42 +94,43 @@ func tick(delta: float) -> void:
 			_tick_cooldown(delta)
 
 
+func _begin_windup() -> void:
+	phase = Phase.WINDUP
+	remaining_time = profile.windup_duration
+	attack_started.emit(locked_target)
+
+
 func _tick_windup(delta: float) -> void:
 	remaining_time = maxf(0.0, remaining_time - delta)
 	if remaining_time > 0.0:
 		return
-	if not is_instance_valid(locked_target):
-		_finish_without_hit()
+	if not is_instance_valid(locked_target) or not locked_target.is_alive():
+		_finish_sequence()
 		return
 	var target_node: Node2D = locked_target.get_parent() as Node2D
 	if target_node == null:
-		_finish_without_hit()
+		_finish_sequence()
 		return
 	projectile_position = owner_node.global_position
 	projectile_target_position = target_node.global_position
 	phase = Phase.PROJECTILE
-	projectile_launched.emit(
-		locked_target,
-		projectile_position,
-		projectile_target_position
-	)
+	projectile_launched.emit(locked_target, projectile_position, projectile_target_position)
 
 
 func _tick_projectile(delta: float) -> void:
 	var travel_distance: float = profile.projectile_speed * delta
-	projectile_position = projectile_position.move_toward(
-		projectile_target_position,
-		travel_distance
-	)
+	projectile_position = projectile_position.move_toward(projectile_target_position, travel_distance)
 	projectile_moved.emit(projectile_position)
 	if not projectile_position.is_equal_approx(projectile_target_position):
 		return
 	if is_instance_valid(locked_target) and locked_target.is_alive():
-		locked_target.apply_damage(profile.damage)
+		locked_target.apply_damage(profile.damage, &"ranged", owner_node)
 		attack_landed.emit(locked_target, profile.damage)
-	phase = Phase.COOLDOWN
-	remaining_time = profile.cooldown_duration
-	attack_finished.emit()
+	if _remaining_follow_up_shots > 0 and is_instance_valid(locked_target) and locked_target.is_alive():
+		_remaining_follow_up_shots -= 1
+		_begin_windup()
+		return
+	_finish_sequence()
 
 
 func _tick_cooldown(delta: float) -> void:
@@ -133,7 +141,8 @@ func _tick_cooldown(delta: float) -> void:
 	locked_target = null
 
 
-func _finish_without_hit() -> void:
+func _finish_sequence() -> void:
+	_remaining_follow_up_shots = 0
 	phase = Phase.COOLDOWN
 	remaining_time = profile.cooldown_duration
 	attack_finished.emit()

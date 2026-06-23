@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=15 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -13,6 +13,7 @@
 [ext_resource type="Script" path="res://scripts/medical/medic_stimulant_controller.gd" id="11_stimulant"]
 [ext_resource type="Script" path="res://scripts/medical/medic_protective_healing_controller.gd" id="12_protective"]
 [ext_resource type="Script" path="res://scripts/medical/medic_revival_controller.gd" id="13_revival"]
+[ext_resource type="Script" path="res://scripts/crew/shooter_crew_role_manager.gd" id="14_shooter_roles"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -31,6 +32,9 @@ ground_core_half_size = Vector2(96, 192)
 
 [node name="PlatformVisualController" parent="World/Platform"]
 driver_console_surface_offset = Vector2(60, -2)
+
+[node name="CrewRoleManager" parent="World/Platform"]
+script = ExtResource("14_shooter_roles")
 
 [node name="TurretSystem" parent="World"]
 script = ExtResource("8_turret_system")

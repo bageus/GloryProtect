@@ -8,6 +8,7 @@ signal defender_replaced(defender_id: int, defender: Defender)
 signal crew_size_changed(previous_size: int, current_size: int)
 signal movement_speed_multiplier_changed(multiplier: float)
 signal melee_upgrades_changed
+signal shooter_upgrades_changed
 
 @export var defender_scene: PackedScene
 @export var balance: CrewBalance
@@ -15,6 +16,7 @@ signal melee_upgrades_changed
 var _defenders: Dictionary[int, Defender] = {}
 var _movement_speed_multiplier: float = 1.0
 var _melee_upgrades := MeleeDefenderUpgradeRuntime.new()
+var _shooter_upgrades := ShooterUpgradeRuntime.new()
 
 
 func _ready() -> void:
@@ -57,11 +59,7 @@ func add_defender(spawn_local_x: float = NAN) -> Defender:
 		defender_id += 1
 	if defender_id >= balance.maximum_defender_count:
 		return null
-	var resolved_x: float = (
-		balance.replacement_door_local_x
-		if is_nan(spawn_local_x)
-		else spawn_local_x
-	)
+	var resolved_x: float = balance.replacement_door_local_x if is_nan(spawn_local_x) else spawn_local_x
 	var previous_size: int = get_total_count()
 	var defender: Defender = _spawn_defender(defender_id, resolved_x)
 	crew_size_changed.emit(previous_size, get_total_count())
@@ -86,6 +84,28 @@ func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
 	return _melee_upgrades
 
 
+func apply_shooter_scalar(target_id: StringName, value: float) -> bool:
+	if not _shooter_upgrades.apply_scalar(target_id, value):
+		return false
+	shooter_upgrades_changed.emit()
+	return true
+
+
+func apply_shooter_flag(target_id: StringName) -> bool:
+	if not _shooter_upgrades.apply_flag(target_id):
+		return false
+	shooter_upgrades_changed.emit()
+	return true
+
+
+func get_shooter_upgrades() -> ShooterUpgradeRuntime:
+	return _shooter_upgrades
+
+
+func is_shooter_role_unlocked() -> bool:
+	return _shooter_upgrades.role_unlocked
+
+
 func multiply_movement_speed(multiplier: float) -> bool:
 	if multiplier <= 0.0:
 		return false
@@ -107,11 +127,15 @@ func get_current_movement_speed() -> float:
 func reset_run_modifiers() -> void:
 	_movement_speed_multiplier = 1.0
 	_melee_upgrades.reset()
+	_shooter_upgrades.reset()
 	for defender: Defender in get_all_defenders():
 		defender.reset_melee_upgrades_for_new_life(_melee_upgrades)
 		defender.set_base_movement_speed(get_current_movement_speed())
+		if defender.shooter_combat != null:
+			defender.shooter_combat.reset_for_run()
 	movement_speed_multiplier_changed.emit(_movement_speed_multiplier)
 	melee_upgrades_changed.emit()
+	shooter_upgrades_changed.emit()
 
 
 func get_living_defenders() -> Array[Defender]:
@@ -130,9 +154,7 @@ func get_nearest_living_defender(world_position: Vector2) -> Defender:
 	var nearest: Defender = null
 	var nearest_distance: float = INF
 	for defender: Defender in get_living_defenders():
-		var distance: float = world_position.distance_squared_to(
-			defender.global_position
-		)
+		var distance: float = world_position.distance_squared_to(defender.global_position)
 		if distance < nearest_distance:
 			nearest = defender
 			nearest_distance = distance
@@ -142,7 +164,6 @@ func get_nearest_living_defender(world_position: Vector2) -> Defender:
 func replace_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	if defender_id < 0 or defender_id >= balance.maximum_defender_count:
 		return null
-
 	var previous: Defender = _defenders.get(defender_id)
 	if previous != null:
 		_defenders.erase(defender_id)
@@ -151,7 +172,6 @@ func replace_defender(defender_id: int, spawn_local_x: float) -> Defender:
 			if previous.get_parent() == self:
 				remove_child(previous)
 			previous.queue_free()
-
 	var replacement: Defender = _spawn_defender(defender_id, spawn_local_x)
 	defender_replaced.emit(defender_id, replacement)
 	return replacement
@@ -165,12 +185,7 @@ func _spawn_starting_crew() -> void:
 func _spawn_defender(defender_id: int, spawn_local_x: float) -> Defender:
 	var defender: Defender = defender_scene.instantiate() as Defender
 	assert(defender != null, "Defender scene root must use Defender script")
-	defender.configure(
-		defender_id,
-		balance,
-		_get_defender_color(defender_id),
-		_melee_upgrades
-	)
+	defender.configure(defender_id, balance, _get_defender_color(defender_id), _melee_upgrades)
 	defender.name = "Defender%d" % (defender_id + 1)
 	add_child(defender)
 	defender.set_base_movement_speed(get_current_movement_speed())
