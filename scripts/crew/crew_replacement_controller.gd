@@ -19,8 +19,6 @@ signal respawn_multiplier_changed(multiplier: float)
 
 var _pending: Dictionary[int, CrewReplacementRuntime] = {}
 var _portal_animating: Dictionary[int, bool] = {}
-var _return_roles: Dictionary[int, int] = {}
-var _return_station_ids: Dictionary[int, int] = {}
 var _respawn_time_multiplier: float = 1.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
@@ -81,8 +79,6 @@ func get_current_respawn_delay() -> float:
 func reset_run_modifiers() -> void:
 	_pending.clear()
 	_portal_animating.clear()
-	_return_roles.clear()
-	_return_station_ids.clear()
 	_respawn_time_multiplier = 1.0
 	respawn_multiplier_changed.emit(_respawn_time_multiplier)
 
@@ -108,10 +104,7 @@ func complete_replacement_now(defender_id: int) -> Defender:
 	var spawn_x: float = balance.replacement_door_local_x
 	var defender: Defender = _crew.replace_defender(defender_id, spawn_x)
 	if defender != null:
-		_restore_previous_assignment(defender_id)
 		replacement_completed.emit(defender_id, defender)
-	_return_roles.erase(defender_id)
-	_return_station_ids.erase(defender_id)
 	return defender
 
 
@@ -137,7 +130,6 @@ func _on_defender_died(defender_id: int) -> void:
 		return
 	if _pending.has(defender_id):
 		return
-	_remember_previous_assignment(defender_id)
 	var runtime := CrewReplacementRuntime.new(
 		defender_id,
 		get_current_respawn_delay()
@@ -165,33 +157,3 @@ func _on_portal_spawn_finished(defender_id: int) -> void:
 		_portal_animating.erase(defender_id)
 		return
 	complete_replacement_now(defender_id)
-
-
-func _remember_previous_assignment(defender_id: int) -> void:
-	var assignment: CrewAssignmentRuntime = _roles.get_assignment(defender_id)
-	if assignment == null:
-		_return_roles[defender_id] = CrewRole.Id.FREE_FIGHTER
-		_return_station_ids[defender_id] = -1
-		return
-
-	var role_id: int = assignment.current_role
-	var station_id: int = assignment.current_station_id
-	if (
-		assignment.target_role != CrewRole.Id.FREE_FIGHTER
-		and assignment.target_role != assignment.current_role
-	):
-		role_id = assignment.target_role
-		station_id = assignment.target_station_id
-	_return_roles[defender_id] = role_id
-	_return_station_ids[defender_id] = station_id
-
-
-func _restore_previous_assignment(defender_id: int) -> void:
-	var role_id: int = _return_roles.get(
-		defender_id,
-		CrewRole.Id.FREE_FIGHTER
-	)
-	var station_id: int = _return_station_ids.get(defender_id, -1)
-	if role_id == CrewRole.Id.FREE_FIGHTER:
-		return
-	_roles.request_assignment(defender_id, role_id, station_id)
