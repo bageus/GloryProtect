@@ -7,6 +7,7 @@ func _init() -> void:
 
 func _run_scenarios() -> void:
 	_test_controller_primes_first_attack_profile()
+	_test_empty_sequence_does_not_advance_volley_counter()
 	_test_three_locked_shots_before_cooldown()
 	_test_sequence_stops_when_locked_target_dies()
 	print("Shooter ranged sequence scenarios passed")
@@ -30,6 +31,36 @@ func _test_controller_primes_first_attack_profile() -> void:
 		ranged
 	)
 	assert(ranged.can_start())
+	controller.free()
+	ranged.free()
+	crew.free()
+	enemies.free()
+	roles.free()
+	flow.free()
+	defender.free()
+
+
+func _test_empty_sequence_does_not_advance_volley_counter() -> void:
+	var defender := Defender.new()
+	var flow := GameFlowController.new()
+	var roles := CrewRoleManager.new()
+	var enemies := BoardingEnemyRegistry.new()
+	var crew := CrewManager.new()
+	var ranged := RangedAttackComponent.new()
+	var controller := ShooterCombatController.new()
+	controller.configure(
+		defender,
+		flow,
+		roles,
+		enemies,
+		crew,
+		ranged
+	)
+	controller._on_attack_finished()
+	assert(controller.get_completed_volley_count() == 0)
+	controller._current_volley_hit_count = 1
+	controller._on_attack_finished()
+	assert(controller.get_completed_volley_count() == 1)
 	controller.free()
 	ranged.free()
 	crew.free()
