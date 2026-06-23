@@ -22,6 +22,7 @@ func _run_scenarios() -> void:
 	var enemies: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var reward: int = economy.balance.boarding_enemy_base_reward
 
 	game_flow.state = GameFlowController.RunState.RUNNING
@@ -58,6 +59,7 @@ func _run_scenarios() -> void:
 	assert(paths.get_available_count() == 1)
 
 	var boarded_survivor: BoardingEnemy = spawn.spawn_debug_on_platform(250.0)
+	assert(boarded_survivor != null)
 	assert(boarded_survivor.is_on_platform())
 	anchors.toggle_anchor(2)
 	await _wait_physics_frames(1)
@@ -68,9 +70,18 @@ func _run_scenarios() -> void:
 	await _wait_physics_frames(1)
 	assert(economy.get_coins() == reward)
 
-	var driver: Defender = crew.get_defender(0)
+	var driver_id: int = roles.get_role_owner(CrewRole.Id.DRIVER)
+	assert(driver_id >= 0)
+	var driver: Defender = crew.get_defender(driver_id)
+	assert(driver != null and driver.health.is_alive())
+	var basic: BoardingEnemyArchetype = spawn.enemy_catalog.get_archetype(&"basic")
+	assert(basic != null)
 	var driver_health_before: int = driver.health.current_health
-	var attacking_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(0.0)
+	var attacking_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(
+		driver.position.x - basic.attack_range,
+		&"basic"
+	)
+	assert(attacking_enemy != null and attacking_enemy.is_on_platform())
 	await _wait_physics_frames(40)
 	assert(driver.health.current_health < driver_health_before)
 	assert(is_instance_valid(attacking_enemy))
