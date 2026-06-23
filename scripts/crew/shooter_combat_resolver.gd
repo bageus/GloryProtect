@@ -71,32 +71,29 @@ func _apply_piercing(
 	maximum_targets: int,
 	maximum_range: float
 ) -> void:
-	var direction: float = signf(
-		primary.global_position.x - shooter.global_position.x
+	var shot_vector: Vector2 = (
+		primary.global_position - shooter.global_position
 	)
-	if is_zero_approx(direction):
-		direction = 1.0
-	var maximum_range_squared: float = maximum_range * maximum_range
+	if shot_vector.is_zero_approx():
+		return
+	var direction: Vector2 = shot_vector.normalized()
+	var primary_forward: float = shot_vector.length()
 	var candidates: Array[BoardingEnemy] = []
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
 		if enemy == primary or not policy.is_valid_target(enemy):
 			continue
-		if shooter.global_position.distance_squared_to(
-			enemy.global_position
-		) > maximum_range_squared:
-			continue
-		var forward: float = (
-			(enemy.global_position.x - primary.global_position.x) * direction
+		var relative: Vector2 = (
+			enemy.global_position - shooter.global_position
 		)
-		if forward <= 0.0:
+		var forward: float = relative.dot(direction)
+		if forward <= primary_forward or forward > maximum_range:
 			continue
-		if absf(enemy.global_position.y - primary.global_position.y) > (
-			_balance.piercing_lane_half_height
-		):
+		var perpendicular: float = absf(direction.cross(relative))
+		if perpendicular > _balance.piercing_lane_half_height:
 			continue
 		candidates.append(enemy)
 	candidates.sort_custom(func(first: BoardingEnemy, second: BoardingEnemy) -> bool:
-		return primary.global_position.distance_squared_to(first.global_position) < primary.global_position.distance_squared_to(second.global_position)
+		return shooter.global_position.distance_squared_to(first.global_position) < shooter.global_position.distance_squared_to(second.global_position)
 	)
 	for index: int in range(mini(maximum_targets, candidates.size())):
 		candidates[index].health.apply_damage(
