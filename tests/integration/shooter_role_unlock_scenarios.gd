@@ -52,9 +52,17 @@ func _run_scenario() -> void:
 		roles.get_assignment(0).state
 		!= CrewAssignmentRuntime.State.WAITING_FOR_ACTION
 	)
+	await _wait_for_active_role(roles, 0, CrewRole.Id.FREE_FIGHTER)
 
+	roles.request_assignment(0, CrewRole.Id.SHOOTER)
+	await _wait_for_active_role(roles, 0, CrewRole.Id.SHOOTER)
 	crew.reset_run_modifiers()
 	assert(not crew.is_shooter_role_unlocked())
+	var reset_assignment: CrewAssignmentRuntime = roles.get_assignment(0)
+	assert(reset_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(reset_assignment.target_role == CrewRole.Id.FREE_FIGHTER)
+	assert(reset_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
+
 	print("Shooter role unlock scenario passed")
 	quit()
 
@@ -73,4 +81,4 @@ func _wait_for_active_role(
 		):
 			return
 		await process_frame
-	assert(false, "Timed out waiting for shooter role activation")
+	assert(false, "Timed out waiting for role activation")
