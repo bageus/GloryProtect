@@ -16,9 +16,12 @@ func resolve_bolt_hit(
 	policy: ShooterTargetPolicy,
 	upgrades: ShooterUpgradeRuntime,
 	damage: int,
-	completed_bolts: int
+	completed_bolts: int,
+	maximum_range: float
 ) -> void:
 	if shooter == null or primary == null or not is_instance_valid(primary):
+		return
+	if maximum_range <= 0.0:
 		return
 	if upgrades.piercing_enabled or upgrades.sniper_multi_pierce:
 		var target_count: int = _balance.base_pierce_target_count
@@ -30,7 +33,8 @@ func resolve_bolt_hit(
 			enemies,
 			policy,
 			damage,
-			target_count
+			target_count,
+			maximum_range
 		)
 	if upgrades.sniper_explosive_fifth and completed_bolts % 5 == 0:
 		_apply_explosion(primary.global_position, primary, enemies, damage)
@@ -58,16 +62,22 @@ func _apply_piercing(
 	enemies: BoardingEnemyRegistry,
 	policy: ShooterTargetPolicy,
 	damage: int,
-	maximum_targets: int
+	maximum_targets: int,
+	maximum_range: float
 ) -> void:
 	var direction: float = signf(
 		primary.global_position.x - shooter.global_position.x
 	)
 	if is_zero_approx(direction):
 		direction = 1.0
+	var maximum_range_squared: float = maximum_range * maximum_range
 	var candidates: Array[BoardingEnemy] = []
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
 		if enemy == primary or not policy.is_valid_target(enemy):
+			continue
+		if shooter.global_position.distance_squared_to(
+			enemy.global_position
+		) > maximum_range_squared:
 			continue
 		var forward: float = (
 			(enemy.global_position.x - primary.global_position.x) * direction
@@ -83,7 +93,11 @@ func _apply_piercing(
 		return primary.global_position.distance_squared_to(first.global_position) < primary.global_position.distance_squared_to(second.global_position)
 	)
 	for index: int in range(mini(maximum_targets, candidates.size())):
-		candidates[index].health.apply_damage(damage, &"shooter_pierce", shooter)
+		candidates[index].health.apply_damage(
+			damage,
+			&"shooter_pierce",
+			shooter
+		)
 
 
 func _apply_explosion(
@@ -92,7 +106,9 @@ func _apply_explosion(
 	enemies: BoardingEnemyRegistry,
 	damage: int
 ) -> void:
-	var radius_squared: float = _balance.explosive_radius * _balance.explosive_radius
+	var radius_squared: float = (
+		_balance.explosive_radius * _balance.explosive_radius
+	)
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
 		if enemy == primary or not enemy.health.is_alive():
 			continue
@@ -101,7 +117,9 @@ func _apply_explosion(
 		enemy.health.apply_damage(damage, &"shooter_explosion")
 
 
-func _mark_strongest_air_target(enemies: BoardingEnemyRegistry) -> void:
+func _mark_strongest_air_target(
+	enemies: BoardingEnemyRegistry
+) -> void:
 	var strongest: BoardingEnemy = null
 	var strongest_health: int = -1
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
