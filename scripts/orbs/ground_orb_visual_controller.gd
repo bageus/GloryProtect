@@ -1,12 +1,8 @@
 class_name GroundOrbVisualController
 extends Node2D
 
-const GROUND_CORE_BASE_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_ground_core_base.png"
-)
-const GROUND_CORE_ATLAS: Texture2D = preload(
-	"res://visual/tiles/atlas_ground_core_normal.png"
-)
+const GROUND_CORE_BASE_PATH: String = "res://visual/tiles/tile_ground_core_base.png"
+const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_normal.png"
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("GroundOrbRegistry") var registry_path: NodePath
@@ -38,6 +34,8 @@ const GROUND_CORE_ATLAS: Texture2D = preload(
 
 var _game_flow: GameFlowController
 var _surface_visual := GroundSurfaceVisual.new()
+var _ground_core_base_texture: Texture2D
+var _ground_core_atlas: Texture2D
 var _ground_core_base_source_rect: Rect2
 var _ground_core_frame_regions: Array[Rect2] = []
 var _ground_core_animation_elapsed: float = 0.0
@@ -46,17 +44,22 @@ var _ground_core_animation_elapsed: float = 0.0
 func _ready() -> void:
 	assert(platform_balance != null, "GroundOrbVisualController requires PlatformBalance")
 	_surface_visual.configure(alpha_crop_threshold)
-	_ground_core_base_source_rect = TextureRegionLayout.get_alpha_bounds(
-		GROUND_CORE_BASE_TEXTURE,
-		alpha_crop_threshold
-	)
-	_ground_core_frame_regions = (
-		TextureRegionLayout.get_auto_atlas_frame_regions(
-			GROUND_CORE_ATLAS,
-			ground_core_frame_count,
+	_ground_core_base_texture = _load_texture(GROUND_CORE_BASE_PATH)
+	_ground_core_atlas = _load_texture(GROUND_CORE_ATLAS_PATH)
+	if _ground_core_base_texture != null:
+		_ground_core_base_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_ground_core_base_texture,
 			alpha_crop_threshold
 		)
-	)
+	_ground_core_frame_regions.clear()
+	if _ground_core_atlas != null:
+		_ground_core_frame_regions = (
+			TextureRegionLayout.get_auto_atlas_frame_regions(
+				_ground_core_atlas,
+				ground_core_frame_count,
+				alpha_crop_threshold
+			)
+		)
 	var scene_root: Node = get_tree().current_scene
 	if scene_root != null:
 		_game_flow = scene_root.get_node_or_null(
@@ -127,9 +130,13 @@ func _draw_ground_core(
 	is_charging: bool,
 	brightness: float
 ) -> void:
-	var texture: Texture2D = GROUND_CORE_BASE_TEXTURE
+	var texture: Texture2D = _ground_core_base_texture
 	var source_rect: Rect2 = _ground_core_base_source_rect
-	if is_charging and not _ground_core_frame_regions.is_empty():
+	if (
+		is_charging
+		and _ground_core_atlas != null
+		and not _ground_core_frame_regions.is_empty()
+	):
 		var frame_index: int = (
 			floori(
 				_ground_core_animation_elapsed
@@ -137,8 +144,10 @@ func _draw_ground_core(
 			)
 			% _ground_core_frame_regions.size()
 		)
-		texture = GROUND_CORE_ATLAS
+		texture = _ground_core_atlas
 		source_rect = _ground_core_frame_regions[frame_index]
+	if texture == null:
+		return
 
 	var draw_size: Vector2 = TextureRegionLayout.fit_inside(
 		source_rect.size,
@@ -210,3 +219,11 @@ func _draw_active_contact() -> void:
 		Color(0.85, 1.0, 1.0, 0.95),
 		2.0
 	)
+
+
+func _load_texture(resource_path: String) -> Texture2D:
+	var resource: Resource = ResourceLoader.load(resource_path)
+	var texture: Texture2D = resource as Texture2D
+	if texture == null:
+		push_error("GroundOrbVisualController could not load %s" % resource_path)
+	return texture
