@@ -1,8 +1,8 @@
 name: Apply medical placement fix
 
 on:
-  push:
-    branches: [fix/crew-command-panel-104]
+  pull_request:
+    branches: [main]
     paths:
       - .github/workflows/godot-tail.yml
 
@@ -11,10 +11,11 @@ permissions:
 
 jobs:
   apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Checkout branch
+      - name: Checkout source branch
         uses: actions/checkout@v4
         with:
           ref: fix/crew-command-panel-104
@@ -27,11 +28,6 @@ jobs:
 
           path = Path("scripts/ui/crew_command_panel.gd")
           text = path.read_text(encoding="utf-8")
-          text = text.replace('\tcall_deferred("_ensure_medical_station")\n', '')
-
-          start = text.index('func _ensure_medical_station() -> void:\n')
-          end = text.index('func _can_place_turret_with_mouse() -> bool:\n', start)
-          text = text[:start] + text[end:]
 
           old = '''func _on_buildable_unlocked(type_id: int, _count: int) -> void:
 \tif type_id == BuildableType.Id.MEDICAL_STATION:
@@ -43,17 +39,21 @@ jobs:
 \t\t_set_feedback("Медицинский пост доступен для установки", false)
 \telif type_id == BuildableType.Id.TURRET:
 '''
-          if old in text:
-              text = text.replace(old, new, 1)
-          elif 'func _on_buildable_unlocked' not in text:
-              raise RuntimeError('unlock handler missing')
+          if old not in text:
+              raise RuntimeError("expected unlock handler block not found")
+          text = text.replace(old, new, 1)
+
+          text = text.replace('\tcall_deferred("_ensure_medical_station")\n', '')
+          start = text.index('func _ensure_medical_station() -> void:\n')
+          end = text.index('func _can_place_turret_with_mouse() -> bool:\n', start)
+          text = text[:start] + text[end:]
 
           if '_ensure_medical_station' in text:
-              raise RuntimeError('automatic placement reference remained')
+              raise RuntimeError("automatic placement reference remained")
           path.write_text(text, encoding="utf-8")
           PY
 
-      - name: Commit production fix and remove workflow
+      - name: Commit fix and remove temporary workflow
         shell: bash
         run: |
           set -euo pipefail
