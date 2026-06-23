@@ -21,7 +21,7 @@ func resolve_bolt_hit(
 ) -> void:
 	if shooter == null or primary == null or not is_instance_valid(primary):
 		return
-	if maximum_range <= 0.0:
+	if policy == null or maximum_range <= 0.0:
 		return
 	if upgrades.piercing_enabled or upgrades.sniper_multi_pierce:
 		var target_count: int = _balance.base_pierce_target_count
@@ -37,7 +37,13 @@ func resolve_bolt_hit(
 			maximum_range
 		)
 	if upgrades.sniper_explosive_fifth and completed_bolts % 5 == 0:
-		_apply_explosion(primary.global_position, primary, enemies, damage)
+		_apply_explosion(
+			primary.global_position,
+			primary,
+			enemies,
+			policy,
+			damage
+		)
 	if upgrades.air_mark_fifth and completed_bolts % 5 == 0:
 		_mark_strongest_air_target(enemies)
 
@@ -104,13 +110,14 @@ func _apply_explosion(
 	center: Vector2,
 	primary: BoardingEnemy,
 	enemies: BoardingEnemyRegistry,
+	policy: ShooterTargetPolicy,
 	damage: int
 ) -> void:
 	var radius_squared: float = (
 		_balance.explosive_radius * _balance.explosive_radius
 	)
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
-		if enemy == primary or not enemy.health.is_alive():
+		if enemy == primary or not policy.is_valid_target(enemy):
 			continue
 		if center.distance_squared_to(enemy.global_position) > radius_squared:
 			continue
