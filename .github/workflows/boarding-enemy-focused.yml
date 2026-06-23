@@ -1,0 +1,45 @@
+name: Boarding enemy focused validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - tests/integration/boarding_enemy_scenarios.gd
+      - .github/workflows/boarding-enemy-focused.yml
+
+permissions:
+  contents: read
+
+env:
+  GODOT_VERSION: "4.6.2"
+
+jobs:
+  focused-scenario:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 0755 \
+            "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            /usr/local/bin/godot
+
+      - name: Import project
+        run: godot --headless --path . --import
+
+      - name: Run boarding enemy scenario
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout --signal=TERM --kill-after=5s 120s \
+            godot --headless --path . \
+            --script tests/integration/boarding_enemy_scenarios.gd
