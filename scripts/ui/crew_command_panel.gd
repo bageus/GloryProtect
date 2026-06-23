@@ -67,7 +67,10 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	visible = _game_flow.state != GameFlowController.RunState.GAME_OVER
+	visible = (
+		_game_flow.state != GameFlowController.RunState.GAME_OVER
+		and _game_flow.state != GameFlowController.RunState.CARD_SELECTION
+	)
 	if not visible:
 		return
 	_update_pending_free_moves()
