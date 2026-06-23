@@ -1,6 +1,6 @@
 extends SceneTree
 
-const GAME_SCENE := preload("res://scenes/game/game_root.tscn")
+const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 
 
 func _init() -> void:
@@ -30,10 +30,19 @@ func _test_domain_effects_and_limits() -> void:
 	)
 	replacements.instant_respawn_for_tests = false
 	var buildables: BuildableInventory = game.get_node("BuildableInventory")
+	var turrets: TurretUpgradeSystem = game.get_node("World/TurretSystem")
+	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var runtime: UpgradeRuntime = upgrades.get_runtime()
 	var catalog: UpgradeCatalog = upgrades.catalog
 	var applier := UpgradeEffectApplier.new()
-	applier.configure(buildables, runtime, crew, replacements)
+	applier.configure(
+		buildables,
+		runtime,
+		crew,
+		replacements,
+		turrets,
+		medical
+	)
 
 	assert(catalog.is_valid())
 	assert(crew.get_total_count() == 3)
