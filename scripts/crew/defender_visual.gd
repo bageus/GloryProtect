@@ -14,7 +14,7 @@ const MEDIC_TEXTURE: Texture2D = preload(
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("StatusEffectComponent") var status_effects_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath = NodePath(
-	"../../CrewRoleManager"
+	"../../../CrewRoleManager"
 )
 @export_range(4.0, 40.0, 1.0) var body_radius: float = 14.0
 @export var body_color: Color = Color(0.45, 0.8, 1.0)
