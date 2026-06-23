@@ -1,34 +1,65 @@
-name: Godot concise check
+name: Apply medical placement fix
 
 on:
-  pull_request:
-    branches: [main]
+  push:
+    branches: [fix/crew-command-panel-104]
     paths:
-      - scripts/ui/crew_command_panel.gd
-      - scripts/ui/crew_command_panel_view.gd
       - .github/workflows/godot-tail.yml
 
 permissions:
-  contents: read
-
-env:
-  GODOT_VERSION: "4.6.2"
+  contents: write
 
 jobs:
-  concise:
+  apply:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 5
     steps:
-      - name: Run concise suite
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/crew-command-panel-104
+
+      - name: Remove automatic medical station placement
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/ui/crew_command_panel.gd")
+          text = path.read_text(encoding="utf-8")
+          text = text.replace('\tcall_deferred("_ensure_medical_station")\n', '')
+
+          start = text.index('func _ensure_medical_station() -> void:\n')
+          end = text.index('func _can_place_turret_with_mouse() -> bool:\n', start)
+          text = text[:start] + text[end:]
+
+          old = '''func _on_buildable_unlocked(type_id: int, _count: int) -> void:
+\tif type_id == BuildableType.Id.MEDICAL_STATION:
+\t\tcall_deferred("_ensure_medical_station")
+\telif type_id == BuildableType.Id.TURRET:
+'''
+          new = '''func _on_buildable_unlocked(type_id: int, _count: int) -> void:
+\tif type_id == BuildableType.Id.MEDICAL_STATION:
+\t\t_set_feedback("Медицинский пост доступен для установки", false)
+\telif type_id == BuildableType.Id.TURRET:
+'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif 'func _on_buildable_unlocked' not in text:
+              raise RuntimeError('unlock handler missing')
+
+          if '_ensure_medical_station' in text:
+              raise RuntimeError('automatic placement reference remained')
+          path.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Commit production fix and remove workflow
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location https://codeload.github.com/bageus/GloryProtect/tar.gz/refs/pull/108/merge | tar -xz --strip-components=1
-          curl --fail --silent --show-error --location --retry 3 --output /tmp/godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
-          unzip -q /tmp/godot.zip -d /tmp/godot
-          sudo install -m 0755 "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
-          set +e
-          bash tools/run_godot_scenarios.sh > /tmp/suite.log 2>&1
-          code=$?
-          tail -n 50 /tmp/suite.log
-          exit "$code"
+          rm .github/workflows/godot-tail.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix(ui): keep unlocked medical station unplaced"
+          git push origin HEAD:fix/crew-command-panel-104
