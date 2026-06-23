@@ -145,15 +145,18 @@ func _can_apply_scalar(target_id: StringName, value: float) -> bool:
 
 
 func _can_apply_flag(target_id: StringName) -> bool:
+	var is_specialization: bool = (
+		target_id == &"shooter_specialization_sniper"
+		or target_id == &"shooter_specialization_air_hunter"
+		or target_id == &"shooter_specialization_anchor_hunter"
+	)
+	if is_specialization:
+		return specialization_id == &""
 	match target_id:
 		&"shooter_role_unlocked":
 			return not role_unlocked
 		&"shooter_piercing_bolt":
 			return not piercing_enabled
-		&"shooter_specialization_sniper", \
-		&"shooter_specialization_air_hunter", \
-		&"shooter_specialization_anchor_hunter":
-			return specialization_id == &""
 		&"shooter_sniper_multi_pierce":
 			return specialization_id == SNIPER and not sniper_multi_pierce
 		&"shooter_sniper_explosive_fifth":
