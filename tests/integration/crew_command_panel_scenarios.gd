@@ -58,13 +58,12 @@ func _run_scenarios() -> void:
 
 	assert(not panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
-	await process_frame
-	var medical_id: int = grid.get_buildable_id_by_type(
-		BuildableType.Id.MEDICAL_STATION
+	var medical_id: int = grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		grid.balance.default_medical_cell
 	)
 	assert(medical_id >= 0)
-	var medical_snapshot: BuildableSnapshot = grid.get_snapshot(medical_id)
-	assert(medical_snapshot.cell_index == grid.balance.default_medical_cell)
+	await process_frame
 	assert(panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
 
 	panel.request_selected_role(CrewRole.Id.MEDIC)
@@ -96,6 +95,9 @@ func _run_scenarios() -> void:
 	assert(panel.select_defender(0))
 	await process_frame
 	assert(not panel.is_turret_role_enabled(turret_id))
+	assert(panel.select_defender(2))
+	await process_frame
+	assert(panel.is_turret_role_enabled(turret_id))
 
 	game_flow.begin_card_selection()
 	await process_frame

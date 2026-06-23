@@ -13,6 +13,16 @@ func _ready() -> void:
 	super._ready()
 
 
+func is_turret_role_enabled(buildable_id: int) -> bool:
+	if not _roles.is_role_station_available(CrewRole.Id.TURRET, buildable_id):
+		return false
+	var owner_id: int = _roles.get_role_owner(CrewRole.Id.TURRET, buildable_id)
+	return (
+		owner_id < 0
+		or owner_id == _selection.get_selected_defender_id()
+	)
+
+
 func _on_assign_pressed(slot_index: int, defender_id: int) -> void:
 	if slot_index < 0 or slot_index >= _slot_specs.size():
 		_set_feedback("Некорректный пост", true)
