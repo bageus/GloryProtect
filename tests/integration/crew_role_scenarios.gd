@@ -72,7 +72,12 @@ func _run_scenarios() -> void:
 	await _wait_until_assignment_active(roles, 1)
 	assert(roles.get_assignment(1).current_role == CrewRole.Id.DRIVER)
 	assert(steering.driver_available)
-	assert(is_equal_approx(crew.get_defender(1).position.x, 0.0))
+	assert(
+		is_equal_approx(
+			crew.get_defender(1).position.x,
+			roles.get_role_target_x(CrewRole.Id.DRIVER, 1)
+		)
+	)
 
 	platform.position.x = 0.0
 	platform.horizontal_velocity = 0.0
