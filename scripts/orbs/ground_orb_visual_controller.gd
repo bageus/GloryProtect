@@ -100,7 +100,7 @@ func _draw_ground() -> void:
 
 
 func _draw_orb(orb_id: int) -> void:
-	var position := _registry.get_orb_world_position(orb_id)
+	var orb_world_position: Vector2 = _registry.get_orb_world_position(orb_id)
 	var percent := _shield.get_health_percent(orb_id)
 	var section_color := _shield.get_section_color(orb_id)
 	var needs_attention := _shield.needs_direction_indicator(orb_id)
@@ -118,12 +118,12 @@ func _draw_orb(orb_id: int) -> void:
 	if show_contact_zones:
 		_draw_contact_zone(orb_id)
 
-	_draw_ground_core(position, is_contact, brightness)
-	_draw_health_ring(position, percent, section_color)
+	_draw_ground_core(orb_world_position, is_contact, brightness)
+	_draw_health_ring(orb_world_position, percent, section_color)
 
 
 func _draw_ground_core(
-	position: Vector2,
+	core_position: Vector2,
 	is_charging: bool,
 	brightness: float
 ) -> void:
@@ -144,7 +144,7 @@ func _draw_ground_core(
 		source_rect.size,
 		ground_core_size
 	)
-	var center := position + Vector2(0.0, ground_core_vertical_offset)
+	var center := core_position + Vector2(0.0, ground_core_vertical_offset)
 	var visual_brightness: float = clampf(brightness, 0.55, 1.0)
 	var tint := Color(
 		visual_brightness,
@@ -171,14 +171,18 @@ func _draw_contact_zone(orb_id: int) -> void:
 	draw_rect(rect, Color(0.14, 0.75, 0.88, 0.06), true)
 
 
-func _draw_health_ring(position: Vector2, percent: float, color: Color) -> void:
+func _draw_health_ring(
+	orb_world_position: Vector2,
+	percent: float,
+	color: Color
+) -> void:
 	var ring_radius: float = maxf(
 		_registry.catalog.orb_outer_radius + 7.0,
 		ground_core_size.y * 0.5 + 8.0
 	)
 	var end_angle := -PI * 0.5 + TAU * clampf(percent / 100.0, 0.0, 1.0)
 	draw_arc(
-		position + Vector2(0.0, ground_core_vertical_offset),
+		orb_world_position + Vector2(0.0, ground_core_vertical_offset),
 		ring_radius,
 		-PI * 0.5,
 		end_angle,
