@@ -1,0 +1,1 @@
+Temporary CI-generation notes for issue #104. This directory is removed before merge.
