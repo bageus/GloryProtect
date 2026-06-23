@@ -2,15 +2,9 @@ class_name AnchorVisualController
 extends Node2D
 
 const CHAIN_TEXTURE_PATH: String = "res://visual/tiles/tile_chain_base_01.png"
-const CLAMP_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_clamp.png"
-)
-const WINCH_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_winch_post.png"
-)
-const ANCHOR_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_anchor.png"
-)
+const CLAMP_TEXTURE_PATH: String = "res://visual/objects/asset_object_clamp.png"
+const WINCH_TEXTURE_PATH: String = "res://visual/objects/asset_object_winch_post.png"
+const ANCHOR_TEXTURE_PATH: String = "res://visual/objects/asset_object_anchor.png"
 const CHAIN_BACKING_WIDTH := 7.0
 const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
@@ -32,6 +26,9 @@ var _is_operator_available: Callable
 var _is_simulation_active: Callable
 var _warning_elapsed := 0.0
 var _chain_texture: Texture2D
+var _clamp_texture: Texture2D
+var _winch_texture: Texture2D
+var _anchor_texture: Texture2D
 var _chain_source_rect: Rect2
 var _clamp_source_rect: Rect2
 var _winch_source_rect: Rect2
@@ -40,26 +37,30 @@ var _anchor_source_rect: Rect2
 
 func _ready() -> void:
 	z_index = 2
-	_chain_texture = ResourceLoader.load(CHAIN_TEXTURE_PATH) as Texture2D
+	_chain_texture = _load_optional_texture(CHAIN_TEXTURE_PATH)
+	_clamp_texture = _load_optional_texture(CLAMP_TEXTURE_PATH)
+	_winch_texture = _load_optional_texture(WINCH_TEXTURE_PATH)
+	_anchor_texture = _load_optional_texture(ANCHOR_TEXTURE_PATH)
 	if _chain_texture != null:
 		_chain_source_rect = TextureRegionLayout.get_alpha_bounds(
 			_chain_texture,
 			alpha_crop_threshold
 		)
-	else:
-		push_error("AnchorVisualController could not load %s" % CHAIN_TEXTURE_PATH)
-	_clamp_source_rect = TextureRegionLayout.get_alpha_bounds(
-		CLAMP_TEXTURE,
-		alpha_crop_threshold
-	)
-	_winch_source_rect = TextureRegionLayout.get_alpha_bounds(
-		WINCH_TEXTURE,
-		alpha_crop_threshold
-	)
-	_anchor_source_rect = TextureRegionLayout.get_alpha_bounds(
-		ANCHOR_TEXTURE,
-		alpha_crop_threshold
-	)
+	if _clamp_texture != null:
+		_clamp_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_clamp_texture,
+			alpha_crop_threshold
+		)
+	if _winch_texture != null:
+		_winch_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_winch_texture,
+			alpha_crop_threshold
+		)
+	if _anchor_texture != null:
+		_anchor_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_anchor_texture,
+			alpha_crop_threshold
+		)
 
 
 func configure(
@@ -115,12 +116,24 @@ func _draw_winch(
 		if operator_available
 		else Color(0.52, 0.55, 0.58, 1.0)
 	)
-	var size := _winch_source_rect.size * object_asset_scale
-	var rect := Rect2(-size * 0.5, size)
 	var mirror_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
-	draw_set_transform(center, 0.0, mirror_scale)
-	draw_texture_rect_region(WINCH_TEXTURE, rect, _winch_source_rect, tint)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if _winch_texture != null:
+		var size := _winch_source_rect.size * object_asset_scale
+		var rect := Rect2(-size * 0.5, size)
+		draw_set_transform(center, 0.0, mirror_scale)
+		draw_texture_rect_region(_winch_texture, rect, _winch_source_rect, tint)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+	_draw_procedural_winch(center, tint)
+
+
+func _draw_procedural_winch(center: Vector2, tint: Color) -> void:
+	var body_rect := Rect2(center + Vector2(-18.0, -14.0), Vector2(36.0, 28.0))
+	draw_rect(body_rect, Color(0.12, 0.18, 0.24, tint.a), true)
+	draw_rect(body_rect, tint, false, 2.0)
+	draw_circle(center, 9.0, Color(0.26, 0.38, 0.48, tint.a))
+	draw_arc(center, 9.0, 0.0, TAU, 20, tint, 2.0)
+	draw_line(center + Vector2(0.0, 9.0), center + Vector2(0.0, 24.0), tint, 3.0)
 
 
 func _draw_anchor(anchor: AnchorRuntime) -> void:
@@ -273,18 +286,34 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 
 
 func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
-	var size := _anchor_source_rect.size * object_asset_scale
-	var rect := Rect2(Vector2(-size.x * 0.5, 0.0), size)
-	draw_set_transform(top, 0.0, Vector2.ONE)
-	draw_texture_rect_region(ANCHOR_TEXTURE, rect, _anchor_source_rect, tint)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if _anchor_texture != null:
+		var size := _anchor_source_rect.size * object_asset_scale
+		var rect := Rect2(Vector2(-size.x * 0.5, 0.0), size)
+		draw_set_transform(top, 0.0, Vector2.ONE)
+		draw_texture_rect_region(_anchor_texture, rect, _anchor_source_rect, tint)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		return
+	var anchor_center := top + Vector2(0.0, 15.0)
+	draw_line(top, anchor_center, tint, 4.0)
+	draw_circle(anchor_center, 4.0, tint)
+	draw_arc(anchor_center, 13.0, 0.15 * PI, 0.85 * PI, 18, tint, 4.0)
+	draw_line(anchor_center + Vector2(-13.0, 6.0), anchor_center + Vector2(-18.0, 1.0), tint, 4.0)
+	draw_line(anchor_center + Vector2(13.0, 6.0), anchor_center + Vector2(18.0, 1.0), tint, 4.0)
 
 
 func _draw_clamp(ground: Vector2, tint: Color) -> void:
-	var size := _clamp_source_rect.size * object_asset_scale
+	if _clamp_texture != null:
+		var size := _clamp_source_rect.size * object_asset_scale
+		var bottom := ground + clamp_ground_offset
+		var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
+		draw_texture_rect_region(_clamp_texture, rect, _clamp_source_rect, tint)
+		return
 	var bottom := ground + clamp_ground_offset
-	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
-	draw_texture_rect_region(CLAMP_TEXTURE, rect, _clamp_source_rect, tint)
+	var base_rect := Rect2(bottom + Vector2(-16.0, -8.0), Vector2(32.0, 8.0))
+	draw_rect(base_rect, Color(0.12, 0.16, 0.2, tint.a), true)
+	draw_rect(base_rect, tint, false, 2.0)
+	draw_line(bottom + Vector2(-8.0, -8.0), bottom + Vector2(-3.0, -24.0), tint, 4.0)
+	draw_line(bottom + Vector2(8.0, -8.0), bottom + Vector2(3.0, -24.0), tint, 4.0)
 
 
 func _get_winch_center(anchor_id: int) -> Vector2:
@@ -345,3 +374,9 @@ func _get_durability_ratio(anchor: AnchorRuntime) -> float:
 		0.0,
 		1.0
 	)
+
+
+func _load_optional_texture(resource_path: String) -> Texture2D:
+	if not ResourceLoader.exists(resource_path):
+		return null
+	return ResourceLoader.load(resource_path) as Texture2D
