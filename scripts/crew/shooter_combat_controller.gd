@@ -170,7 +170,8 @@ func _on_attack_landed(
 		_active_policy,
 		_crew.get_shooter_upgrades(),
 		damage,
-		_completed_bolts
+		_completed_bolts,
+		_ranged.profile.maximum_range
 	)
 
 
