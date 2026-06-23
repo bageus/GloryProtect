@@ -1,0 +1,44 @@
+name: Apply medic field cell fix
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-medic-cell-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout NEXT-13 branch
+        uses: actions/checkout@v4
+        with:
+          ref: issue-26-anchorless-control
+      - name: Fix medical station cell
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/integration/medic_field_action_priority_scenarios.gd')
+          text = path.read_text(encoding='utf-8')
+          old = '\tassert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) >= 0)\n'
+          new = '''\tassert(grid.place(
+\t\tBuildableType.Id.MEDICAL_STATION,
+\t\tgrid.balance.default_medical_cell
+\t) >= 0)
+'''
+          if old not in text:
+              raise RuntimeError('hardcoded medical cell assertion not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          rm -f .github/workflows/apply-medic-cell-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "test: use configured medical cell for field priority"
+          git push origin HEAD:issue-26-anchorless-control
