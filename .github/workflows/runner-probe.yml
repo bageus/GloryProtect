@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# This workflow intentionally avoids checkout and third-party actions.
 jobs:
   standard-runner:
     runs-on: ubuntu-latest
