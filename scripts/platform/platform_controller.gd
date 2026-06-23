@@ -12,6 +12,11 @@ signal telemetry_changed(position_x: float, velocity_x: float, steering_axis: fl
 
 var horizontal_velocity: float = 0.0
 var steering_axis: float = 0.0
+var _steering_force_bonus_ratio: float = 0.0
+var _release_drag_bonus_ratio: float = 0.0
+var _acceleration_bonus_ratio: float = 0.0
+var _max_speed_bonus_ratio: float = 0.0
+var _sharp_brake_pending: bool = false
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind_system: WindSystem = get_node(wind_system_path)
@@ -32,20 +37,31 @@ func _physics_process(delta: float) -> void:
 		return
 
 	steering_axis = _steering_input.get_steering_axis()
-	var steering_acceleration := steering_axis * balance.steering_force
-	var total_acceleration := steering_acceleration + _wind_system.get_current_force()
+	var control_input_active: bool = _steering_input.is_control_input_active()
+	var sharp_brake_now: bool = _sharp_brake_pending
+	_sharp_brake_pending = false
 
-	horizontal_velocity += total_acceleration * delta
-	horizontal_velocity = move_toward(
-		horizontal_velocity,
-		0.0,
-		balance.linear_drag * delta
-	)
-	horizontal_velocity = clampf(
-		horizontal_velocity,
-		-balance.max_horizontal_speed,
-		balance.max_horizontal_speed
-	)
+	if sharp_brake_now:
+		horizontal_velocity = 0.0
+	else:
+		var steering_acceleration := (
+			steering_axis
+			* get_effective_steering_force()
+		)
+		var total_acceleration := (
+			steering_acceleration + _wind_system.get_current_force()
+		)
+		horizontal_velocity += total_acceleration * delta
+		horizontal_velocity = move_toward(
+			horizontal_velocity,
+			0.0,
+			get_effective_linear_drag(control_input_active) * delta
+		)
+		horizontal_velocity = clampf(
+			horizontal_velocity,
+			-get_effective_max_horizontal_speed(),
+			get_effective_max_horizontal_speed()
+		)
 
 	var next_x := position.x + horizontal_velocity * delta
 	var clamped_x := _apply_world_and_anchor_constraints(next_x)
@@ -66,6 +82,43 @@ func is_driver_assigned() -> bool:
 
 func is_driver_control_active() -> bool:
 	return _steering_input.is_control_input_active()
+
+
+func set_anchorless_motion_modifiers(
+	steering_force_bonus_ratio: float,
+	release_drag_bonus_ratio: float,
+	acceleration_bonus_ratio: float,
+	max_speed_bonus_ratio: float
+) -> void:
+	_steering_force_bonus_ratio = maxf(0.0, steering_force_bonus_ratio)
+	_release_drag_bonus_ratio = maxf(0.0, release_drag_bonus_ratio)
+	_acceleration_bonus_ratio = maxf(0.0, acceleration_bonus_ratio)
+	_max_speed_bonus_ratio = maxf(0.0, max_speed_bonus_ratio)
+
+
+func reset_anchorless_motion_modifiers() -> void:
+	set_anchorless_motion_modifiers(0.0, 0.0, 0.0, 0.0)
+	_sharp_brake_pending = false
+
+
+func request_sharp_brake() -> void:
+	_sharp_brake_pending = true
+
+
+func get_effective_steering_force() -> float:
+	return balance.steering_force * (
+		1.0 + _steering_force_bonus_ratio + _acceleration_bonus_ratio
+	)
+
+
+func get_effective_linear_drag(control_input_active: bool = false) -> float:
+	if control_input_active:
+		return balance.linear_drag
+	return balance.linear_drag * (1.0 + _release_drag_bonus_ratio)
+
+
+func get_effective_max_horizontal_speed() -> float:
+	return balance.max_horizontal_speed * (1.0 + _max_speed_bonus_ratio)
 
 
 func get_platform_width() -> float:
