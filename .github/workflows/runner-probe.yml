@@ -1,4 +1,4 @@
-name: Runner provisioning probe
+name: CI fixes diagnostic
 
 on:
   pull_request:
@@ -10,52 +10,22 @@ on:
 permissions:
   contents: read
 
-# This workflow intentionally avoids checkout and third-party actions.
 jobs:
-  standard-runner:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Confirm standard runner startup
-        run: |
-          echo "ubuntu-latest runner started"
-          uname -a
-
-  slim-runner:
-    runs-on: ubuntu-slim
-    timeout-minutes: 5
-    steps:
-      - name: Confirm slim runner startup
-        run: |
-          echo "ubuntu-slim runner started"
-          uname -a
-
-  file-size-diagnostic:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Run guard against public main archive
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --location \
-            https://github.com/bageus/GloryProtect/archive/refs/heads/main.tar.gz \
-            | tar -xz --strip-components=1
-          python3 tools/check_file_sizes.py
-
   godot-diagnostic:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       GODOT_VERSION: "4.6.2"
     steps:
-      - name: Run scenarios against public main archive
+      - name: Checkout CI fixes branch
+        uses: actions/checkout@v4
+        with:
+          ref: ci-fixes-104-105
+
+      - name: Install Godot
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --location \
-            https://github.com/bageus/GloryProtect/archive/refs/heads/main.tar.gz \
-            | tar -xz --strip-components=1
           curl --fail --silent --show-error --location --retry 3 \
             --output /tmp/godot.zip \
             "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
@@ -63,4 +33,25 @@ jobs:
           sudo install -m 0755 \
             "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             /usr/local/bin/godot
-          bash tools/run_godot_scenarios.sh
+
+      - name: Run scenarios and capture output
+        id: scenarios
+        shell: bash
+        run: |
+          set +e
+          bash tools/run_godot_scenarios.sh 2>&1 | tee /tmp/godot-scenarios.log
+          status=${PIPESTATUS[0]}
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload complete scenario log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-fixes-godot-log
+          path: /tmp/godot-scenarios.log
+          if-no-files-found: error
+
+      - name: Return scenario status
+        shell: bash
+        run: exit "${{ steps.scenarios.outputs.status }}"
