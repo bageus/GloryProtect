@@ -3,13 +3,6 @@ extends Node2D
 
 signal spawn_sequence_finished(defender_id: int)
 
-const DRIVER_TOGGLE_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_toggle.png"
-)
-const DRIVER_LEVER_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_pry.png"
-)
-
 enum PortalState {
 	IDLE,
 	FLASH,
@@ -31,12 +24,13 @@ enum PortalState {
 @export var platform_core_offset: Vector2 = Vector2.ZERO
 @export_range(1, 24, 1) var platform_core_frame_count: int = 6
 @export_range(1.0, 30.0, 0.5) var platform_core_frame_rate: float = 8.0
-@export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
 @export_group("Driver Console")
 @export var driver_console_surface_offset: Vector2 = Vector2(0.0, -2.0)
+@export var driver_console_size: Vector2 = Vector2(52.0, 42.0)
 @export var driver_lever_mount_normalized: Vector2 = Vector2(0.5, 0.58)
-@export var driver_lever_mount_offset: Vector2 = Vector2(0.0, 0.0)
+@export var driver_lever_mount_offset: Vector2 = Vector2.ZERO
+@export_range(12.0, 60.0, 1.0) var driver_lever_length: float = 34.0
 @export_range(0.0, 60.0, 1.0) var driver_lever_max_angle_degrees: float = 24.0
 @export_range(1.0, 30.0, 0.5) var driver_lever_response_speed: float = 13.0
 
@@ -53,8 +47,6 @@ enum PortalState {
 
 var _game_flow: GameFlowController
 var _surface_visual := PlatformSurfaceVisual.new()
-var _driver_toggle_source_rect: Rect2
-var _driver_lever_source_rect: Rect2
 var _driver_lever_angle: float = 0.0
 var _portal_state: PortalState = PortalState.IDLE
 var _portal_state_elapsed: float = 0.0
@@ -67,14 +59,6 @@ func _ready() -> void:
 	assert(crew_balance != null, "PlatformVisualController requires CrewBalance")
 	_surface_visual.configure(
 		platform_core_frame_count,
-		alpha_crop_threshold
-	)
-	_driver_toggle_source_rect = TextureRegionLayout.get_alpha_bounds(
-		DRIVER_TOGGLE_TEXTURE,
-		alpha_crop_threshold
-	)
-	_driver_lever_source_rect = TextureRegionLayout.get_alpha_bounds(
-		DRIVER_LEVER_TEXTURE,
 		alpha_crop_threshold
 	)
 	var scene_root: Node = get_tree().current_scene
@@ -139,9 +123,7 @@ func _draw() -> void:
 
 func _draw_cells(platform_width: float) -> void:
 	for index: int in range(1, balance.cell_count):
-		var x: float = (
-			-platform_width * 0.5 + float(index) * balance.cell_width
-		)
+		var x: float = -platform_width * 0.5 + float(index) * balance.cell_width
 		draw_line(
 			Vector2(x, -balance.platform_height * 0.5),
 			Vector2(x, balance.platform_height * 0.5),
@@ -180,11 +162,7 @@ func _draw_portal() -> void:
 			0.0,
 			1.0
 		)
-		_draw_portal_energy_pulse(
-			portal_center,
-			progress,
-			sin(progress * PI)
-		)
+		_draw_portal_energy_pulse(portal_center, progress, sin(progress * PI))
 		return
 
 	var ghost_alpha: float = 0.38
@@ -282,29 +260,29 @@ func _draw_portal_defender_ghost(center: Vector2, alpha: float) -> void:
 
 
 func _draw_driver_console() -> void:
-	var console_size: Vector2 = (
-		_driver_toggle_source_rect.size * object_asset_scale
-	)
-	var lever_size: Vector2 = (
-		_driver_lever_source_rect.size * object_asset_scale
-	)
 	var platform_top: float = -balance.platform_height * 0.5
 	var console_bottom := Vector2(
 		driver_console_surface_offset.x,
 		platform_top + driver_console_surface_offset.y
 	)
 	var console_rect := Rect2(
-		console_bottom - Vector2(console_size.x * 0.5, console_size.y),
-		console_size
+		console_bottom - Vector2(driver_console_size.x * 0.5, driver_console_size.y),
+		driver_console_size
 	)
-	var console_tint := Color.WHITE
+	var console_tint := Color(0.48, 0.84, 1.0, 1.0)
 	if not _steering_input.driver_available:
 		console_tint = Color(0.55, 0.58, 0.62, 1.0)
-	draw_texture_rect_region(
-		DRIVER_TOGGLE_TEXTURE,
-		console_rect,
-		_driver_toggle_source_rect,
+	draw_rect(console_rect, Color(0.08, 0.13, 0.18, 0.96), true)
+	draw_rect(console_rect, console_tint, false, 3.0)
+	draw_circle(
+		console_rect.position + Vector2(console_rect.size.x * 0.25, 12.0),
+		4.0,
 		console_tint
+	)
+	draw_circle(
+		console_rect.position + Vector2(console_rect.size.x * 0.75, 12.0),
+		4.0,
+		console_tint.darkened(0.25)
 	)
 
 	var lever_mount := Vector2(
@@ -313,17 +291,9 @@ func _draw_driver_console() -> void:
 		console_rect.position.y
 			+ console_rect.size.y * driver_lever_mount_normalized.y
 	) + driver_lever_mount_offset
-	var lever_rect := Rect2(
-		Vector2(-lever_size.x * 0.5, -lever_size.y),
-		lever_size
-	)
 	draw_set_transform(lever_mount, _driver_lever_angle, Vector2.ONE)
-	draw_texture_rect_region(
-		DRIVER_LEVER_TEXTURE,
-		lever_rect,
-		_driver_lever_source_rect,
-		console_tint
-	)
+	draw_line(Vector2.ZERO, Vector2(0.0, -driver_lever_length), console_tint, 6.0, true)
+	draw_circle(Vector2(0.0, -driver_lever_length), 8.0, console_tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
