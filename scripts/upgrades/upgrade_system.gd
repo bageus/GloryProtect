@@ -102,9 +102,9 @@ func get_branch_weight(branch_id: StringName) -> int:
 	return _draw_generator.get_branch_weight(branch_id)
 
 
-func set_draw_seed(seed: int) -> void:
-	_draw_generator.set_seed(seed)
-	_specialization_generator.set_seed(seed + 1)
+func set_draw_seed(random_seed: int) -> void:
+	_draw_generator.set_seed(random_seed)
+	_specialization_generator.set_seed(random_seed + 1)
 
 
 func is_offer_open() -> bool:
