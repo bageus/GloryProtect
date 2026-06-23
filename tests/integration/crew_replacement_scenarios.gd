@@ -54,9 +54,12 @@ func _run_scenarios() -> void:
 	assert(not replacements.is_replacement_pending(1))
 	assert(replacements.is_replacement_pending(2))
 
-	var first_assignment: CrewAssignmentRuntime = roles.get_assignment(1)
-	assert(first_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(first_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	var first_assignment: CrewAssignmentRuntime = await _wait_for_active_free_fighter(
+		roles,
+		1,
+		120
+	)
+	assert(first_assignment != null)
 
 	var second_new: Defender = await _wait_for_replacement(
 		crew,
@@ -69,9 +72,12 @@ func _run_scenarios() -> void:
 	assert(not replacements.is_replacement_pending(2))
 	assert(replacements.get_pending_count() == 0)
 
-	var second_assignment: CrewAssignmentRuntime = roles.get_assignment(2)
-	assert(second_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(second_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	var second_assignment: CrewAssignmentRuntime = await _wait_for_active_free_fighter(
+		roles,
+		2,
+		120
+	)
+	assert(second_assignment != null)
 	assert(crew.get_living_count() == 3)
 
 	print("Crew replacement scenarios passed")
@@ -92,6 +98,23 @@ func _wait_for_replacement(
 			and current.health.is_alive()
 		):
 			return current
+		await physics_frame
+	return null
+
+
+func _wait_for_active_free_fighter(
+	roles: CrewRoleManager,
+	defender_id: int,
+	max_frames: int
+) -> CrewAssignmentRuntime:
+	for _frame: int in range(max_frames):
+		var assignment: CrewAssignmentRuntime = roles.get_assignment(defender_id)
+		if (
+			assignment != null
+			and assignment.state == CrewAssignmentRuntime.State.ACTIVE
+			and assignment.current_role == CrewRole.Id.FREE_FIGHTER
+		):
+			return assignment
 		await physics_frame
 	return null
 
