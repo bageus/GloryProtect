@@ -50,8 +50,7 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 			return _replacements != null
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			return _runtime != null
-		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, \
-		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
 				return (
 					_turrets != null
@@ -106,8 +105,7 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			_runtime.set_domain_flag(effect.target_id, true)
 			return true
-		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, \
-		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
+		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG, UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
 			if _is_turret_effect(effect):
 				return _turrets.apply_upgrade_effect(effect)
 			if _is_melee_effect(effect):
