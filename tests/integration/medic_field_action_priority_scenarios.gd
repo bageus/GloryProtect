@@ -89,6 +89,11 @@ func _run_scenario() -> void:
 		CrewAssignmentRuntime.State.MOVING,
 		CrewAssignmentRuntime.State.ACTIVE,
 	])
+
+	# Combat processing is intentionally disabled above. Remove the surviving
+	# blocker after validating action priority so movement can finish normally.
+	enemy.queue_free()
+	await process_frame
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.FREE_FIGHTER)
 
 	print("Medic field action priority scenarios passed")
