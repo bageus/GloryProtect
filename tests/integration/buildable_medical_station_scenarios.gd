@@ -25,6 +25,7 @@ func _run_scenarios() -> void:
 		"World/Platform/CrewRoleManager"
 	)
 
+	await _wait_for_assignment_runtime(roles, 0, 30)
 	game_flow.state = GameFlowController.RunState.RUNNING
 	medical.balance.heal_interval = 0.12
 	medical.balance.heal_range = 1000.0
@@ -108,6 +109,19 @@ func _run_scenarios() -> void:
 
 	print("Buildable and medical station scenarios passed")
 	quit()
+
+
+func _wait_for_assignment_runtime(
+	roles: CrewRoleManager,
+	defender_id: int,
+	max_frames: int
+) -> void:
+	for _frame: int in range(max_frames):
+		if roles.get_assignment(defender_id) != null:
+			return
+		await process_frame
+	push_error("Crew role manager did not initialize assignments")
+	quit(1)
 
 
 func _wait_for_role(
