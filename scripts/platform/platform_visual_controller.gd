@@ -3,15 +3,9 @@ extends Node2D
 
 signal spawn_sequence_finished(defender_id: int)
 
-const PORTAL_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/asset_object_portal.png"
-)
-const PORTAL_SPAWN1_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/overlay_object_portal_spawn1.png"
-)
-const PORTAL_SPAWN2_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/overlay_object_portal_spawn2.png"
-)
+const PORTAL_TEXTURE_PATH := "res://visual/objects/portal/asset_object_portal.png"
+const PORTAL_SPAWN1_TEXTURE_PATH := "res://visual/objects/portal/overlay_object_portal_spawn1.png"
+const PORTAL_SPAWN2_TEXTURE_PATH := "res://visual/objects/portal/overlay_object_portal_spawn2.png"
 const DRIVER_TOGGLE_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_object_toggle.png"
 )
@@ -61,6 +55,9 @@ enum PortalState {
 
 var _game_flow: GameFlowController
 var _surface_visual := PlatformSurfaceVisual.new()
+var _portal_texture: Texture2D
+var _portal_spawn1_texture: Texture2D
+var _portal_spawn2_texture: Texture2D
 var _portal_source_rect: Rect2
 var _portal_spawn1_source_rect: Rect2
 var _portal_spawn2_source_rect: Rect2
@@ -80,17 +77,20 @@ func _ready() -> void:
 		platform_core_frame_count,
 		alpha_crop_threshold
 	)
-	_portal_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_TEXTURE,
-		alpha_crop_threshold
+	_portal_texture = _load_optional_texture(PORTAL_TEXTURE_PATH)
+	_portal_spawn1_texture = _load_optional_texture(PORTAL_SPAWN1_TEXTURE_PATH)
+	_portal_spawn2_texture = _load_optional_texture(PORTAL_SPAWN2_TEXTURE_PATH)
+	_portal_source_rect = _get_texture_bounds_or_fallback(
+		_portal_texture,
+		Vector2(320.0, 420.0)
 	)
-	_portal_spawn1_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_SPAWN1_TEXTURE,
-		alpha_crop_threshold
+	_portal_spawn1_source_rect = _get_texture_bounds_or_fallback(
+		_portal_spawn1_texture,
+		Vector2(320.0, 420.0)
 	)
-	_portal_spawn2_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_SPAWN2_TEXTURE,
-		alpha_crop_threshold
+	_portal_spawn2_source_rect = _get_texture_bounds_or_fallback(
+		_portal_spawn2_texture,
+		Vector2(320.0, 420.0)
 	)
 	_driver_toggle_source_rect = TextureRegionLayout.get_alpha_bounds(
 		DRIVER_TOGGLE_TEXTURE,
@@ -182,11 +182,14 @@ func _draw_portal() -> void:
 	)
 	var center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
 	var portal_rect := Rect2(center - portal_size * 0.5, portal_size)
-	draw_texture_rect_region(
-		PORTAL_TEXTURE,
-		portal_rect,
-		_portal_source_rect
-	)
+	if _portal_texture != null:
+		draw_texture_rect_region(
+			_portal_texture,
+			portal_rect,
+			_portal_source_rect
+		)
+	else:
+		_draw_portal_fallback(portal_rect)
 
 	if _portal_state == PortalState.IDLE:
 		return
@@ -197,7 +200,7 @@ func _draw_portal() -> void:
 			1.0
 		)
 		_draw_portal_overlay(
-			PORTAL_SPAWN1_TEXTURE,
+			_portal_spawn1_texture,
 			_portal_spawn1_source_rect,
 			center,
 			Color(1.0, 1.0, 1.0, sin(progress * PI))
@@ -224,7 +227,7 @@ func _draw_portal() -> void:
 			1.0
 		)
 		_draw_portal_overlay(
-			PORTAL_SPAWN2_TEXTURE,
+			_portal_spawn2_texture,
 			_portal_spawn2_source_rect,
 			center,
 			Color(1.0, 1.0, 1.0, sin(finish_progress * PI))
@@ -237,6 +240,8 @@ func _draw_portal_overlay(
 	center: Vector2,
 	modulate: Color
 ) -> void:
+	if texture == null:
+		return
 	var overlay_size: Vector2 = source_rect.size * object_asset_scale
 	var rect := Rect2(
 		center + portal_overlay_offset - overlay_size * 0.5,
@@ -378,6 +383,28 @@ func _get_portal_defender_color(defender_id: int) -> Color:
 		Color(0.86, 0.5, 1.0),
 	]
 	return colors[maxi(0, defender_id) % colors.size()]
+
+
+func _load_optional_texture(resource_path: String) -> Texture2D:
+	if not ResourceLoader.exists(resource_path):
+		return null
+	return load(resource_path) as Texture2D
+
+
+func _get_texture_bounds_or_fallback(
+	texture: Texture2D,
+	fallback_size: Vector2
+) -> Rect2:
+	if texture == null:
+		return Rect2(Vector2.ZERO, fallback_size)
+	return TextureRegionLayout.get_alpha_bounds(texture, alpha_crop_threshold)
+
+
+func _draw_portal_fallback(portal_rect: Rect2) -> void:
+	var fill := Color(0.18, 0.62, 0.92, 0.22)
+	var outline := Color(0.45, 0.9, 1.0, 0.9)
+	draw_rect(portal_rect, fill, true)
+	draw_rect(portal_rect, outline, false, 3.0)
 
 
 func _on_visual_state_changed(_is_available: bool) -> void:
