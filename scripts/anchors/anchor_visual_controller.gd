@@ -114,8 +114,8 @@ func _draw_winch(
 	)
 	var size := _winch_source_rect.size * object_asset_scale
 	var rect := Rect2(-size * 0.5, size)
-	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
-	draw_set_transform(center, 0.0, scale)
+	var mirror_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
+	draw_set_transform(center, 0.0, mirror_scale)
 	draw_texture_rect_region(WINCH_TEXTURE, rect, _winch_source_rect, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -248,7 +248,7 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	)
 	var count := maxi(1, ceili(length / spacing))
 	var step := length / float(count)
-	var rotation := direction.angle() - PI * 0.5
+	var link_rotation := direction.angle() - PI * 0.5
 	var rect := Rect2(-tile_size * 0.5, tile_size)
 	var visible_tint := tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
 	visible_tint.a = 1.0
@@ -256,8 +256,8 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	backing.a = 0.4
 	draw_line(start, finish, backing, CHAIN_BACKING_WIDTH, true)
 	for index: int in range(count):
-		var position := start + direction * (step * (float(index) + 0.5))
-		draw_set_transform(position, rotation, Vector2.ONE)
+		var link_position := start + direction * (step * (float(index) + 0.5))
+		draw_set_transform(link_position, link_rotation, Vector2.ONE)
 		draw_texture_rect_region(
 			CHAIN_TEXTURE,
 			rect,
