@@ -122,7 +122,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await process_frame
+		await physics_frame
 	assert(false, "Defender did not reach requested role")
 
 
