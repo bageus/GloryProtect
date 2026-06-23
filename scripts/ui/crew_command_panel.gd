@@ -62,7 +62,6 @@ func _ready() -> void:
 	_build_slot_specs()
 	_view.build(self, 6, 12, _on_slot_pressed)
 	_connect_signals()
-	call_deferred("_ensure_medical_station")
 	call_deferred("_auto_distribute_free_fighters")
 	_update_slots()
 
@@ -438,19 +437,6 @@ func _get_role_for_kind(kind: int) -> int:
 	return CrewRole.Id.FREE_FIGHTER
 
 
-func _ensure_medical_station() -> void:
-	if not _inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION):
-		return
-	if _grid.get_buildable_id_by_type(BuildableType.Id.MEDICAL_STATION) >= 0:
-		return
-	var buildable_id: int = _grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		_grid.balance.default_medical_cell
-	)
-	if buildable_id >= 0:
-		_set_feedback("Медицинский пост установлен автоматически", false)
-
-
 func _can_place_turret_with_mouse() -> bool:
 	if (
 		_game_flow.state != GameFlowController.RunState.START_DELAY
@@ -486,7 +472,7 @@ func _close_context() -> void:
 
 func _on_buildable_unlocked(type_id: int, _count: int) -> void:
 	if type_id == BuildableType.Id.MEDICAL_STATION:
-		call_deferred("_ensure_medical_station")
+		_set_feedback("Медицинский пост доступен для установки", false)
 	elif type_id == BuildableType.Id.TURRET:
 		_set_feedback(
 			"Турель доступна: щёлкните по свободному месту платформы",
@@ -520,7 +506,6 @@ func _on_buildable_moved(
 func _on_grid_reset() -> void:
 	_free_cell_by_defender.clear()
 	_pending_free_moves.clear()
-	call_deferred("_ensure_medical_station")
 	call_deferred("_auto_distribute_free_fighters")
 
 
