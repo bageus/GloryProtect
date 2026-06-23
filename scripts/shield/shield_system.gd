@@ -30,6 +30,10 @@ func get_section_count() -> int:
 	return _health.size()
 
 
+func get_max_health() -> float:
+	return balance.max_health
+
+
 func is_valid_section(section_id: int) -> bool:
 	return section_id >= 0 and section_id < get_section_count()
 

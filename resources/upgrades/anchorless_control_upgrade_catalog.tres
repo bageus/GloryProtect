@@ -1,0 +1,237 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=34 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectSteeringBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_steering_force_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardSteeringBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_steering_force_basic"
+branch_id = &"steering"
+title = "Усиленный рулевой привод"
+description = "Управляющая сила увеличена на 10%."
+card_type = 1
+effect = SubResource("EffectSteeringBasic")
+
+[sub_resource type="Resource" id="EffectSteeringAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_steering_force_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardSteeringAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_steering_force_advanced"
+branch_id = &"steering"
+title = "Турбо-рулевой привод"
+description = "Управляющая сила дополнительно увеличена на 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_steering_force_basic"])
+effect = SubResource("EffectSteeringAdvanced")
+
+[sub_resource type="Resource" id="EffectWindBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_wind_reduction_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardWindBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_wind_reduction_basic"
+branch_id = &"steering"
+title = "Улучшенный компенсатор ветра"
+description = "Влияние ветра уменьшено на 10%."
+card_type = 1
+effect = SubResource("EffectWindBasic")
+
+[sub_resource type="Resource" id="EffectWindAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_wind_reduction_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardWindAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_wind_reduction_advanced"
+branch_id = &"steering"
+title = "Турбо-компенсатор ветра"
+description = "Влияние ветра дополнительно уменьшено на 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_wind_reduction_basic"])
+effect = SubResource("EffectWindAdvanced")
+
+[sub_resource type="Resource" id="EffectDragBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_release_drag_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardDragBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_release_drag_basic"
+branch_id = &"steering"
+title = "Улучшенный инерционный стабилизатор"
+description = "После прекращения ввода горизонтальная скорость снижается на 20% быстрее."
+card_type = 1
+effect = SubResource("EffectDragBasic")
+
+[sub_resource type="Resource" id="EffectDragAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_release_drag_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardDragAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_release_drag_advanced"
+branch_id = &"steering"
+title = "Турбо-инерционный стабилизатор"
+description = "После прекращения ввода горизонтальная скорость дополнительно снижается на 20% быстрее."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_release_drag_basic"])
+effect = SubResource("EffectDragAdvanced")
+
+[sub_resource type="Resource" id="EffectAutoSteering"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_auto_steering"
+
+[sub_resource type="Resource" id="CardAutoSteering"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_auto_steering"
+branch_id = &"steering"
+title = "Автоматическое подруливание"
+description = "Платформа игнорирует ветер силы 1. Рулевой всё ещё обязателен; автоматического движения и фиксации нет."
+card_type = 3
+required_completed_branch_id = &"steering"
+effect = SubResource("EffectAutoSteering")
+
+[sub_resource type="Resource" id="EffectPrecise"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_precise"
+
+[sub_resource type="Resource" id="CardPrecise"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_precise"
+branch_id = &"steering"
+title = "Точная стабилизация"
+description = "Инерция снижена на 25%."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_speed", &"anchorless_specialization_powerful"])
+effect = SubResource("EffectPrecise")
+
+[sub_resource type="Resource" id="EffectSpeed"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_speed"
+
+[sub_resource type="Resource" id="CardSpeed"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_speed"
+branch_id = &"steering"
+title = "Скоростной перелёт"
+description = "+15% к ускорению и максимальной скорости; при подключении скорость резко сбрасывается."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_precise", &"anchorless_specialization_powerful"])
+effect = SubResource("EffectSpeed")
+
+[sub_resource type="Resource" id="EffectPowerful"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_powerful"
+
+[sub_resource type="Resource" id="CardPowerful"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_powerful"
+branch_id = &"steering"
+title = "Мощная стабилизация"
+description = "При подключении разряд наносит 1 урон врагам возле последней точки якоря каждой стороны."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_precise", &"anchorless_specialization_speed"])
+effect = SubResource("EffectPowerful")
+
+[sub_resource type="Resource" id="EffectPreciseRecharge"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_precise_recharge"
+
+[sub_resource type="Resource" id="CardPreciseRecharge"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_precise_recharge"
+branch_id = &"steering"
+title = "Центральный резонанс"
+description = "Около центра зоны контакта скорость восстановления щита увеличена на 25%."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_precise"
+effect = SubResource("EffectPreciseRecharge")
+
+[sub_resource type="Resource" id="EffectLongFlight"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_speed_long_flight_restore"
+
+[sub_resource type="Resource" id="CardLongFlight"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_speed_long_flight_restore"
+branch_id = &"steering"
+title = "Импульс дальнего перелёта"
+description = "После длительного перелёта первое подключение мгновенно восстанавливает 10% текущей секции."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_speed"
+effect = SubResource("EffectLongFlight")
+
+[sub_resource type="Resource" id="EffectFrontSweep"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_speed_front_sweep"
+
+[sub_resource type="Resource" id="CardFrontSweep"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_speed_front_sweep"
+branch_id = &"steering"
+title = "Таранный край"
+description = "При быстром движении платформа сбивает наземных врагов перед собой."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_speed"
+effect = SubResource("EffectFrontSweep")
+
+[sub_resource type="Resource" id="EffectGroundCore"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_powerful_ground_core"
+
+[sub_resource type="Resource" id="CardGroundCore"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_powerful_ground_core"
+branch_id = &"steering"
+title = "Импульс наземного ядра"
+description = "При подключении и отключении наземное ядро наносит 2 урона наземным врагам рядом."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_powerful"
+effect = SubResource("EffectGroundCore")
+
+[sub_resource type="Resource" id="EffectPlatformCore"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_powerful_platform_core"
+
+[sub_resource type="Resource" id="CardPlatformCore"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_powerful_platform_core"
+branch_id = &"steering"
+title = "Импульс ядра платформы"
+description = "При подключении и отключении ядро платформы наносит 2 урона врагам на платформе и в воздухе, но не на земле."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_powerful"
+effect = SubResource("EffectPlatformCore")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardSteeringBasic"), SubResource("CardSteeringAdvanced"), SubResource("CardWindBasic"), SubResource("CardWindAdvanced"), SubResource("CardDragBasic"), SubResource("CardDragAdvanced"), SubResource("CardAutoSteering"), SubResource("CardPrecise"), SubResource("CardSpeed"), SubResource("CardPowerful"), SubResource("CardPreciseRecharge"), SubResource("CardLongFlight"), SubResource("CardFrontSweep"), SubResource("CardGroundCore"), SubResource("CardPlatformCore")])
