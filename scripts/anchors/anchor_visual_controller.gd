@@ -1,9 +1,7 @@
 class_name AnchorVisualController
 extends Node2D
 
-const CHAIN_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_chain_base_01.png"
-)
+const CHAIN_TEXTURE_PATH: String = "res://visual/tiles/tile_chain_base_01.png"
 const CLAMP_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_object_clamp.png"
 )
@@ -33,6 +31,7 @@ var _balance: AnchorBalance
 var _is_operator_available: Callable
 var _is_simulation_active: Callable
 var _warning_elapsed := 0.0
+var _chain_texture: Texture2D
 var _chain_source_rect: Rect2
 var _clamp_source_rect: Rect2
 var _winch_source_rect: Rect2
@@ -41,10 +40,14 @@ var _anchor_source_rect: Rect2
 
 func _ready() -> void:
 	z_index = 2
-	_chain_source_rect = TextureRegionLayout.get_alpha_bounds(
-		CHAIN_TEXTURE,
-		alpha_crop_threshold
-	)
+	_chain_texture = ResourceLoader.load(CHAIN_TEXTURE_PATH) as Texture2D
+	if _chain_texture != null:
+		_chain_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_chain_texture,
+			alpha_crop_threshold
+		)
+	else:
+		push_error("AnchorVisualController could not load %s" % CHAIN_TEXTURE_PATH)
 	_clamp_source_rect = TextureRegionLayout.get_alpha_bounds(
 		CLAMP_TEXTURE,
 		alpha_crop_threshold
@@ -233,6 +236,8 @@ func _draw_returning_anchor(
 
 
 func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
+	if _chain_texture == null:
+		return
 	var segment := finish - start
 	var length := segment.length()
 	if length <= 0.01:
@@ -259,7 +264,7 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 		var link_position := start + direction * (step * (float(index) + 0.5))
 		draw_set_transform(link_position, link_rotation, Vector2.ONE)
 		draw_texture_rect_region(
-			CHAIN_TEXTURE,
+			_chain_texture,
 			rect,
 			_chain_source_rect,
 			visible_tint
