@@ -50,3 +50,15 @@ func is_reserved_cell(cell_index: int) -> bool:
 
 func is_turret_cell(cell_index: int) -> bool:
 	return turret_cell_indices.has(cell_index)
+
+
+func is_medical_cell(cell_index: int) -> bool:
+	return cell_index == default_medical_cell or is_turret_cell(cell_index)
+
+
+func get_medical_cell_indices() -> Array[int]:
+	var result: Array[int] = [default_medical_cell]
+	for cell_index: int in turret_cell_indices:
+		if not result.has(cell_index):
+			result.append(cell_index)
+	return result

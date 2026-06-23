@@ -3,12 +3,6 @@ extends Node2D
 
 signal spawn_sequence_finished(defender_id: int)
 
-const PLATFORM_TILE_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_platform.png"
-)
-const PLATFORM_CORE_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_core_platform_energy.png"
-)
 const PORTAL_TEXTURE: Texture2D = preload(
 	"res://visual/objects/portal/asset_object_portal.png"
 )
@@ -25,8 +19,6 @@ const DRIVER_LEVER_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_object_pry.png"
 )
 
-const ALPHA_CROP_THRESHOLD: float = 0.08
-
 enum PortalState {
 	IDLE,
 	FLASH,
@@ -41,10 +33,13 @@ enum PortalState {
 
 @export_group("Asset Visuals")
 @export_range(0.0, 4.0, 0.25) var platform_tile_overlap: float = 1.0
+@export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export var show_cell_guides: bool = false
 @export var platform_core_size: Vector2 = Vector2(112.0, 112.0)
 @export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.33
 @export var platform_core_offset: Vector2 = Vector2.ZERO
+@export_range(1, 24, 1) var platform_core_frame_count: int = 6
+@export_range(1.0, 30.0, 0.5) var platform_core_frame_rate: float = 8.0
 @export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
 @export_group("Driver Console")
@@ -65,7 +60,7 @@ enum PortalState {
 @onready var _steering_input: SteeringInputProvider = get_node(steering_input_path)
 
 var _game_flow: GameFlowController
-var _platform_tile_source_rect: Rect2
+var _surface_visual := PlatformSurfaceVisual.new()
 var _portal_source_rect: Rect2
 var _portal_spawn1_source_rect: Rect2
 var _portal_spawn2_source_rect: Rect2
@@ -81,12 +76,30 @@ var _portal_queue: Array[int] = []
 func _ready() -> void:
 	assert(balance != null, "PlatformVisualController requires PlatformBalance")
 	assert(crew_balance != null, "PlatformVisualController requires CrewBalance")
-	_platform_tile_source_rect = _get_used_texture_rect(PLATFORM_TILE_TEXTURE)
-	_portal_source_rect = _get_alpha_bounds(PORTAL_TEXTURE)
-	_portal_spawn1_source_rect = _get_alpha_bounds(PORTAL_SPAWN1_TEXTURE)
-	_portal_spawn2_source_rect = _get_alpha_bounds(PORTAL_SPAWN2_TEXTURE)
-	_driver_toggle_source_rect = _get_alpha_bounds(DRIVER_TOGGLE_TEXTURE)
-	_driver_lever_source_rect = _get_alpha_bounds(DRIVER_LEVER_TEXTURE)
+	_surface_visual.configure(
+		platform_core_frame_count,
+		alpha_crop_threshold
+	)
+	_portal_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_TEXTURE,
+		alpha_crop_threshold
+	)
+	_portal_spawn1_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_SPAWN1_TEXTURE,
+		alpha_crop_threshold
+	)
+	_portal_spawn2_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_SPAWN2_TEXTURE,
+		alpha_crop_threshold
+	)
+	_driver_toggle_source_rect = TextureRegionLayout.get_alpha_bounds(
+		DRIVER_TOGGLE_TEXTURE,
+		alpha_crop_threshold
+	)
+	_driver_lever_source_rect = TextureRegionLayout.get_alpha_bounds(
+		DRIVER_LEVER_TEXTURE,
+		alpha_crop_threshold
+	)
 	var scene_root: Node = get_tree().current_scene
 	if scene_root != null:
 		_game_flow = scene_root.get_node_or_null(
@@ -102,6 +115,7 @@ func _process(delta: float) -> void:
 		or _game_flow.is_world_simulation_active()
 	)
 	if simulation_active:
+		_surface_visual.advance(delta)
 		_update_driver_lever(delta)
 		_update_portal(delta)
 	queue_redraw()
@@ -123,40 +137,27 @@ func is_portal_busy() -> bool:
 
 func _draw() -> void:
 	var platform_width: float = _platform.get_platform_width()
-	var platform_rect := Rect2(
-		Vector2(-platform_width * 0.5, -balance.platform_height * 0.5),
-		Vector2(platform_width, balance.platform_height)
+	_surface_visual.draw_body(
+		self,
+		platform_width,
+		balance.platform_height,
+		balance.cell_count,
+		balance.cell_width,
+		platform_tile_overlap
 	)
-
-	draw_rect(platform_rect, Color(0.12, 0.17, 0.24), true)
-	_draw_platform_tiles(platform_width)
-	draw_rect(platform_rect, Color(0.55, 0.69, 0.82, 0.45), false, 2.0)
 	if show_cell_guides:
 		_draw_cells(platform_width)
 	_draw_portal()
 	_draw_driver_console()
-	_draw_platform_orb()
-
-
-func _draw_platform_tiles(platform_width: float) -> void:
-	var first_x: float = -platform_width * 0.5
-	var half_overlap: float = platform_tile_overlap * 0.5
-	for index: int in range(balance.cell_count):
-		var tile_rect := Rect2(
-			Vector2(
-				first_x + float(index) * balance.cell_width - half_overlap,
-				-balance.platform_height * 0.5
-			),
-			Vector2(
-				balance.cell_width + platform_tile_overlap,
-				balance.platform_height
-			)
-		)
-		draw_texture_rect_region(
-			PLATFORM_TILE_TEXTURE,
-			tile_rect,
-			_platform_tile_source_rect
-		)
+	_surface_visual.draw_core(
+		self,
+		balance.platform_height,
+		platform_core_size,
+		platform_core_protrusion_ratio,
+		platform_core_offset,
+		platform_core_frame_rate,
+		_steering_input.driver_available
+	)
 
 
 func _draw_cells(platform_width: float) -> void:
@@ -317,29 +318,6 @@ func _draw_driver_console() -> void:
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-func _draw_platform_orb() -> void:
-	var core_tint := Color.WHITE
-	if not _steering_input.driver_available:
-		core_tint = Color(0.42, 0.46, 0.5, 1.0)
-
-	var platform_bottom: float = balance.platform_height * 0.5
-	var core_center_y: float = (
-		platform_bottom
-		+ (platform_core_protrusion_ratio - 0.5) * platform_core_size.y
-	)
-	var core_center := Vector2(0.0, core_center_y) + platform_core_offset
-	var core_rect := Rect2(
-		core_center - platform_core_size * 0.5,
-		platform_core_size
-	)
-	draw_texture_rect(
-		PLATFORM_CORE_TEXTURE,
-		core_rect,
-		false,
-		core_tint
-	)
-
-
 func _update_driver_lever(delta: float) -> void:
 	var steering_axis: float = _steering_input.get_steering_axis()
 	var maximum_angle: float = deg_to_rad(driver_lever_max_angle_degrees)
@@ -400,48 +378,6 @@ func _get_portal_defender_color(defender_id: int) -> Color:
 		Color(0.86, 0.5, 1.0),
 	]
 	return colors[maxi(0, defender_id) % colors.size()]
-
-
-func _get_used_texture_rect(texture: Texture2D) -> Rect2:
-	var image: Image = texture.get_image()
-	if image == null or image.is_empty():
-		return Rect2(Vector2.ZERO, texture.get_size())
-	var used_rect: Rect2i = image.get_used_rect()
-	if used_rect.size.x <= 0 or used_rect.size.y <= 0:
-		return Rect2(Vector2.ZERO, texture.get_size())
-	return Rect2(
-		Vector2(used_rect.position),
-		Vector2(used_rect.size)
-	)
-
-
-func _get_alpha_bounds(texture: Texture2D) -> Rect2:
-	var image: Image = texture.get_image()
-	if image == null or image.is_empty():
-		return Rect2(Vector2.ZERO, texture.get_size())
-	var width: int = image.get_width()
-	var height: int = image.get_height()
-	var min_x: int = width
-	var min_y: int = height
-	var max_x: int = -1
-	var max_y: int = -1
-	for y: int in range(height):
-		for x: int in range(width):
-			if image.get_pixel(x, y).a <= ALPHA_CROP_THRESHOLD:
-				continue
-			min_x = mini(min_x, x)
-			min_y = mini(min_y, y)
-			max_x = maxi(max_x, x)
-			max_y = maxi(max_y, y)
-	if max_x < min_x or max_y < min_y:
-		return Rect2(Vector2.ZERO, texture.get_size())
-	return Rect2(
-		Vector2(float(min_x), float(min_y)),
-		Vector2(
-			float(max_x - min_x + 1),
-			float(max_y - min_y + 1)
-		)
-	)
 
 
 func _on_visual_state_changed(_is_available: bool) -> void:

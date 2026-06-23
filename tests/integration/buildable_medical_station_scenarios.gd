@@ -25,17 +25,25 @@ func _run_scenarios() -> void:
 		"World/Platform/CrewRoleManager"
 	)
 
+	await _wait_for_assignment_runtime(roles, 0, 30)
 	game_flow.state = GameFlowController.RunState.RUNNING
 	medical.balance.heal_interval = 0.12
 	medical.balance.heal_range = 1000.0
 
+	var default_medical_cell: int = grid.balance.default_medical_cell
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) == -1)
+	assert(grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		default_medical_cell
+	) == -1)
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
 	assert(not grid.is_cell_available(8))
 	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 8) == -1)
 
-	var medical_id: int = grid.place(BuildableType.Id.MEDICAL_STATION, 11)
+	var medical_id: int = grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		default_medical_cell
+	)
 	assert(medical_id >= 0)
 	await process_frame
 	assert(medical.has_station())
@@ -87,8 +95,12 @@ func _run_scenarios() -> void:
 	assert(grid.demolish(medical_id))
 	await process_frame
 	assert(not medical.has_station())
+	assert(medical.is_healing_cycle_active(0))
+	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
+	await _wait_for_role(roles, 0, CrewRole.Id.FREE_FIGHTER, 120)
 	assert(not medical.is_healing_cycle_active(0))
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
+	assert(first_target.health.current_health == 2)
 	assert(inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION))
 	assert(grid.is_cell_available(demolished_cell))
 	var released: CrewAssignmentRuntime = roles.get_assignment(0)
@@ -101,6 +113,19 @@ func _run_scenarios() -> void:
 
 	print("Buildable and medical station scenarios passed")
 	quit()
+
+
+func _wait_for_assignment_runtime(
+	roles: CrewRoleManager,
+	defender_id: int,
+	max_frames: int
+) -> void:
+	for _frame: int in range(max_frames):
+		if roles.get_assignment(defender_id) != null:
+			return
+		await process_frame
+	push_error("Crew role manager did not initialize assignments")
+	quit(1)
 
 
 func _wait_for_role(

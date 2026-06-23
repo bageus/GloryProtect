@@ -21,6 +21,7 @@ func _run_scenarios() -> void:
 	var platform := game.get_node("World/Platform") as PlatformController
 	var wind := game.get_node("WindSystem") as WindSystem
 
+	game_flow.state = GameFlowController.RunState.RUNNING
 	wind.balance.level_forces = PackedFloat32Array([0.0, 0.0, 0.0])
 	wind.balance.fluctuation_force = 0.0
 	wind.set_debug_state(1, 1)
@@ -51,15 +52,32 @@ func _run_scenarios() -> void:
 
 	await _wait_until_assignment_active(roles, 0)
 	assert(roles.get_assignment(0).current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(
+		roles.get_role_owner(CrewRole.Id.DRIVER) == -1,
+		"Driver station remained reserved after releasing defender 0"
+	)
+	assert(
+		roles.get_assignment(1).state == CrewAssignmentRuntime.State.ACTIVE,
+		"Defender 1 was not active before requesting the driver role"
+	)
 
 	roles.request_assignment(1, CrewRole.Id.DRIVER)
 	await process_frame
+	assert(
+		roles.get_assignment(1).target_role == CrewRole.Id.DRIVER,
+		"Driver assignment request was rejected"
+	)
 	assert(not steering.driver_available)
 
 	await _wait_until_assignment_active(roles, 1)
 	assert(roles.get_assignment(1).current_role == CrewRole.Id.DRIVER)
 	assert(steering.driver_available)
-	assert(is_equal_approx(crew.get_defender(1).position.x, 0.0))
+	assert(
+		is_equal_approx(
+			crew.get_defender(1).position.x,
+			roles.get_role_target_x(CrewRole.Id.DRIVER, 1)
+		)
+	)
 
 	platform.position.x = 0.0
 	platform.horizontal_velocity = 0.0
