@@ -29,13 +29,20 @@ func _run_scenarios() -> void:
 	medical.balance.heal_interval = 0.12
 	medical.balance.heal_range = 1000.0
 
+	var default_medical_cell: int = grid.balance.default_medical_cell
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) == -1)
+	assert(grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		default_medical_cell
+	) == -1)
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
 	assert(not grid.is_cell_available(8))
 	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 8) == -1)
 
-	var medical_id: int = grid.place(BuildableType.Id.MEDICAL_STATION, 11)
+	var medical_id: int = grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		default_medical_cell
+	)
 	assert(medical_id >= 0)
 	await process_frame
 	assert(medical.has_station())
