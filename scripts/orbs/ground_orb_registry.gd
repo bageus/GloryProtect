@@ -32,6 +32,10 @@ func get_world_x(orb_id: int) -> float:
 	return catalog.world_positions[orb_id]
 
 
+func get_contact_half_width() -> float:
+	return catalog.contact_half_width
+
+
 func get_orb_world_position(orb_id: int) -> Vector2:
 	return Vector2(
 		get_world_x(orb_id),

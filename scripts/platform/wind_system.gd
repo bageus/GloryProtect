@@ -10,6 +10,8 @@ var strength_level: int = 1
 var elapsed_time: float = 0.0
 var _state_time: float = 0.0
 var _next_change_time: float = 6.0
+var _influence_reduction_ratio: float = 0.0
+var _ignore_strength_one: bool = false
 var _rng := RandomNumberGenerator.new()
 
 
@@ -37,8 +39,35 @@ func get_base_force() -> float:
 func get_current_force() -> float:
 	if balance == null:
 		return 0.0
+	if _ignore_strength_one and strength_level == 1:
+		return 0.0
 	var wobble := sin(elapsed_time * balance.fluctuation_speed) * balance.fluctuation_force
-	return float(direction) * maxf(0.0, get_base_force() + wobble)
+	var raw_force: float = maxf(0.0, get_base_force() + wobble)
+	return (
+		float(direction)
+		* raw_force
+		* get_influence_multiplier()
+	)
+
+
+func set_anchorless_modifiers(
+	influence_reduction_ratio: float,
+	ignore_strength_one: bool
+) -> void:
+	_influence_reduction_ratio = clampf(influence_reduction_ratio, 0.0, 1.0)
+	_ignore_strength_one = ignore_strength_one
+
+
+func reset_anchorless_modifiers() -> void:
+	set_anchorless_modifiers(0.0, false)
+
+
+func get_influence_multiplier() -> float:
+	return maxf(0.0, 1.0 - _influence_reduction_ratio)
+
+
+func is_strength_one_ignored() -> bool:
+	return _ignore_strength_one
 
 
 func get_direction_text() -> String:
