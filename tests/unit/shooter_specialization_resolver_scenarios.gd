@@ -50,6 +50,12 @@ func _test_piercing_and_explosion() -> void:
 		5,
 		BoardingEnemyController.State.ON_PLATFORM
 	)
+	var invalid_ground: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(60.0, 40.0),
+		5,
+		BoardingEnemyController.State.WAITING_WITHOUT_PATH
+	)
 	var outside_range: BoardingEnemy = await _make_enemy(
 		registry,
 		Vector2(250.0, 0.0),
@@ -75,6 +81,7 @@ func _test_piercing_and_explosion() -> void:
 	assert(behind_one.health.current_health == 3)
 	assert(behind_two.health.current_health == 3)
 	assert(outside_lane.health.current_health == 5)
+	assert(invalid_ground.health.current_health == 5)
 	assert(outside_range.health.current_health == 5)
 	shooter.free()
 	registry.queue_free()
