@@ -235,14 +235,14 @@ func _draw_portal_overlay(
 	texture: Texture2D,
 	source_rect: Rect2,
 	center: Vector2,
-	modulate: Color
+	overlay_modulate: Color
 ) -> void:
 	var overlay_size: Vector2 = source_rect.size * object_asset_scale
 	var rect := Rect2(
 		center + portal_overlay_offset - overlay_size * 0.5,
 		overlay_size
 	)
-	draw_texture_rect_region(texture, rect, source_rect, modulate)
+	draw_texture_rect_region(texture, rect, source_rect, overlay_modulate)
 
 
 func _draw_portal_defender_ghost(center: Vector2, alpha: float) -> void:
