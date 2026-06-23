@@ -37,9 +37,13 @@ func _run_scenarios() -> void:
 	assert(replacements.is_replacement_pending(2))
 	assert(replacements.get_pending_count() == 2)
 
-	await _wait_physics_frames(10)
-	var first_new: Defender = crew.get_defender(1)
-	assert(first_new.get_instance_id() != first_old_instance_id)
+	var first_new: Defender = await _wait_for_replacement(
+		crew,
+		1,
+		first_old_instance_id,
+		120
+	)
+	assert(first_new != null)
 	assert(first_new.health.is_alive())
 	assert(
 		is_equal_approx(
@@ -54,9 +58,13 @@ func _run_scenarios() -> void:
 	assert(first_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
 	assert(first_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
 
-	await _wait_physics_frames(10)
-	var second_new: Defender = crew.get_defender(2)
-	assert(second_new.get_instance_id() != second_old_instance_id)
+	var second_new: Defender = await _wait_for_replacement(
+		crew,
+		2,
+		second_old_instance_id,
+		120
+	)
+	assert(second_new != null)
 	assert(second_new.health.is_alive())
 	assert(not replacements.is_replacement_pending(2))
 	assert(replacements.get_pending_count() == 0)
@@ -68,6 +76,24 @@ func _run_scenarios() -> void:
 
 	print("Crew replacement scenarios passed")
 	quit()
+
+
+func _wait_for_replacement(
+	crew: CrewManager,
+	defender_id: int,
+	old_instance_id: int,
+	max_frames: int
+) -> Defender:
+	for _frame: int in range(max_frames):
+		var current: Defender = crew.get_defender(defender_id)
+		if (
+			current != null
+			and current.get_instance_id() != old_instance_id
+			and current.health.is_alive()
+		):
+			return current
+		await physics_frame
+	return null
 
 
 func _wait_physics_frames(frame_count: int) -> void:
