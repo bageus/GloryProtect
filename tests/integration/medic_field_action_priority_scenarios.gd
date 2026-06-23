@@ -29,7 +29,10 @@ func _run_scenario() -> void:
 	medical.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) >= 0)
+	assert(grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		grid.balance.default_medical_cell
+	) >= 0)
 	await process_frame
 	assert(medical.apply_upgrade_effect(_flag_effect(
 		MedicUpgradeRuntime.FIELD
