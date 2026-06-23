@@ -42,3 +42,25 @@ jobs:
             https://github.com/bageus/GloryProtect/archive/refs/heads/main.tar.gz \
             | tar -xz --strip-components=1
           python3 tools/check_file_sizes.py
+
+  godot-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: "4.6.2"
+    steps:
+      - name: Run scenarios against public main archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://github.com/bageus/GloryProtect/archive/refs/heads/main.tar.gz \
+            | tar -xz --strip-components=1
+          curl --fail --silent --show-error --location --retry 3 \
+            --output /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 0755 \
+            "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            /usr/local/bin/godot
+          bash tools/run_godot_scenarios.sh
