@@ -43,3 +43,5 @@ jobs:
           git add -A
           git commit -m "fix(ui): hide crew panel during card selection"
           git push origin HEAD:fix/crew-command-panel-104
+
+# retrigger
