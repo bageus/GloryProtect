@@ -1,4 +1,4 @@
-name: Crew command panel diagnostic
+name: NEXT-13 diagnostic
 
 on:
   pull_request:
@@ -17,10 +17,10 @@ jobs:
     env:
       GODOT_VERSION: "4.6.2"
     steps:
-      - name: Checkout clean CrewCommandPanel branch
+      - name: Checkout clean NEXT-13 branch
         uses: actions/checkout@v4
         with:
-          ref: fix/crew-command-panel-104
+          ref: issue-26-anchorless-control
 
       - name: Install Godot
         shell: bash
@@ -48,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: crew-command-panel-godot-log
+          name: next-13-godot-log
           path: /tmp/godot-scenarios.log
           if-no-files-found: error
 
