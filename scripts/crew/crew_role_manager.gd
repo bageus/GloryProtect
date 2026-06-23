@@ -366,7 +366,7 @@ func _set_runtime_free(runtime: CrewAssignmentRuntime, stop_movement: bool) -> v
 
 
 func _normalize_station_id(role_id: int, station_id: int) -> int:
-	if role_id == CrewRole.Id.MEDIC and station_id < 0:
+	if role_id == CrewRole.Id.MEDIC:
 		return DEFAULT_DYNAMIC_STATION_ID
 	if role_id == CrewRole.Id.TURRET:
 		return station_id

@@ -58,9 +58,13 @@ func _run_scenarios() -> void:
 
 	assert(not panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
-	var medical_id: int = grid.place(BuildableType.Id.MEDICAL_STATION, 11)
-	assert(medical_id >= 0)
 	await process_frame
+	var medical_id: int = grid.get_buildable_id_by_type(
+		BuildableType.Id.MEDICAL_STATION
+	)
+	assert(medical_id >= 0)
+	var medical_snapshot: BuildableSnapshot = grid.get_snapshot(medical_id)
+	assert(medical_snapshot.cell_index == grid.balance.default_medical_cell)
 	assert(panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
 
 	panel.request_selected_role(CrewRole.Id.MEDIC)
