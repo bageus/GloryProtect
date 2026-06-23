@@ -28,6 +28,7 @@ func _test_domain_effects_and_limits() -> void:
 	var replacements: CrewReplacementController = game.get_node(
 		"CrewReplacementController"
 	)
+	replacements.instant_respawn_for_tests = false
 	var buildables: BuildableInventory = game.get_node("BuildableInventory")
 	var runtime: UpgradeRuntime = upgrades.get_runtime()
 	var catalog: UpgradeCatalog = upgrades.catalog
