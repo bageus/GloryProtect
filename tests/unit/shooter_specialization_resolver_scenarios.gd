@@ -50,6 +50,12 @@ func _test_piercing_and_explosion() -> void:
 		5,
 		BoardingEnemyController.State.ON_PLATFORM
 	)
+	var outside_range: BoardingEnemy = await _make_enemy(
+		registry,
+		Vector2(250.0, 0.0),
+		5,
+		BoardingEnemyController.State.ON_PLATFORM
+	)
 	var upgrades := ShooterUpgradeRuntime.new()
 	upgrades.apply_flag(&"shooter_specialization_sniper")
 	upgrades.apply_flag(&"shooter_sniper_multi_pierce")
@@ -63,11 +69,13 @@ func _test_piercing_and_explosion() -> void:
 		POLICY,
 		upgrades,
 		1,
-		5
+		5,
+		150.0
 	)
 	assert(behind_one.health.current_health == 3)
 	assert(behind_two.health.current_health == 3)
 	assert(outside_lane.health.current_health == 5)
+	assert(outside_range.health.current_health == 5)
 	shooter.free()
 	registry.queue_free()
 
@@ -103,7 +111,8 @@ func _test_air_mark_selects_strongest_target() -> void:
 		POLICY,
 		upgrades,
 		1,
-		5
+		5,
+		200.0
 	)
 	assert(strongest.is_damage_marked())
 	assert(not weaker.is_damage_marked())
