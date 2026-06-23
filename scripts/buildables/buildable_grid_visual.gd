@@ -2,7 +2,7 @@ class_name BuildableGridVisual
 extends Node2D
 
 const MEDICAL_POST_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_healler_post.png"
+	"res://visual/objects/asset_heal_post_base.png"
 )
 const ALPHA_CROP_THRESHOLD: float = 0.08
 
