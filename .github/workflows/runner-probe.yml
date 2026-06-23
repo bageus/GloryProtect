@@ -1,4 +1,4 @@
-name: NEXT-13 diagnostic
+name: Medic field diagnostic
 
 on:
   pull_request:
@@ -17,10 +17,10 @@ jobs:
     env:
       GODOT_VERSION: "4.6.2"
     steps:
-      - name: Checkout clean NEXT-13 branch
+      - name: Checkout medic field fix branch
         uses: actions/checkout@v4
         with:
-          ref: issue-26-anchorless-control
+          ref: fix/medic-field-default-cell
 
       - name: Install Godot
         shell: bash
@@ -48,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: next-13-godot-log
+          name: medic-field-godot-log
           path: /tmp/godot-scenarios.log
           if-no-files-found: error
 
