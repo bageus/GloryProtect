@@ -1,4 +1,4 @@
-name: Medical station diagnostic
+name: Crew command panel diagnostic
 
 on:
   pull_request:
@@ -17,10 +17,10 @@ jobs:
     env:
       GODOT_VERSION: "4.6.2"
     steps:
-      - name: Checkout medical station fix branch
+      - name: Checkout clean CrewCommandPanel branch
         uses: actions/checkout@v4
         with:
-          ref: fix/medical-station-movement-113
+          ref: fix/crew-command-panel-104
 
       - name: Install Godot
         shell: bash
@@ -48,7 +48,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: medical-station-godot-log
+          name: crew-command-panel-godot-log
           path: /tmp/godot-scenarios.log
           if-no-files-found: error
 
