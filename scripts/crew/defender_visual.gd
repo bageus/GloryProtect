@@ -13,6 +13,9 @@ const MEDIC_TEXTURE: Texture2D = preload(
 
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("StatusEffectComponent") var status_effects_path: NodePath
+@export_node_path("CrewRoleManager") var role_manager_path: NodePath = NodePath(
+	"../../CrewRoleManager"
+)
 @export_range(4.0, 40.0, 1.0) var body_radius: float = 14.0
 @export var body_color: Color = Color(0.45, 0.8, 1.0)
 @export_group("Defender Assets")
@@ -28,6 +31,8 @@ var _role_id: int = CrewRole.Id.FREE_FIGHTER
 var _regular_source_rect: Rect2
 var _driver_source_rect: Rect2
 var _medic_source_rect: Rect2
+var _defender: Defender
+var _role_manager: CrewRoleManager
 
 @onready var _health: HealthComponent = get_node(health_path)
 @onready var _status_effects: StatusEffectComponent = get_node(status_effects_path)
@@ -46,6 +51,11 @@ func _ready() -> void:
 		MEDIC_TEXTURE,
 		alpha_crop_threshold
 	)
+	_defender = get_parent() as Defender
+	_role_manager = get_node_or_null(role_manager_path) as CrewRoleManager
+	if _role_manager != null:
+		_role_manager.assignment_changed.connect(_on_assignment_changed)
+		_sync_role_from_manager()
 	_health.health_changed.connect(_on_health_changed)
 	_status_effects.poison_changed.connect(_on_poison_changed)
 	queue_redraw()
@@ -181,6 +191,27 @@ func _draw_health_segments(asset_rect: Rect2) -> void:
 			fill = Color(0.35, 0.95, 0.48)
 		draw_rect(rect, fill, true)
 		draw_rect(rect, Color(0.75, 0.85, 0.9), false, 1.0)
+
+
+func _sync_role_from_manager() -> void:
+	if _role_manager == null or _defender == null:
+		return
+	var assignment: CrewAssignmentRuntime = _role_manager.get_assignment(
+		_defender.defender_id
+	)
+	if assignment != null:
+		set_role(assignment.current_role)
+
+
+func _on_assignment_changed(
+	defender_id: int,
+	current_role: int,
+	_target_role: int,
+	_state: int
+) -> void:
+	if _defender == null or defender_id != _defender.defender_id:
+		return
+	set_role(current_role)
 
 
 func _on_health_changed(_current_health: int, _max_health: int) -> void:
