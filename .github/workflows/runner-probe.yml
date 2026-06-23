@@ -1,0 +1,30 @@
+name: Runner provisioning probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/runner-probe.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standard-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm standard runner startup
+        run: |
+          echo "ubuntu-latest runner started"
+          uname -a
+
+  slim-runner:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - name: Confirm slim runner startup
+        run: |
+          echo "ubuntu-slim runner started"
+          uname -a
