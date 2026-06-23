@@ -18,15 +18,21 @@ Preparation, projectile travel and sequential follow-up shots are treated as one
 
 Shooter cooldown modifiers compose with the defender's temporary attack-speed multiplier, so medic stimulant effects accelerate ranged attacks as well as melee attacks.
 
+Base-line percentage modifiers accumulate from the original statistic rather than compounding each other. Two range cards produce `+40%`, two cooldown cards produce `-30%`, and the sniper specialization adds another `+10%` range from the base value.
+
+A volley advances the completed-volley counter only after at least one bolt lands. A target dying before the first impact therefore cannot consume an anchor-hunter fifth-volley trigger.
+
 ## Target policy
 
 `ShooterTargetPolicy` controls eligibility for boarded, climbing, jumping and air targets. It supports nearest, strongest, air-first and anchor-first priority modes. The selector reads the shared `BoardingEnemyRegistry` and never owns enemy state.
+
+Secondary piercing and explosion effects also use the active policy, so harmless ground enemies are not damaged before they become valid combat targets.
 
 ## Specializations
 
 `ShooterCombatResolver` applies effects after a locked bolt lands:
 
-- piercing follows the bolt lane behind the primary target;
+- piercing follows the actual bolt vector behind the primary target and stops at the active shooter range;
 - sniper multi-piercing increases the number of secondary targets;
 - every fifth sniper bolt creates an area hit at the impact point;
 - air-hunter triple shot uses three sequential windups and projectiles against the same target;
@@ -47,6 +53,8 @@ New-run reset clears the shooter runtime and every defender's completed-bolt and
 
 `shooter_upgrade_catalog.tres` defines one unlock card, three basic/advanced lines, the piercing-bolt individual card, three specialization events and two independent extras per specialization.
 
+Card titles match the canonical Russian names in `docs/rules/07_UPGRADE_BRANCH_CATALOG.md`.
+
 `active_game_upgrade_catalog.tres` composes the shooter catalog with the turret, melee and medic catalogs.
 
 ## UI boundary
@@ -55,4 +63,4 @@ The role is exposed through `CrewRoleManager` and can be assigned after unlock. 
 
 ## Tests
 
-Coverage includes upgrade runtime and catalog gating, active-catalog composition, role unlock integration, target priorities, target locking, multi-shot sequences, specialization effects, incoming damage marks and pause semantics.
+Coverage includes upgrade runtime and catalog gating, canonical titles and branch weight, active-catalog composition, role unlock integration, target priorities, target locking, multi-shot sequences, angled and range-limited piercing, policy-filtered explosions, common reward delivery, specialization effects, incoming damage marks and pause semantics.
