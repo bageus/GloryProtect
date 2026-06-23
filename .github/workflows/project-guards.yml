@@ -56,6 +56,42 @@ jobs:
       - name: Run unit and integration scenarios
         run: bash tools/run_godot_scenarios.sh
 
+      - name: Collect asset diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          diagnostics="test-results/godot/asset-diagnostics"
+          mkdir -p "${diagnostics}/imports"
+          find visual/objects -maxdepth 3 -type f -print | sort \
+            > "${diagnostics}/object-files.txt"
+
+          assets=(
+            visual/objects/asset_anchor.png
+            visual/objects/asset_captain_post_base.png
+            visual/objects/asset_clamp.png
+            visual/objects/asset_heal_post_base.png
+            visual/objects/asset_winch_01.png
+            visual/objects/portal/asset_portal_base.png
+            visual/objects/portal/overlay_portal_spawn_01.png
+            visual/objects/portal/overlay_portal_spawn_02.png
+          )
+          for asset in "${assets[@]}"; do
+            if [[ -f "${asset}.import" ]]; then
+              cp "${asset}.import" \
+                "${diagnostics}/imports/$(echo "${asset}" | tr '/' '_').import"
+            fi
+          done
+
+          git fetch --no-tags --depth=1 origin \
+            a747a03fb8ba78f40356900fa6e23d3162bef932
+          git show \
+            a747a03fb8ba78f40356900fa6e23d3162bef932:visual/objects/asset_object_turret_post.png \
+            > "${diagnostics}/asset_object_turret_post.png"
+          git show \
+            a747a03fb8ba78f40356900fa6e23d3162bef932:visual/objects/asset_object_turret_post.png.import \
+            > "${diagnostics}/asset_object_turret_post.png.import"
+
       - name: Upload Godot scenario logs
         if: always()
         uses: actions/upload-artifact@v4
