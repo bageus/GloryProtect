@@ -29,3 +29,16 @@ jobs:
         run: |
           echo "ubuntu-slim runner started"
           uname -a
+
+  file-size-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Run guard against public main archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location \
+            https://github.com/bageus/GloryProtect/archive/refs/heads/main.tar.gz \
+            | tar -xz --strip-components=1
+          python3 tools/check_file_sizes.py
