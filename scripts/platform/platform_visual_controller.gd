@@ -3,6 +3,19 @@ extends Node2D
 
 signal spawn_sequence_finished(defender_id: int)
 
+const PORTAL_TEXTURE: Texture2D = preload(
+	"res://visual/objects/portal/asset_portal_base.png"
+)
+const PORTAL_SPAWN1_TEXTURE: Texture2D = preload(
+	"res://visual/objects/portal/overlay_portal_spawn_01.png"
+)
+const PORTAL_SPAWN2_TEXTURE: Texture2D = preload(
+	"res://visual/objects/portal/overlay_portal_spawn_02.png"
+)
+const CAPTAIN_POST_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_captain_post_base.png"
+)
+
 enum PortalState {
 	IDLE,
 	FLASH,
@@ -24,20 +37,14 @@ enum PortalState {
 @export var platform_core_offset: Vector2 = Vector2.ZERO
 @export_range(1, 24, 1) var platform_core_frame_count: int = 6
 @export_range(1.0, 30.0, 0.5) var platform_core_frame_rate: float = 8.0
+@export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
 @export_group("Driver Console")
 @export var driver_console_surface_offset: Vector2 = Vector2(0.0, -2.0)
-@export var driver_console_size: Vector2 = Vector2(52.0, 42.0)
-@export var driver_lever_mount_normalized: Vector2 = Vector2(0.5, 0.58)
-@export var driver_lever_mount_offset: Vector2 = Vector2.ZERO
-@export_range(12.0, 60.0, 1.0) var driver_lever_length: float = 34.0
-@export_range(0.0, 60.0, 1.0) var driver_lever_max_angle_degrees: float = 24.0
-@export_range(1.0, 30.0, 0.5) var driver_lever_response_speed: float = 13.0
 
 @export_group("Portal Visual")
 @export var portal_surface_offset: Vector2 = Vector2(0.0, 2.0)
-@export var portal_size: Vector2 = Vector2(54.0, 82.0)
-@export_range(1.0, 10.0, 0.5) var portal_frame_width: float = 4.0
+@export var portal_overlay_offset: Vector2 = Vector2(0.0, 2.0)
 @export_range(0.01, 2.0, 0.01) var portal_flash_duration: float = 0.18
 @export_range(0.01, 2.0, 0.01) var portal_ghost_duration: float = 0.26
 @export_range(0.01, 2.0, 0.01) var portal_finish_duration: float = 0.26
@@ -47,7 +54,10 @@ enum PortalState {
 
 var _game_flow: GameFlowController
 var _surface_visual := PlatformSurfaceVisual.new()
-var _driver_lever_angle: float = 0.0
+var _portal_source_rect: Rect2
+var _portal_spawn1_source_rect: Rect2
+var _portal_spawn2_source_rect: Rect2
+var _captain_post_source_rect: Rect2
 var _portal_state: PortalState = PortalState.IDLE
 var _portal_state_elapsed: float = 0.0
 var _portal_active_defender_id: int = -1
@@ -59,6 +69,22 @@ func _ready() -> void:
 	assert(crew_balance != null, "PlatformVisualController requires CrewBalance")
 	_surface_visual.configure(
 		platform_core_frame_count,
+		alpha_crop_threshold
+	)
+	_portal_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_TEXTURE,
+		alpha_crop_threshold
+	)
+	_portal_spawn1_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_SPAWN1_TEXTURE,
+		alpha_crop_threshold
+	)
+	_portal_spawn2_source_rect = TextureRegionLayout.get_alpha_bounds(
+		PORTAL_SPAWN2_TEXTURE,
+		alpha_crop_threshold
+	)
+	_captain_post_source_rect = TextureRegionLayout.get_alpha_bounds(
+		CAPTAIN_POST_TEXTURE,
 		alpha_crop_threshold
 	)
 	var scene_root: Node = get_tree().current_scene
@@ -77,7 +103,6 @@ func _process(delta: float) -> void:
 	)
 	if simulation_active:
 		_surface_visual.advance(delta)
-		_update_driver_lever(delta)
 		_update_portal(delta)
 	queue_redraw()
 
@@ -123,7 +148,9 @@ func _draw() -> void:
 
 func _draw_cells(platform_width: float) -> void:
 	for index: int in range(1, balance.cell_count):
-		var x: float = -platform_width * 0.5 + float(index) * balance.cell_width
+		var x: float = (
+			-platform_width * 0.5 + float(index) * balance.cell_width
+		)
 		draw_line(
 			Vector2(x, -balance.platform_height * 0.5),
 			Vector2(x, balance.platform_height * 0.5),
@@ -133,181 +160,72 @@ func _draw_cells(platform_width: float) -> void:
 
 
 func _draw_portal() -> void:
+	var portal_size: Vector2 = _portal_source_rect.size * object_asset_scale
 	var platform_top: float = -balance.platform_height * 0.5
 	var portal_bottom := Vector2(
 		crew_balance.replacement_door_local_x + portal_surface_offset.x,
 		platform_top + portal_surface_offset.y
 	)
-	var portal_center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
-	var portal_rect := Rect2(portal_center - portal_size * 0.5, portal_size)
-	var frame_tint := Color(0.28, 0.78, 1.0, 0.92)
-	if _portal_state != PortalState.IDLE:
-		frame_tint = Color(0.55, 0.94, 1.0, 1.0)
-
-	draw_rect(portal_rect, Color(0.025, 0.055, 0.09, 0.88), true)
-	draw_rect(portal_rect, frame_tint, false, portal_frame_width)
-	draw_line(
-		portal_rect.position + Vector2(portal_frame_width, portal_rect.size.y),
-		portal_rect.end - Vector2(portal_frame_width, 0.0),
-		Color(0.12, 0.35, 0.48, 0.95),
-		portal_frame_width
+	var center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
+	var portal_rect := Rect2(center - portal_size * 0.5, portal_size)
+	draw_texture_rect_region(
+		PORTAL_TEXTURE,
+		portal_rect,
+		_portal_source_rect
 	)
-	_draw_portal_idle_energy(portal_center)
 
 	if _portal_state == PortalState.IDLE:
 		return
-	if _portal_state == PortalState.FLASH:
-		var progress: float = clampf(
-			_portal_state_elapsed / maxf(portal_flash_duration, 0.01),
-			0.0,
-			1.0
-		)
-		_draw_portal_energy_pulse(portal_center, progress, sin(progress * PI))
-		return
 
-	var ghost_alpha: float = 0.38
-	if _portal_state == PortalState.FINISH:
-		ghost_alpha = lerpf(
-			0.5,
-			0.88,
-			clampf(
-				_portal_state_elapsed / maxf(portal_finish_duration, 0.01),
-				0.0,
-				1.0
-			)
-		)
-	_draw_portal_defender_ghost(portal_center + Vector2(0.0, 6.0), ghost_alpha)
-
-	if _portal_state == PortalState.FINISH:
-		var finish_progress: float = clampf(
-			_portal_state_elapsed / maxf(portal_finish_duration, 0.01),
-			0.0,
-			1.0
-		)
-		_draw_portal_energy_pulse(
-			portal_center,
-			finish_progress,
-			sin(finish_progress * PI)
-		)
-
-
-func _draw_portal_idle_energy(portal_center: Vector2) -> void:
-	var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.004)
-	var inner_size := Vector2(
-		maxf(4.0, portal_size.x - portal_frame_width * 3.0),
-		maxf(4.0, portal_size.y - portal_frame_width * 3.0)
-	)
-	var inner_rect := Rect2(portal_center - inner_size * 0.5, inner_size)
-	draw_rect(
-		inner_rect,
-		Color(0.18, 0.76, 1.0, 0.06 + pulse * 0.08),
-		true
+	# The first spawn layer remains visible through the whole sequence.
+	_draw_portal_overlay(
+		PORTAL_SPAWN1_TEXTURE,
+		_portal_spawn1_source_rect,
+		center
 	)
 
+	# The second frame is added on top without removing the first one.
+	if _portal_state == PortalState.GHOST or _portal_state == PortalState.FINISH:
+		_draw_portal_overlay(
+			PORTAL_SPAWN2_TEXTURE,
+			_portal_spawn2_source_rect,
+			center
+		)
 
-func _draw_portal_energy_pulse(
-	portal_center: Vector2,
-	progress: float,
-	alpha: float
+
+func _draw_portal_overlay(
+	texture: Texture2D,
+	source_rect: Rect2,
+	center: Vector2
 ) -> void:
-	var radius: float = lerpf(
-		portal_size.x * 0.12,
-		portal_size.x * 0.58,
-		clampf(progress, 0.0, 1.0)
+	var overlay_size: Vector2 = source_rect.size * object_asset_scale
+	var rect := Rect2(
+		center + portal_overlay_offset - overlay_size * 0.5,
+		overlay_size
 	)
-	var safe_alpha: float = clampf(alpha, 0.0, 1.0)
-	draw_circle(
-		portal_center,
-		radius,
-		Color(0.24, 0.86, 1.0, safe_alpha * 0.16)
-	)
-	draw_arc(
-		portal_center,
-		radius,
-		0.0,
-		TAU,
-		28,
-		Color(0.72, 0.98, 1.0, safe_alpha),
-		3.0
-	)
-
-
-func _draw_portal_defender_ghost(center: Vector2, alpha: float) -> void:
-	var color: Color = _get_portal_defender_color(_portal_active_defender_id)
-	color.a = alpha
-	var outline := Color(0.75, 0.96, 1.0, alpha * 0.9)
-	draw_circle(center + Vector2(0.0, -24.0), 10.0, color)
-	draw_rect(
-		Rect2(center + Vector2(-10.0, -14.0), Vector2(20.0, 30.0)),
-		color,
-		true
-	)
-	draw_line(
-		center + Vector2(-7.0, 16.0),
-		center + Vector2(-10.0, 31.0),
-		color,
-		6.0,
-		true
-	)
-	draw_line(
-		center + Vector2(7.0, 16.0),
-		center + Vector2(10.0, 31.0),
-		color,
-		6.0,
-		true
-	)
-	draw_arc(center + Vector2(0.0, -24.0), 11.5, 0.0, TAU, 20, outline, 2.0)
+	draw_texture_rect_region(texture, rect, source_rect)
 
 
 func _draw_driver_console() -> void:
+	var post_size: Vector2 = _captain_post_source_rect.size * object_asset_scale
 	var platform_top: float = -balance.platform_height * 0.5
-	var console_bottom := Vector2(
+	var post_bottom := Vector2(
 		driver_console_surface_offset.x,
 		platform_top + driver_console_surface_offset.y
 	)
-	var console_rect := Rect2(
-		console_bottom - Vector2(driver_console_size.x * 0.5, driver_console_size.y),
-		driver_console_size
+	var post_rect := Rect2(
+		post_bottom - Vector2(post_size.x * 0.5, post_size.y),
+		post_size
 	)
-	var console_tint := Color(0.48, 0.84, 1.0, 1.0)
+	var post_tint := Color.WHITE
 	if not _steering_input.driver_available:
-		console_tint = Color(0.55, 0.58, 0.62, 1.0)
-	draw_rect(console_rect, Color(0.08, 0.13, 0.18, 0.96), true)
-	draw_rect(console_rect, console_tint, false, 3.0)
-	draw_circle(
-		console_rect.position + Vector2(console_rect.size.x * 0.25, 12.0),
-		4.0,
-		console_tint
+		post_tint = Color(0.55, 0.58, 0.62, 1.0)
+	draw_texture_rect_region(
+		CAPTAIN_POST_TEXTURE,
+		post_rect,
+		_captain_post_source_rect,
+		post_tint
 	)
-	draw_circle(
-		console_rect.position + Vector2(console_rect.size.x * 0.75, 12.0),
-		4.0,
-		console_tint.darkened(0.25)
-	)
-
-	var lever_mount := Vector2(
-		console_rect.position.x
-			+ console_rect.size.x * driver_lever_mount_normalized.x,
-		console_rect.position.y
-			+ console_rect.size.y * driver_lever_mount_normalized.y
-	) + driver_lever_mount_offset
-	draw_set_transform(lever_mount, _driver_lever_angle, Vector2.ONE)
-	draw_line(Vector2.ZERO, Vector2(0.0, -driver_lever_length), console_tint, 6.0, true)
-	draw_circle(Vector2(0.0, -driver_lever_length), 8.0, console_tint)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _update_driver_lever(delta: float) -> void:
-	var steering_axis: float = _steering_input.get_steering_axis()
-	var maximum_angle: float = deg_to_rad(driver_lever_max_angle_degrees)
-	var target_angle: float = steering_axis * maximum_angle
-	_driver_lever_angle = lerp_angle(
-		_driver_lever_angle,
-		target_angle,
-		clampf(delta * driver_lever_response_speed, 0.0, 1.0)
-	)
-	if absf(_driver_lever_angle - target_angle) <= 0.0005:
-		_driver_lever_angle = target_angle
 
 
 func _update_portal(delta: float) -> void:
@@ -337,9 +255,10 @@ func _start_next_portal_sequence() -> void:
 
 func _finish_portal_sequence() -> void:
 	var completed_id: int = _portal_active_defender_id
+	# The receiver creates the defender synchronously. Clear both overlays after that.
+	spawn_sequence_finished.emit(completed_id)
 	_portal_active_defender_id = -1
 	_set_portal_state(PortalState.IDLE)
-	spawn_sequence_finished.emit(completed_id)
 	call_deferred("_start_next_portal_sequence")
 
 
@@ -347,16 +266,6 @@ func _set_portal_state(new_state: PortalState) -> void:
 	_portal_state = new_state
 	_portal_state_elapsed = 0.0
 	queue_redraw()
-
-
-func _get_portal_defender_color(defender_id: int) -> Color:
-	var colors: Array[Color] = [
-		Color(0.35, 0.84, 1.0),
-		Color(1.0, 0.68, 0.32),
-		Color(0.58, 0.92, 0.48),
-		Color(0.86, 0.5, 1.0),
-	]
-	return colors[maxi(0, defender_id) % colors.size()]
 
 
 func _on_visual_state_changed(_is_available: bool) -> void:

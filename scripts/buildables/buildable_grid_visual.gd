@@ -1,6 +1,11 @@
 class_name BuildableGridVisual
 extends Node2D
 
+const MEDICAL_POST_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_heal_post_base.png"
+)
+const ALPHA_CROP_THRESHOLD: float = 0.08
+
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("BuildableGrid") var grid_path: NodePath
 @export_node_path("BuildableInventory") var inventory_path: NodePath
@@ -9,6 +14,7 @@ extends Node2D
 @export_node_path("TurretSystem") var turret_system_path: NodePath = NodePath("../../TurretSystem")
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath = NodePath("../../BoardingEnemyRegistry")
 @export var balance: BuildableBalance
+@export_range(0.05, 0.5, 0.01) var medical_post_scale: float = 0.24
 @export var medical_post_surface_offset: Vector2 = Vector2.ZERO
 
 @onready var _platform: PlatformController = get_node(platform_path)
@@ -19,9 +25,12 @@ extends Node2D
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
+var _medical_source_rect: Rect2
+
 
 func _ready() -> void:
 	assert(balance != null, "BuildableGridVisual requires BuildableBalance")
+	_medical_source_rect = _get_alpha_bounds(MEDICAL_POST_TEXTURE)
 	_grid.buildable_placed.connect(_on_visual_changed)
 	_grid.buildable_moved.connect(_on_visual_changed)
 	_grid.buildable_demolished.connect(_on_visual_changed)
@@ -82,37 +91,46 @@ func _get_buildable_at_cell(cell_index: int) -> int:
 
 
 func _draw_medical_station(local_x: float) -> void:
+	var asset_size: Vector2 = _medical_source_rect.size * medical_post_scale
 	var bottom_center := Vector2(
 		local_x + medical_post_surface_offset.x,
 		balance.medical_station_bottom_y + medical_post_surface_offset.y
 	)
-	var station_size := Vector2(
-		balance.medical_station_width,
-		balance.medical_station_height
+	var rect := Rect2(
+		bottom_center - Vector2(asset_size.x * 0.5, asset_size.y),
+		asset_size
 	)
-	var station_rect := Rect2(
-		bottom_center - Vector2(station_size.x * 0.5, station_size.y),
-		station_size
+	draw_texture_rect_region(
+		MEDICAL_POST_TEXTURE,
+		rect,
+		_medical_source_rect
 	)
-	var frame_color := Color(0.32, 0.9, 0.76, 1.0)
-	draw_rect(station_rect, Color(0.07, 0.14, 0.16, 0.96), true)
-	draw_rect(station_rect, frame_color, false, 3.0)
-	var cross_center := station_rect.get_center() + Vector2(0.0, -4.0)
-	draw_rect(
-		Rect2(cross_center + Vector2(-4.0, -13.0), Vector2(8.0, 26.0)),
-		frame_color,
-		true
-	)
-	draw_rect(
-		Rect2(cross_center + Vector2(-13.0, -4.0), Vector2(26.0, 8.0)),
-		frame_color,
-		true
-	)
-	draw_line(
-		station_rect.position + Vector2(6.0, station_rect.size.y - 10.0),
-		station_rect.end - Vector2(6.0, 10.0),
-		Color(0.18, 0.46, 0.42),
-		3.0
+
+
+func _get_alpha_bounds(texture: Texture2D) -> Rect2:
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return Rect2(Vector2.ZERO, texture.get_size())
+	var min_x: int = image.get_width()
+	var min_y: int = image.get_height()
+	var max_x: int = -1
+	var max_y: int = -1
+	for y: int in range(image.get_height()):
+		for x: int in range(image.get_width()):
+			if image.get_pixel(x, y).a <= ALPHA_CROP_THRESHOLD:
+				continue
+			min_x = mini(min_x, x)
+			min_y = mini(min_y, y)
+			max_x = maxi(max_x, x)
+			max_y = maxi(max_y, y)
+	if max_x < min_x or max_y < min_y:
+		return Rect2(Vector2.ZERO, texture.get_size())
+	return Rect2(
+		Vector2(float(min_x), float(min_y)),
+		Vector2(
+			float(max_x - min_x + 1),
+			float(max_y - min_y + 1)
+		)
 	)
 
 
