@@ -33,7 +33,6 @@ fi
 for scenario_file in "${scenario_files[@]}"; do
   log_name="${scenario_file//\//__}"
   log_path="${RESULT_DIR}/${log_name%.gd}.log"
-  echo "::group::${scenario_file}"
 
   set +e
   timeout --signal=TERM --kill-after=5s "${SCENARIO_TIMEOUT_SECONDS}s" \
@@ -46,21 +45,15 @@ for scenario_file in "${scenario_files[@]}"; do
   set -e
 
   if (( scenario_status != 0 )); then
+    echo "FAILED_SCENARIO=${scenario_file}"
     if (( scenario_status == 124 || scenario_status == 137 )); then
       echo "Scenario timed out after ${SCENARIO_TIMEOUT_SECONDS}s." >&2
     else
       echo "Scenario failed with exit ${scenario_status}." >&2
     fi
-    grep -E -i 'parse error|script error|error:|assert|failed|invalid|not found' \
-      "${log_path}" | head -n 160 || true
-    echo "--- final output ---"
-    tail -n 120 "${log_path}"
-    echo "::endgroup::"
+    tail -n 80 "${log_path}"
     exit 1
   fi
-
-  grep -E -i 'scenarios? passed|warning|error' "${log_path}" | tail -n 40 || true
-  echo "::endgroup::"
 done
 
 echo "All ${#scenario_files[@]} remaining Godot scenarios passed."
