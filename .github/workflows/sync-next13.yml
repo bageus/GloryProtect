@@ -1,0 +1,56 @@
+name: Sync NEXT-13 with main
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/sync-next13.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout NEXT-13 branch
+        uses: actions/checkout@v4
+        with:
+          ref: issue-26-anchorless-control
+          fetch-depth: 0
+
+      - name: Attempt merge and collect conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          set +e
+          git merge --no-commit --no-ff origin/main
+          status=$?
+          set -e
+          if [[ $status -ne 0 ]]; then
+            mkdir -p /tmp/next13-conflicts
+            git status --short > /tmp/next13-conflicts/status.txt
+            git diff --name-only --diff-filter=U > /tmp/next13-conflicts/conflicted-files.txt
+            while IFS= read -r path; do
+              [[ -z "$path" ]] && continue
+              mkdir -p "/tmp/next13-conflicts/$(dirname "$path")"
+              cp "$path" "/tmp/next13-conflicts/$path"
+            done < /tmp/next13-conflicts/conflicted-files.txt
+            exit 2
+          fi
+          rm -f .github/workflows/sync-next13.yml
+          git add -A
+          git commit -m "Merge main into NEXT-13"
+          git push origin HEAD:issue-26-anchorless-control
+
+      - name: Upload conflict report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: next13-conflicts
+          path: /tmp/next13-conflicts
+          if-no-files-found: error
