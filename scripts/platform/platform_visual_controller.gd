@@ -3,15 +3,6 @@ extends Node2D
 
 signal spawn_sequence_finished(defender_id: int)
 
-const PORTAL_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/asset_object_portal.png"
-)
-const PORTAL_SPAWN1_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/overlay_object_portal_spawn1.png"
-)
-const PORTAL_SPAWN2_TEXTURE: Texture2D = preload(
-	"res://visual/objects/portal/overlay_object_portal_spawn2.png"
-)
 const DRIVER_TOGGLE_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_object_toggle.png"
 )
@@ -51,7 +42,8 @@ enum PortalState {
 
 @export_group("Portal Visual")
 @export var portal_surface_offset: Vector2 = Vector2(0.0, 2.0)
-@export var portal_overlay_offset: Vector2 = Vector2(0.0, 2.0)
+@export var portal_size: Vector2 = Vector2(54.0, 82.0)
+@export_range(1.0, 10.0, 0.5) var portal_frame_width: float = 4.0
 @export_range(0.01, 2.0, 0.01) var portal_flash_duration: float = 0.18
 @export_range(0.01, 2.0, 0.01) var portal_ghost_duration: float = 0.26
 @export_range(0.01, 2.0, 0.01) var portal_finish_duration: float = 0.26
@@ -61,9 +53,6 @@ enum PortalState {
 
 var _game_flow: GameFlowController
 var _surface_visual := PlatformSurfaceVisual.new()
-var _portal_source_rect: Rect2
-var _portal_spawn1_source_rect: Rect2
-var _portal_spawn2_source_rect: Rect2
 var _driver_toggle_source_rect: Rect2
 var _driver_lever_source_rect: Rect2
 var _driver_lever_angle: float = 0.0
@@ -78,18 +67,6 @@ func _ready() -> void:
 	assert(crew_balance != null, "PlatformVisualController requires CrewBalance")
 	_surface_visual.configure(
 		platform_core_frame_count,
-		alpha_crop_threshold
-	)
-	_portal_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_TEXTURE,
-		alpha_crop_threshold
-	)
-	_portal_spawn1_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_SPAWN1_TEXTURE,
-		alpha_crop_threshold
-	)
-	_portal_spawn2_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PORTAL_SPAWN2_TEXTURE,
 		alpha_crop_threshold
 	)
 	_driver_toggle_source_rect = TextureRegionLayout.get_alpha_bounds(
@@ -174,19 +151,26 @@ func _draw_cells(platform_width: float) -> void:
 
 
 func _draw_portal() -> void:
-	var portal_size: Vector2 = _portal_source_rect.size * object_asset_scale
 	var platform_top: float = -balance.platform_height * 0.5
 	var portal_bottom := Vector2(
 		crew_balance.replacement_door_local_x + portal_surface_offset.x,
 		platform_top + portal_surface_offset.y
 	)
-	var center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
-	var portal_rect := Rect2(center - portal_size * 0.5, portal_size)
-	draw_texture_rect_region(
-		PORTAL_TEXTURE,
-		portal_rect,
-		_portal_source_rect
+	var portal_center := portal_bottom - Vector2(0.0, portal_size.y * 0.5)
+	var portal_rect := Rect2(portal_center - portal_size * 0.5, portal_size)
+	var frame_tint := Color(0.28, 0.78, 1.0, 0.92)
+	if _portal_state != PortalState.IDLE:
+		frame_tint = Color(0.55, 0.94, 1.0, 1.0)
+
+	draw_rect(portal_rect, Color(0.025, 0.055, 0.09, 0.88), true)
+	draw_rect(portal_rect, frame_tint, false, portal_frame_width)
+	draw_line(
+		portal_rect.position + Vector2(portal_frame_width, portal_rect.size.y),
+		portal_rect.end - Vector2(portal_frame_width, 0.0),
+		Color(0.12, 0.35, 0.48, 0.95),
+		portal_frame_width
 	)
+	_draw_portal_idle_energy(portal_center)
 
 	if _portal_state == PortalState.IDLE:
 		return
@@ -196,11 +180,10 @@ func _draw_portal() -> void:
 			0.0,
 			1.0
 		)
-		_draw_portal_overlay(
-			PORTAL_SPAWN1_TEXTURE,
-			_portal_spawn1_source_rect,
-			center,
-			Color(1.0, 1.0, 1.0, sin(progress * PI))
+		_draw_portal_energy_pulse(
+			portal_center,
+			progress,
+			sin(progress * PI)
 		)
 		return
 
@@ -215,7 +198,7 @@ func _draw_portal() -> void:
 				1.0
 			)
 		)
-	_draw_portal_defender_ghost(center + Vector2(0.0, 6.0), ghost_alpha)
+	_draw_portal_defender_ghost(portal_center + Vector2(0.0, 6.0), ghost_alpha)
 
 	if _portal_state == PortalState.FINISH:
 		var finish_progress: float = clampf(
@@ -223,26 +206,52 @@ func _draw_portal() -> void:
 			0.0,
 			1.0
 		)
-		_draw_portal_overlay(
-			PORTAL_SPAWN2_TEXTURE,
-			_portal_spawn2_source_rect,
-			center,
-			Color(1.0, 1.0, 1.0, sin(finish_progress * PI))
+		_draw_portal_energy_pulse(
+			portal_center,
+			finish_progress,
+			sin(finish_progress * PI)
 		)
 
 
-func _draw_portal_overlay(
-	texture: Texture2D,
-	source_rect: Rect2,
-	center: Vector2,
-	overlay_modulate: Color
-) -> void:
-	var overlay_size: Vector2 = source_rect.size * object_asset_scale
-	var rect := Rect2(
-		center + portal_overlay_offset - overlay_size * 0.5,
-		overlay_size
+func _draw_portal_idle_energy(portal_center: Vector2) -> void:
+	var pulse: float = 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.004)
+	var inner_size := Vector2(
+		maxf(4.0, portal_size.x - portal_frame_width * 3.0),
+		maxf(4.0, portal_size.y - portal_frame_width * 3.0)
 	)
-	draw_texture_rect_region(texture, rect, source_rect, overlay_modulate)
+	var inner_rect := Rect2(portal_center - inner_size * 0.5, inner_size)
+	draw_rect(
+		inner_rect,
+		Color(0.18, 0.76, 1.0, 0.06 + pulse * 0.08),
+		true
+	)
+
+
+func _draw_portal_energy_pulse(
+	portal_center: Vector2,
+	progress: float,
+	alpha: float
+) -> void:
+	var radius: float = lerpf(
+		portal_size.x * 0.12,
+		portal_size.x * 0.58,
+		clampf(progress, 0.0, 1.0)
+	)
+	var safe_alpha: float = clampf(alpha, 0.0, 1.0)
+	draw_circle(
+		portal_center,
+		radius,
+		Color(0.24, 0.86, 1.0, safe_alpha * 0.16)
+	)
+	draw_arc(
+		portal_center,
+		radius,
+		0.0,
+		TAU,
+		28,
+		Color(0.72, 0.98, 1.0, safe_alpha),
+		3.0
+	)
 
 
 func _draw_portal_defender_ghost(center: Vector2, alpha: float) -> void:
