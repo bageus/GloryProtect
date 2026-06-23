@@ -21,6 +21,7 @@ func _run_scenarios() -> void:
 	var platform := game.get_node("World/Platform") as PlatformController
 	var wind := game.get_node("WindSystem") as WindSystem
 
+	game_flow.state = GameFlowController.RunState.RUNNING
 	wind.balance.level_forces = PackedFloat32Array([0.0, 0.0, 0.0])
 	wind.balance.fluctuation_force = 0.0
 	wind.set_debug_state(1, 1)
