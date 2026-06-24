@@ -48,18 +48,18 @@ func retarget_fraction_from_section(section_id: int, ratio: float) -> int:
 		var target_section := _choose_alternative_section(section_id)
 		if target_section < 0:
 			break
-		if move_count >= runtime.enemy_count or get_available_group_slots() <= 0:
-			var moved := runtime.enemy_count
-			runtime.replan_route(
-				target_section,
-				_shield.get_section_count(),
-				_get_remaining_travel_duration(runtime),
-				balance.mutation_cooldown
-			)
-			group_changed.emit(runtime.group_id, runtime.enemy_count, runtime.progress)
-			retargeted += moved
+		if move_count >= runtime.enemy_count:
+			_retarget_whole_group(runtime, target_section)
+			retargeted += move_count
 			continue
-		_split_group_for_retarget(runtime, move_count, target_section)
+		if get_available_group_slots() > 0:
+			_split_group_for_retarget(runtime, move_count, target_section)
+			retargeted += move_count
+			continue
+		var receiver := _find_retarget_receiver(runtime.group_id, section_id)
+		if receiver == null:
+			break
+		_transfer_to_existing_group(runtime, receiver, move_count)
 		retargeted += move_count
 	strategic_enemies_retargeted.emit(section_id, retargeted)
 	return retargeted
@@ -94,6 +94,16 @@ func destroy_nearest_rows(section_id: int, row_count: int) -> int:
 	return destroyed
 
 
+func _retarget_whole_group(runtime: StrategicGroupRuntime, target_section: int) -> void:
+	runtime.replan_route(
+		target_section,
+		_shield.get_section_count(),
+		_get_remaining_travel_duration(runtime),
+		balance.mutation_cooldown
+	)
+	group_changed.emit(runtime.group_id, runtime.enemy_count, runtime.progress)
+
+
 func _split_group_for_retarget(
 	source: StrategicGroupRuntime,
 	move_count: int,
@@ -123,6 +133,31 @@ func _split_group_for_retarget(
 	)
 	_groups.append(split)
 	group_added.emit(split.group_id, split.section_id, split.enemy_count)
+
+
+func _find_retarget_receiver(
+	source_group_id: int,
+	source_section_id: int
+) -> StrategicGroupRuntime:
+	for runtime: StrategicGroupRuntime in _groups:
+		if runtime.group_id == source_group_id:
+			continue
+		if runtime.section_id != source_section_id and runtime.enemy_count > 0:
+			return runtime
+	return null
+
+
+func _transfer_to_existing_group(
+	source: StrategicGroupRuntime,
+	receiver: StrategicGroupRuntime,
+	move_count: int
+) -> void:
+	source.enemy_count -= move_count
+	source.initial_enemy_count = maxi(source.enemy_count, source.initial_enemy_count - move_count)
+	receiver.enemy_count += move_count
+	receiver.initial_enemy_count += move_count
+	group_changed.emit(source.group_id, source.enemy_count, source.progress)
+	group_changed.emit(receiver.group_id, receiver.enemy_count, receiver.progress)
 
 
 func _choose_alternative_section(source_section_id: int) -> int:
