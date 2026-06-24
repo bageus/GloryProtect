@@ -1,0 +1,237 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=34 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectSteeringBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_steering_force_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardSteeringBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_steering_force_basic"
+branch_id = &"steering"
+title = "Steering Drive"
+description = "Steering force is increased by 10%."
+card_type = 1
+effect = SubResource("EffectSteeringBasic")
+
+[sub_resource type="Resource" id="EffectSteeringAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_steering_force_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardSteeringAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_steering_force_advanced"
+branch_id = &"steering"
+title = "Turbo Steering Drive"
+description = "Steering force is increased by another 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_steering_force_basic"])
+effect = SubResource("EffectSteeringAdvanced")
+
+[sub_resource type="Resource" id="EffectWindBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_wind_reduction_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardWindBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_wind_reduction_basic"
+branch_id = &"steering"
+title = "Wind Compensator"
+description = "Wind force is reduced by 10%."
+card_type = 1
+effect = SubResource("EffectWindBasic")
+
+[sub_resource type="Resource" id="EffectWindAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_wind_reduction_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardWindAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_wind_reduction_advanced"
+branch_id = &"steering"
+title = "Turbo Wind Compensator"
+description = "Wind force is reduced by another 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_wind_reduction_basic"])
+effect = SubResource("EffectWindAdvanced")
+
+[sub_resource type="Resource" id="EffectDragBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_release_drag_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardDragBasic"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_release_drag_basic"
+branch_id = &"steering"
+title = "Inertial Stabilizer"
+description = "Velocity decays 20% faster after input ends."
+card_type = 1
+effect = SubResource("EffectDragBasic")
+
+[sub_resource type="Resource" id="EffectDragAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"anchorless_release_drag_bonus_ratio"
+scalar_value = 0.2
+
+[sub_resource type="Resource" id="CardDragAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_release_drag_advanced"
+branch_id = &"steering"
+title = "Turbo Inertial Stabilizer"
+description = "Velocity decays another 20% faster after input ends."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"anchorless_release_drag_basic"])
+effect = SubResource("EffectDragAdvanced")
+
+[sub_resource type="Resource" id="EffectAutoSteering"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_auto_steering"
+
+[sub_resource type="Resource" id="CardAutoSteering"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_auto_steering"
+branch_id = &"steering"
+title = "Automatic Steering"
+description = "Strength-1 wind is ignored while a driver is present."
+card_type = 3
+required_completed_branch_id = &"steering"
+effect = SubResource("EffectAutoSteering")
+
+[sub_resource type="Resource" id="EffectPrecise"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_precise"
+
+[sub_resource type="Resource" id="CardPrecise"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_precise"
+branch_id = &"steering"
+title = "Precise Stabilization"
+description = "Inertia is reduced by 25%."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_speed", &"anchorless_specialization_powerful"])
+effect = SubResource("EffectPrecise")
+
+[sub_resource type="Resource" id="EffectSpeed"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_speed"
+
+[sub_resource type="Resource" id="CardSpeed"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_speed"
+branch_id = &"steering"
+title = "Speed Flight"
+description = "Acceleration and maximum speed are increased by 15%."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_precise", &"anchorless_specialization_powerful"])
+effect = SubResource("EffectSpeed")
+
+[sub_resource type="Resource" id="EffectPowerful"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_specialization_powerful"
+
+[sub_resource type="Resource" id="CardPowerful"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_specialization_powerful"
+branch_id = &"steering"
+title = "Powerful Stabilization"
+description = "Contact discharges damage enemies near remembered anchor points."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"anchorless_specialization_precise", &"anchorless_specialization_speed"])
+effect = SubResource("EffectPowerful")
+
+[sub_resource type="Resource" id="EffectPreciseRecharge"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_precise_recharge"
+
+[sub_resource type="Resource" id="CardPreciseRecharge"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_precise_recharge"
+branch_id = &"steering"
+title = "Central Resonance"
+description = "Recharge is 25% faster near the contact-zone center."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_precise"
+effect = SubResource("EffectPreciseRecharge")
+
+[sub_resource type="Resource" id="EffectLongFlight"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_speed_long_flight_restore"
+
+[sub_resource type="Resource" id="CardLongFlight"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_speed_long_flight_restore"
+branch_id = &"steering"
+title = "Long-Flight Pulse"
+description = "The first contact after a long flight restores 10%."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_speed"
+effect = SubResource("EffectLongFlight")
+
+[sub_resource type="Resource" id="EffectFrontSweep"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_speed_front_sweep"
+
+[sub_resource type="Resource" id="CardFrontSweep"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_speed_front_sweep"
+branch_id = &"steering"
+title = "Ramming Edge"
+description = "A moving platform sweeps ground enemies in front of it."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_speed"
+effect = SubResource("EffectFrontSweep")
+
+[sub_resource type="Resource" id="EffectGroundCore"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_powerful_ground_core"
+
+[sub_resource type="Resource" id="CardGroundCore"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_powerful_ground_core"
+branch_id = &"steering"
+title = "Ground-Core Pulse"
+description = "Contact transitions damage ground enemies."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_powerful"
+effect = SubResource("EffectGroundCore")
+
+[sub_resource type="Resource" id="EffectPlatformCore"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"anchorless_powerful_platform_core"
+
+[sub_resource type="Resource" id="CardPlatformCore"]
+script = ExtResource("2_definition")
+card_id = &"anchorless_powerful_platform_core"
+branch_id = &"steering"
+title = "Platform-Core Pulse"
+description = "Contact transitions damage boarded and air enemies."
+card_type = 5
+required_specialization_id = &"anchorless_specialization_powerful"
+effect = SubResource("EffectPlatformCore")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardSteeringBasic"), SubResource("CardSteeringAdvanced"), SubResource("CardWindBasic"), SubResource("CardWindAdvanced"), SubResource("CardDragBasic"), SubResource("CardDragAdvanced"), SubResource("CardAutoSteering"), SubResource("CardPrecise"), SubResource("CardSpeed"), SubResource("CardPowerful"), SubResource("CardPreciseRecharge"), SubResource("CardLongFlight"), SubResource("CardFrontSweep"), SubResource("CardGroundCore"), SubResource("CardPlatformCore")])
