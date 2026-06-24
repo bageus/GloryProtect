@@ -19,9 +19,16 @@ if (( import_status != 0 )); then
   exit 1
 fi
 
-mapfile -t scenario_files < <(
+priority_scenario="tests/integration/melee_specialization_combat_scenarios.gd"
+mapfile -t discovered_scenarios < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
 )
+scenario_files=("${priority_scenario}")
+for scenario_file in "${discovered_scenarios[@]}"; do
+  if [[ "${scenario_file}" != "${priority_scenario}" ]]; then
+    scenario_files+=("${scenario_file}")
+  fi
+done
 
 if (( ${#scenario_files[@]} == 0 )); then
   echo "No Godot scenario files found." >&2
