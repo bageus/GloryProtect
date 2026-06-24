@@ -15,6 +15,10 @@ extends Node
 func _ready() -> void:
 	_controller.hovered_cell_changed.connect(_on_hovered_cell_changed)
 	_controller.selected_turret_changed.connect(_on_selected_turret_changed)
+	call_deferred("_sync_initial_state")
+
+
+func _sync_initial_state() -> void:
 	_on_hovered_cell_changed(_controller.get_hovered_cell_index())
 	_on_selected_turret_changed(_controller.get_selected_turret_id())
 
