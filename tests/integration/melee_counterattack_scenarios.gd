@@ -34,7 +34,6 @@ func _run_scenario() -> void:
 	assert(crew.apply_melee_flag(&"melee_specialization_duelist"))
 	assert(crew.apply_melee_flag(&"melee_duelist_counterattack"))
 	var defender: Defender = crew.get_defender(0)
-	defender.teleport_to(0.0)
 	defender.combat.set_physics_process(false)
 
 	var attacker: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
@@ -44,24 +43,14 @@ func _run_scenario() -> void:
 	bystander.force_board_at(4.0)
 	attacker.controller.set_physics_process(false)
 	bystander.controller.set_physics_process(false)
+	defender.teleport_to(attacker.controller.get_platform_local_x())
 
 	var health_before: int = defender.health.current_health
-	var counterattack_distance: float = defender.global_position.distance_to(
-		attacker.global_position
-	)
 	assert(attacker.melee.try_start(defender.health))
 	attacker.melee.tick(10.0)
 	assert(defender.health.current_health == health_before)
 	assert(defender.durability.get_current_armor() == 0)
-	assert(
-		attacker.health.current_health == 0,
-		"Counterattack failed: distance=%s range=%s damage=%s enabled=%s" % [
-			counterattack_distance,
-			game.get_node("World/CrewCombatCoordinator").balance.defender_attack_range,
-			defender.melee.get_damage(),
-			crew.get_melee_upgrades().duelist_counterattack,
-		]
-	)
+	assert(attacker.health.current_health == 0)
 	assert(bystander.health.current_health == 1)
 
 	print("Melee counterattack scenarios passed")
