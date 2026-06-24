@@ -46,11 +46,22 @@ func _run_scenario() -> void:
 	bystander.controller.set_physics_process(false)
 
 	var health_before: int = defender.health.current_health
+	var counterattack_distance: float = defender.global_position.distance_to(
+		attacker.global_position
+	)
 	assert(attacker.melee.try_start(defender.health))
 	attacker.melee.tick(10.0)
 	assert(defender.health.current_health == health_before)
 	assert(defender.durability.get_current_armor() == 0)
-	assert(attacker.health.current_health == 0)
+	assert(
+		attacker.health.current_health == 0,
+		"Counterattack failed: distance=%s range=%s damage=%s enabled=%s" % [
+			counterattack_distance,
+			game.get_node("World/CrewCombatCoordinator").balance.defender_attack_range,
+			defender.melee.get_damage(),
+			crew.get_melee_upgrades().duelist_counterattack,
+		]
+	)
 	assert(bystander.health.current_health == 1)
 
 	print("Melee counterattack scenarios passed")
