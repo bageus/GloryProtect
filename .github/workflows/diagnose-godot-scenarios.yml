@@ -17,7 +17,7 @@ env:
 jobs:
   suite:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v4
@@ -34,16 +34,13 @@ jobs:
             "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
             /usr/local/bin/godot
 
-      - name: Run suite and capture status
+      - name: Import project
+        run: timeout 120s godot --headless --path . --import
+
+      - name: Run every scenario
         id: suite
         continue-on-error: true
-        shell: bash
-        run: |
-          set +e
-          bash tools/run_godot_scenarios.sh
-          status=$?
-          echo "status=${status}" >> "$GITHUB_OUTPUT"
-          exit 0
+        run: python tools/run_godot_scenarios_collect.py
 
       - name: Upload Godot logs
         uses: actions/upload-artifact@v4
@@ -51,6 +48,6 @@ jobs:
           name: godot-suite-logs
           path: test-results/godot
 
-      - name: Fail when suite failed
+      - name: Fail when scenarios failed
         shell: bash
-        run: test "${{ steps.suite.outputs.status }}" = "0"
+        run: test "${{ steps.suite.outcome }}" = "success"
