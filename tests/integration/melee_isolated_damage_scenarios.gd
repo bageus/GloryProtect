@@ -18,7 +18,6 @@ func _run_scenario() -> void:
 
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
-	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
 	director.set_process(false)
 	director.set_physics_process(false)
 	assert(crew.apply_melee_flag(&"melee_specialization_duelist"))
@@ -29,31 +28,13 @@ func _run_scenario() -> void:
 		crew_member.combat.set_physics_process(false)
 
 	var primary: BoardingEnemy = _spawn_enemy(director, 30.0)
-	print("isolated flag=%s defender_damage=%d primary=(%.2f, %.2f) health=%d" % [
-		str(crew.get_melee_upgrades().duelist_isolated_damage),
-		defender.melee.get_damage(),
-		primary.global_position.x,
-		primary.global_position.y,
-		primary.health.current_health,
-	])
-	var boarded: Array[BoardingEnemy] = registry.get_boarded_enemies()
-	print("isolated boarded_count=%d" % boarded.size())
-	for enemy: BoardingEnemy in boarded:
-		print("isolated enemy id=%d pos=(%.2f, %.2f) distance_to_primary=%.2f alive=%s" % [
-			enemy.enemy_id,
-			enemy.global_position.x,
-			enemy.global_position.y,
-			primary.global_position.distance_to(enemy.global_position),
-			str(enemy.health.is_alive()),
-		])
 	assert(bool(defender.combat.call("_try_start_attack", primary)))
 	defender.melee.tick(0.4)
-	print("isolated primary_health_after_first=%d" % primary.health.current_health)
 	assert(primary.health.current_health == 1)
 	defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
 	primary.health.set_health(3)
-	var neighbor: BoardingEnemy = _spawn_enemy(director, 58.0)
+	var neighbor: BoardingEnemy = _spawn_enemy(director, 63.0)
 	assert(
 		primary.global_position.distance_to(neighbor.global_position)
 		<= director.balance.defender_attack_range
