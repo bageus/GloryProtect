@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -6,7 +6,7 @@
 [ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="4_boarding"]
 [ext_resource type="Resource" path="res://resources/enemies/flying_enemy_profile.tres" id="5_profile"]
 [ext_resource type="Resource" path="res://resources/upgrades/active_game_upgrade_catalog.tres" id="6_upgrades"]
-[ext_resource type="Script" path="res://scripts/upgrades/medic_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
+[ext_resource type="Script" path="res://scripts/upgrades/combat_anchor_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
 [ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
 [ext_resource type="Script" path="res://scripts/medical/medic_role_modifier_controller.gd" id="10_medic_roles"]
@@ -14,6 +14,8 @@
 [ext_resource type="Script" path="res://scripts/medical/medic_protective_healing_controller.gd" id="12_protective"]
 [ext_resource type="Script" path="res://scripts/medical/medic_revival_controller.gd" id="13_revival"]
 [ext_resource type="Script" path="res://scripts/crew/shooter_crew_role_manager.gd" id="14_shooter_roles"]
+[ext_resource type="Script" path="res://scripts/anchors/combat_anchor_host_system.gd" id="15_anchor_host"]
+[ext_resource type="Script" path="res://scripts/anchors/combat_anchor_system.gd" id="16_combat_anchors"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -23,12 +25,16 @@ catalog = ExtResource("6_upgrades")
 replacement_controller_path = NodePath("../CrewReplacementController")
 turret_system_path = NodePath("../World/TurretSystem")
 medical_system_path = NodePath("../World/MedicalStationSystem")
+combat_anchor_system_path = NodePath("../World/CombatAnchorSystem")
 
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
 
 [node name="GroundOrbVisualController" parent="World"]
 ground_core_half_size = Vector2(96, 192)
+
+[node name="AnchorSystem" parent="World"]
+script = ExtResource("15_anchor_host")
 
 [node name="PlatformVisualController" parent="World/Platform"]
 driver_console_surface_offset = Vector2(60, -2)
@@ -39,6 +45,12 @@ script = ExtResource("14_shooter_roles")
 [node name="TurretSystem" parent="World"]
 script = ExtResource("8_turret_system")
 upgrade_balance = ExtResource("9_turret_balance")
+
+[node name="CombatAnchorSystem" type="Node" parent="World"]
+script = ExtResource("16_combat_anchors")
+game_flow_path = NodePath("../../GameFlowController")
+anchor_system_path = NodePath("../AnchorSystem")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
 script = ExtResource("10_medic_roles")
