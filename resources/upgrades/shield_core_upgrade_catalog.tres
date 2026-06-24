@@ -1,0 +1,147 @@
+[gd_resource type="Resource" script_class="UpgradeCatalog" load_steps=22 format=3]
+
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_catalog.gd" id="1_catalog"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_definition.gd" id="2_definition"]
+[ext_resource type="Script" path="res://scripts/upgrades/upgrade_effect_definition.gd" id="3_effect"]
+
+[sub_resource type="Resource" id="EffectCapacityBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_capacity_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardCapacityBasic"]
+script = ExtResource("2_definition")
+card_id = &"shield_capacity_basic"
+branch_id = &"shield_core"
+title = "Улучшенная защита щита"
+description = "Эффективная ёмкость каждой секции увеличена на 10%. Отображаемая шкала остаётся в диапазоне 0–100%."
+card_type = 1
+effect = SubResource("EffectCapacityBasic")
+
+[sub_resource type="Resource" id="EffectCapacityAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_capacity_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardCapacityAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shield_capacity_advanced"
+branch_id = &"shield_core"
+title = "Мощная защита щита"
+description = "Эффективная ёмкость каждой секции дополнительно увеличена на 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shield_capacity_basic"])
+effect = SubResource("EffectCapacityAdvanced")
+
+[sub_resource type="Resource" id="EffectRechargeBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_recharge_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardRechargeBasic"]
+script = ExtResource("2_definition")
+card_id = &"shield_recharge_basic"
+branch_id = &"shield_core"
+title = "Ускоренное восстановление щита"
+description = "Скорость восстановления секции при энергетическом контакте увеличена на 10%."
+card_type = 1
+effect = SubResource("EffectRechargeBasic")
+
+[sub_resource type="Resource" id="EffectRechargeAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_recharge_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardRechargeAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shield_recharge_advanced"
+branch_id = &"shield_core"
+title = "Турбо-восстановление щита"
+description = "Скорость восстановления секции дополнительно увеличена на 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shield_recharge_basic"])
+effect = SubResource("EffectRechargeAdvanced")
+
+[sub_resource type="Resource" id="EffectContactBasic"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_contact_width_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardContactBasic"]
+script = ExtResource("2_definition")
+card_id = &"shield_contact_basic"
+branch_id = &"shield_core"
+title = "Расширенный контакт"
+description = "Допустимая ширина зоны энергетического контакта увеличена на 10%."
+card_type = 1
+effect = SubResource("EffectContactBasic")
+
+[sub_resource type="Resource" id="EffectContactAdvanced"]
+script = ExtResource("3_effect")
+effect_type = 4
+target_id = &"shield_contact_width_bonus_ratio"
+scalar_value = 0.1
+
+[sub_resource type="Resource" id="CardContactAdvanced"]
+script = ExtResource("2_definition")
+card_id = &"shield_contact_advanced"
+branch_id = &"shield_core"
+title = "Мега-контакт"
+description = "Допустимая ширина зоны энергетического контакта дополнительно увеличена на 10%."
+card_type = 2
+prerequisite_card_ids = Array[StringName]([&"shield_contact_basic"])
+effect = SubResource("EffectContactAdvanced")
+
+[sub_resource type="Resource" id="EffectFocused"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shield_specialization_focused"
+
+[sub_resource type="Resource" id="CardFocused"]
+script = ExtResource("2_definition")
+card_id = &"shield_specialization_focused"
+branch_id = &"shield_core"
+title = "Сосредоточенный заряд"
+description = "Текущая секция восстанавливается на 15% быстрее. При подключении 30% атакующих её стратегических врагов меняют цель."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shield_specialization_distributed", &"shield_specialization_surge"])
+effect = SubResource("EffectFocused")
+
+[sub_resource type="Resource" id="EffectDistributed"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shield_specialization_distributed"
+
+[sub_resource type="Resource" id="CardDistributed"]
+script = ExtResource("2_definition")
+card_id = &"shield_specialization_distributed"
+branch_id = &"shield_core"
+title = "Распределённый заряд"
+description = "15% энергии передаётся самой слабой другой секции. Один раз за забег аварийный резерв удерживает уничтожаемую секцию на 1% в течение 5 секунд."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shield_specialization_focused", &"shield_specialization_surge"])
+effect = SubResource("EffectDistributed")
+
+[sub_resource type="Resource" id="EffectSurge"]
+script = ExtResource("3_effect")
+effect_type = 3
+target_id = &"shield_specialization_surge"
+
+[sub_resource type="Resource" id="CardSurge"]
+script = ExtResource("2_definition")
+card_id = &"shield_specialization_surge"
+branch_id = &"shield_core"
+title = "Энергетические выбросы"
+description = "Подключение и отключение уничтожают 1–2 ближайших стратегических ряда. Полная зарядка передаёт 15% ближайшей повреждённой секции."
+card_type = 4
+closes_specialization_ids = Array[StringName]([&"shield_specialization_focused", &"shield_specialization_distributed"])
+effect = SubResource("EffectSurge")
+
+[resource]
+script = ExtResource("1_catalog")
+definitions = Array[ExtResource("2_definition")]([SubResource("CardCapacityBasic"), SubResource("CardCapacityAdvanced"), SubResource("CardRechargeBasic"), SubResource("CardRechargeAdvanced"), SubResource("CardContactBasic"), SubResource("CardContactAdvanced"), SubResource("CardFocused"), SubResource("CardDistributed"), SubResource("CardSurge")])
