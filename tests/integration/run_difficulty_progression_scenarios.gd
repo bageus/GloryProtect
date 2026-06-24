@@ -32,19 +32,20 @@ func _run_scenarios() -> void:
 	assert(is_equal_approx(spawn.get_current_spawn_interval(), 3.0))
 
 	game_flow.state = GameFlowController.RunState.RUNNING
-	await _wait_physics_frames(5)
+	await _wait_process_frames(5)
 	assert(difficulty.get_elapsed_seconds() > 0.0)
 
 	difficulty.set_debug_elapsed_seconds(300.0)
-	await _wait_physics_frames(2)
 	assert(is_equal_approx(difficulty.get_normalized(), 0.5))
 	assert(spawn.get_current_ground_limit() == 14)
 	assert(is_equal_approx(spawn.get_current_spawn_interval(), 1.9))
-	assert(spawn.get_spawn_remaining() <= 1.9)
+	await physics_frame
+	assert(spawn.get_spawn_remaining() <= spawn.get_current_spawn_interval())
 
 	game_flow.state = GameFlowController.RunState.CARD_SELECTION
 	var paused_elapsed: float = difficulty.get_elapsed_seconds()
 	var paused_spawn_remaining: float = spawn.get_spawn_remaining()
+	await _wait_process_frames(5)
 	await _wait_physics_frames(5)
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), paused_elapsed))
 	assert(is_equal_approx(
@@ -59,7 +60,7 @@ func _run_scenarios() -> void:
 
 	game_flow.end_run(&"test_restart")
 	game_flow.start_run()
-	await physics_frame
+	await process_frame
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), 0.0))
 	assert(is_equal_approx(difficulty.get_normalized(), 0.0))
 	assert(spawn.get_current_ground_limit() == 8)
@@ -68,6 +69,11 @@ func _run_scenarios() -> void:
 
 	print("Run difficulty progression scenarios passed")
 	quit()
+
+
+func _wait_process_frames(frame_count: int) -> void:
+	for _frame: int in range(frame_count):
+		await process_frame
 
 
 func _wait_physics_frames(frame_count: int) -> void:
