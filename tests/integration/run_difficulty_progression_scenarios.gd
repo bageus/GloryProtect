@@ -54,7 +54,7 @@ func _run_scenarios() -> void:
 			midpoint
 		)
 	))
-	await physics_frame
+	await _wait_physics_frames(2)
 	assert(spawn.get_spawn_remaining() <= spawn.get_current_spawn_interval())
 
 	game_flow.state = GameFlowController.RunState.CARD_SELECTION
