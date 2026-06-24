@@ -1,6 +1,7 @@
 class_name AnchorCommandController
 extends RefCounted
 
+signal anchor_detaching(anchor_id: int)
 signal anchor_removed(anchor_id: int)
 signal command_rejected(anchor_id: int, reason: StringName)
 
@@ -8,6 +9,7 @@ var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
 var _operations: AnchorOperationQueue
 var _is_operator_available: Callable
+var _instant_remove_all_enabled: bool = false
 
 
 func configure(
@@ -20,6 +22,14 @@ func configure(
 	_geometry = geometry
 	_operations = operations
 	_is_operator_available = is_operator_available
+
+
+func set_instant_remove_all_enabled(enabled: bool) -> void:
+	_instant_remove_all_enabled = enabled
+
+
+func is_instant_remove_all_enabled() -> bool:
+	return _instant_remove_all_enabled
 
 
 func toggle(anchor_id: int) -> void:
@@ -38,12 +48,21 @@ func toggle(anchor_id: int) -> void:
 
 func request_remove_all() -> void:
 	for side in [AnchorRuntime.Side.LEFT, AnchorRuntime.Side.RIGHT]:
-		if _operations.request_remove_all(side):
+		if not _instant_remove_all_enabled and not _operator_available(side):
+			continue
+		var can_remove_now: bool = _operations.request_remove_all(side)
+		if _instant_remove_all_enabled:
+			# Existing anchors detach immediately. An already-started installation
+			# remains atomic and is detached by AnchorSystem when it completes.
+			remove_all_on_side(side)
+		elif can_remove_now:
 			remove_all_on_side(side)
 
 
 func remove_all_on_side(side: int) -> void:
-	for anchor in _store.get_holding_on_side(side):
+	var holding: Array[AnchorRuntime] = _store.get_holding_on_side(side)
+	for anchor: AnchorRuntime in holding:
+		anchor_detaching.emit(anchor.anchor_id)
 		_store.set_stowed(anchor.anchor_id)
 		anchor_removed.emit(anchor.anchor_id)
 
@@ -75,6 +94,7 @@ func _request_remove(anchor: AnchorRuntime) -> void:
 		return
 
 	# Timed removal will be added with physical operator animations.
+	anchor_detaching.emit(anchor.anchor_id)
 	_store.set_stowed(anchor.anchor_id)
 	anchor_removed.emit(anchor.anchor_id)
 

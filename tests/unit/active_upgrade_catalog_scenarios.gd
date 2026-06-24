@@ -15,6 +15,9 @@ const MEDIC: UpgradeCatalog = preload(
 const SHOOTER: UpgradeCatalog = preload(
 	"res://resources/upgrades/shooter_upgrade_catalog.tres"
 )
+const ANCHORS: UpgradeCatalog = preload(
+	"res://resources/upgrades/combat_anchor_upgrade_catalog.tres"
+)
 
 
 func _init() -> void:
@@ -28,6 +31,7 @@ func _run_scenarios() -> void:
 		+ MELEE.get_all_definitions().size()
 		+ MEDIC.get_all_definitions().size()
 		+ SHOOTER.get_all_definitions().size()
+		+ ANCHORS.get_all_definitions().size()
 	)
 	assert(CATALOG.get_all_definitions().size() == expected_count)
 	assert(CATALOG.get_definition(&"common_add_defender") != null)
@@ -40,9 +44,12 @@ func _run_scenarios() -> void:
 	assert(CATALOG.get_definition(&"medic_specialization_field") != null)
 	assert(CATALOG.get_definition(&"shooter_unlock") != null)
 	assert(CATALOG.get_definition(&"shooter_specialization_sniper") != null)
+	assert(CATALOG.get_definition(&"anchor_overload_basic") != null)
+	assert(CATALOG.get_definition(&"anchor_specialization_electric") != null)
 	_test_upgrade_system_catalog_api(expected_count)
 	_test_melee_specialization_offer()
 	_test_shooter_specialization_offer()
+	_test_anchor_specialization_offer()
 	print("Active upgrade catalog scenarios passed")
 	quit()
 
@@ -80,4 +87,18 @@ func _test_shooter_specialization_offer() -> void:
 	assert(offer.size() == 3)
 	for definition: UpgradeDefinition in offer:
 		assert(definition.branch_id == &"ranged")
+		assert(definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION)
+
+
+func _test_anchor_specialization_offer() -> void:
+	var runtime := UpgradeRuntime.new()
+	assert(runtime.record_card(CATALOG.get_definition(&"anchor_overload_basic")))
+	assert(runtime.record_card(CATALOG.get_definition(&"anchor_install_speed_basic")))
+	assert(runtime.is_branch_ready_for_specialization(&"anchors"))
+	var generator := UpgradeSpecializationEventGenerator.new()
+	generator.configure(CATALOG, runtime, 27)
+	var offer: Array[UpgradeDefinition] = generator.generate_event_offer(&"anchors")
+	assert(offer.size() == 3)
+	for definition: UpgradeDefinition in offer:
+		assert(definition.branch_id == &"anchors")
 		assert(definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION)

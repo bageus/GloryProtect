@@ -8,6 +8,7 @@ var _store: AnchorRuntimeStore
 var _constraints: AnchorConstraintProvider
 var _balance: AnchorBalance
 var _wind: WindSystem
+var _duration_bonus_seconds: float = 0.0
 
 
 func configure(
@@ -20,6 +21,14 @@ func configure(
 	_constraints = constraints
 	_balance = balance
 	_wind = wind
+
+
+func set_duration_bonus(seconds: float) -> void:
+	_duration_bonus_seconds = maxf(0.0, seconds)
+
+
+func get_effective_duration() -> float:
+	return _balance.overload_duration + _duration_bonus_seconds
 
 
 func tick(delta: float) -> void:
@@ -47,7 +56,7 @@ func _update_side(side: int, delta: float) -> void:
 		overload_started.emit(anchor.anchor_id)
 
 	var progress := _store.advance_overload(anchor.anchor_id, delta)
-	if progress < _balance.overload_duration:
+	if progress < get_effective_duration():
 		return
 
 	_store.begin_return(anchor.anchor_id)

@@ -1,0 +1,54 @@
+class_name CombatAnchorHostSystem
+extends AnchorSystem
+
+signal anchor_detaching(anchor_id: int)
+
+
+func _connect_component_signals() -> void:
+	super._connect_component_signals()
+	_commands.anchor_detaching.connect(_on_anchor_detaching)
+
+
+func set_combat_anchor_modifiers(
+	overload_bonus_seconds: float,
+	install_speed_bonus_ratio: float,
+	second_anchor_speed_multiplier: float,
+	instant_remove_all_enabled: bool
+) -> void:
+	_overload.set_duration_bonus(overload_bonus_seconds)
+	_operations.set_install_speed_modifiers(
+		install_speed_bonus_ratio,
+		second_anchor_speed_multiplier
+	)
+	_commands.set_instant_remove_all_enabled(instant_remove_all_enabled)
+
+
+func reset_combat_anchor_modifiers() -> void:
+	set_combat_anchor_modifiers(0.0, 0.0, 1.0, false)
+
+
+func get_effective_overload_duration() -> float:
+	return _overload.get_effective_duration()
+
+
+func get_effective_install_duration(anchor_id: int) -> float:
+	return _operations.get_effective_install_duration(anchor_id)
+
+
+func is_instant_remove_all_enabled() -> bool:
+	return _commands.is_instant_remove_all_enabled()
+
+
+func get_platform_attachment_world(anchor_id: int) -> Vector2:
+	return _geometry.get_platform_attachment_world(anchor_id)
+
+
+func _on_anchor_detaching(anchor_id: int) -> void:
+	anchor_detaching.emit(anchor_id)
+
+
+func _on_anchor_removed(anchor_id: int) -> void:
+	# Manual and emergency removal use the same rewarded path as a broken rope.
+	# Boarded enemies are not counted as climbing and therefore survive.
+	_enemy_registry.kill_climbing_on_anchor(anchor_id, &"anchor_path_closed")
+	super._on_anchor_removed(anchor_id)

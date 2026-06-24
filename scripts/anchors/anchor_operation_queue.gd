@@ -10,6 +10,8 @@ var _platform: PlatformController
 var _active_install_ids := PackedInt32Array([-1, -1])
 var _queues: Array = [[], []]
 var _remove_all_pending: Array[bool] = [false, false]
+var _install_speed_bonus_ratio: float = 0.0
+var _second_anchor_speed_multiplier: float = 1.0
 
 
 func configure(
@@ -22,6 +24,14 @@ func configure(
 	_geometry = geometry
 	_balance = balance
 	_platform = platform
+
+
+func set_install_speed_modifiers(
+	bonus_ratio: float,
+	second_anchor_multiplier: float
+) -> void:
+	_install_speed_bonus_ratio = maxf(0.0, bonus_ratio)
+	_second_anchor_speed_multiplier = maxf(1.0, second_anchor_multiplier)
 
 
 func request_install(
@@ -105,6 +115,16 @@ func cancel_queued(side: int) -> void:
 	_queues[side].clear()
 
 
+func get_effective_install_duration(anchor_id: int) -> float:
+	if _store == null or not _store.is_valid(anchor_id):
+		return 0.0
+	var anchor: AnchorRuntime = _store.get_anchor(anchor_id)
+	var speed_multiplier: float = 1.0 + _install_speed_bonus_ratio
+	if _store.count_holding_on_side(anchor.side) == 1:
+		speed_multiplier *= _second_anchor_speed_multiplier
+	return _balance.install_duration / maxf(0.01, speed_multiplier)
+
+
 func _start_install(anchor_id: int) -> void:
 	var anchor := _store.get_anchor(anchor_id)
 	_active_install_ids[anchor.side] = anchor_id
@@ -118,7 +138,7 @@ func _update_installations(delta: float) -> void:
 			continue
 
 		var progress := _store.advance_operation(anchor_id, delta)
-		if progress < _balance.install_duration:
+		if progress < get_effective_install_duration(anchor_id):
 			continue
 
 		var anchor := _store.get_anchor(anchor_id)
