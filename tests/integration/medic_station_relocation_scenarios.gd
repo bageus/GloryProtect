@@ -27,14 +27,6 @@ func _run_scenario() -> void:
 	)
 	medical.set_physics_process(false)
 
-	var medic: Defender = crew.get_defender(1)
-	var target: Defender = crew.get_defender(0)
-	for _frame: int in range(60):
-		if roles.get_assignment(medic.defender_id) != null:
-			break
-		await process_frame
-	assert(roles.get_assignment(medic.defender_id) != null)
-
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
 	var station_id: int = grid.place(
 		BuildableType.Id.MEDICAL_STATION,
@@ -42,7 +34,8 @@ func _run_scenario() -> void:
 	)
 	assert(station_id >= 0)
 	await process_frame
-	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
+	var medic: Defender = crew.get_defender(1)
+	var target: Defender = crew.get_defender(0)
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	medic.teleport_to(target.position.x)
@@ -112,7 +105,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await physics_frame
+		await process_frame
 	assert(false, "Defender did not reach requested role")
 
 

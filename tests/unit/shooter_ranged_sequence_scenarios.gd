@@ -75,23 +75,22 @@ func _test_three_locked_shots_before_cooldown() -> void:
 	root.add_child(owner)
 	var target: HealthComponent = _make_target(Vector2(10.0, 0.0), 5)
 	var ranged := _make_ranged(owner)
-	var landed_count: int = 0
-	var finished_count: int = 0
+	var counters: Array[int] = [0, 0]
 	ranged.attack_landed.connect(func(
 		_target: HealthComponent,
 		_damage: int
 	) -> void:
-		landed_count += 1
+		counters[0] += 1
 	)
 	ranged.attack_finished.connect(func() -> void:
-		finished_count += 1
+		counters[1] += 1
 	)
 	assert(ranged.try_start_sequence(target, 3))
 	for _index: int in range(6):
 		ranged.tick(0.1)
 	assert(target.current_health == 2)
-	assert(landed_count == 3)
-	assert(finished_count == 1)
+	assert(counters[0] == 3)
+	assert(counters[1] == 1)
 	assert(ranged.phase == RangedAttackComponent.Phase.COOLDOWN)
 	owner.queue_free()
 	target.get_parent().queue_free()
@@ -103,18 +102,18 @@ func _test_sequence_stops_when_locked_target_dies() -> void:
 	root.add_child(owner)
 	var target: HealthComponent = _make_target(Vector2(10.0, 0.0), 1)
 	var ranged := _make_ranged(owner)
-	var landed_count: int = 0
+	var landed_count: Array[int] = [0]
 	ranged.attack_landed.connect(func(
 		_target: HealthComponent,
 		_damage: int
 	) -> void:
-		landed_count += 1
+		landed_count[0] += 1
 	)
 	assert(ranged.try_start_sequence(target, 3))
 	ranged.tick(0.1)
 	ranged.tick(0.1)
 	assert(target.current_health == 0)
-	assert(landed_count == 1)
+	assert(landed_count[0] == 1)
 	assert(ranged.phase == RangedAttackComponent.Phase.COOLDOWN)
 	owner.queue_free()
 	target.get_parent().queue_free()

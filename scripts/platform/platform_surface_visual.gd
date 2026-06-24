@@ -1,16 +1,13 @@
 class_name PlatformSurfaceVisual
 extends RefCounted
 
-const PLATFORM_TILE_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_platform_base.png"
-)
-const PLATFORM_BORDER_TEXTURE: Texture2D = preload(
-	"res://visual/tiles/tile_platform_border.png"
-)
-const PLATFORM_CORE_ATLAS: Texture2D = preload(
-	"res://visual/tiles/atlas_platform_core_normal.png"
-)
+const PLATFORM_TILE_PATH: String = "res://visual/tiles/tile_platform_base.png"
+const PLATFORM_BORDER_PATH: String = "res://visual/tiles/tile_platform_border.png"
+const PLATFORM_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_platform_core_normal.png"
 
+var _platform_tile_texture: Texture2D
+var _platform_border_texture: Texture2D
+var _platform_core_atlas: Texture2D
 var _platform_tile_source_rect: Rect2
 var _platform_border_source_rect: Rect2
 var _platform_core_frame_regions: Array[Rect2] = []
@@ -21,21 +18,28 @@ func configure(
 	atlas_frame_count: int,
 	alpha_crop_threshold: float
 ) -> void:
-	_platform_tile_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PLATFORM_TILE_TEXTURE,
-		alpha_crop_threshold
-	)
-	_platform_border_source_rect = TextureRegionLayout.get_alpha_bounds(
-		PLATFORM_BORDER_TEXTURE,
-		alpha_crop_threshold
-	)
-	_platform_core_frame_regions = (
-		TextureRegionLayout.get_auto_atlas_frame_regions(
-			PLATFORM_CORE_ATLAS,
-			atlas_frame_count,
+	_platform_tile_texture = _load_texture(PLATFORM_TILE_PATH)
+	_platform_border_texture = _load_texture(PLATFORM_BORDER_PATH)
+	_platform_core_atlas = _load_texture(PLATFORM_CORE_ATLAS_PATH)
+	if _platform_tile_texture != null:
+		_platform_tile_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_platform_tile_texture,
 			alpha_crop_threshold
 		)
-	)
+	if _platform_border_texture != null:
+		_platform_border_source_rect = TextureRegionLayout.get_alpha_bounds(
+			_platform_border_texture,
+			alpha_crop_threshold
+		)
+	_platform_core_frame_regions.clear()
+	if _platform_core_atlas != null:
+		_platform_core_frame_regions = (
+			TextureRegionLayout.get_auto_atlas_frame_regions(
+				_platform_core_atlas,
+				atlas_frame_count,
+				alpha_crop_threshold
+			)
+		)
 
 
 func advance(delta: float) -> void:
@@ -80,7 +84,7 @@ func draw_core(
 	frame_rate: float,
 	driver_available: bool
 ) -> void:
-	if _platform_core_frame_regions.is_empty():
+	if _platform_core_atlas == null or _platform_core_frame_regions.is_empty():
 		return
 	var frame_index: int = (
 		floori(_animation_elapsed * maxf(frame_rate, 0.01))
@@ -102,7 +106,7 @@ func draw_core(
 	if not driver_available:
 		core_tint = Color(0.42, 0.46, 0.5, 1.0)
 	canvas.draw_texture_rect_region(
-		PLATFORM_CORE_ATLAS,
+		_platform_core_atlas,
 		core_rect,
 		source_rect,
 		core_tint
@@ -117,6 +121,8 @@ func _draw_tiles(
 	cell_width: float,
 	tile_overlap: float
 ) -> void:
+	if _platform_tile_texture == null or _platform_border_texture == null:
+		return
 	var first_x: float = -platform_width * 0.5
 	var half_overlap: float = tile_overlap * 0.5
 	for index: int in range(cell_count):
@@ -129,7 +135,7 @@ func _draw_tiles(
 		)
 		if index == 0:
 			canvas.draw_texture_rect_region(
-				PLATFORM_BORDER_TEXTURE,
+				_platform_border_texture,
 				tile_rect,
 				_platform_border_source_rect
 			)
@@ -137,21 +143,31 @@ func _draw_tiles(
 			_draw_mirrored_border(canvas, tile_rect)
 		else:
 			canvas.draw_texture_rect_region(
-				PLATFORM_TILE_TEXTURE,
+				_platform_tile_texture,
 				tile_rect,
 				_platform_tile_source_rect
 			)
 
 
 func _draw_mirrored_border(canvas: CanvasItem, destination: Rect2) -> void:
+	if _platform_border_texture == null:
+		return
 	canvas.draw_set_transform(
 		destination.get_center(),
 		0.0,
 		Vector2(-1.0, 1.0)
 	)
 	canvas.draw_texture_rect_region(
-		PLATFORM_BORDER_TEXTURE,
+		_platform_border_texture,
 		Rect2(-destination.size * 0.5, destination.size),
 		_platform_border_source_rect
 	)
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _load_texture(resource_path: String) -> Texture2D:
+	var resource: Resource = ResourceLoader.load(resource_path)
+	var texture: Texture2D = resource as Texture2D
+	if texture == null:
+		push_error("PlatformSurfaceVisual could not load %s" % resource_path)
+	return texture

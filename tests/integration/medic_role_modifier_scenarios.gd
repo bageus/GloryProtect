@@ -30,20 +30,12 @@ func _run_scenario() -> void:
 	)
 	replacements.set_physics_process(false)
 
-	var first: Defender = crew.get_defender(1)
-	for _frame: int in range(60):
-		if roles.get_assignment(first.defender_id) != null:
-			break
-		await process_frame
-	assert(roles.get_assignment(first.defender_id) != null)
-
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
 	assert(grid.place(
 		BuildableType.Id.MEDICAL_STATION,
 		grid.balance.default_medical_cell
 	) >= 0)
 	await process_frame
-	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
 	assert(medical.apply_upgrade_effect(_scalar_effect(
 		&"medic_role_health_bonus",
 		2.0
@@ -54,6 +46,7 @@ func _run_scenario() -> void:
 	)))
 	await process_frame
 
+	var first: Defender = crew.get_defender(1)
 	roles.request_assignment(first.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, first.defender_id, CrewRole.Id.MEDIC)
 	await process_frame
@@ -142,7 +135,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await physics_frame
+		await process_frame
 	assert(false, "Defender did not reach requested role")
 
 

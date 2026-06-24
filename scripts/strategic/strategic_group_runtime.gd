@@ -63,7 +63,10 @@ func replan_route(
 	mutation_cooldown_remaining = maxf(0.0, mutation_cooldown)
 
 
-static func get_section_angle(section_id: int, section_count: int) -> float:
+static func get_section_angle(
+	target_section_id: int,
+	section_count: int
+) -> float:
 	if section_count <= 0:
 		return 0.0
-	return TAU * float(section_id) / float(section_count)
+	return TAU * float(target_section_id) / float(section_count)

@@ -171,7 +171,7 @@ func _draw_groups(
 			-1.0,
 			1.0
 		)
-		var position := Vector2(
+		var marker_position := Vector2(
 			lane_center_x + offset_ratio * lane_width * 0.2,
 			lerpf(
 				near_y,
@@ -189,13 +189,13 @@ func _draw_groups(
 			var pulse: float = 0.72 + sin(_blink_elapsed * 8.0) * 0.2
 			mass_color = Color(1.0, 0.32, 0.08, pulse)
 			draw_circle(
-				position,
+				marker_position,
 				mass_radius + 3.0,
 				Color(1.0, 0.12, 0.04, 0.18)
 			)
-		draw_circle(position, mass_radius, mass_color)
+		draw_circle(marker_position, mass_radius, mass_color)
 		draw_arc(
-			position,
+			marker_position,
 			mass_radius,
 			0.0,
 			TAU,
@@ -205,7 +205,7 @@ func _draw_groups(
 		)
 		draw_string(
 			ThemeDB.fallback_font,
-			position + Vector2(-mass_radius, 3.0),
+			marker_position + Vector2(-mass_radius, 3.0),
 			str(snapshot.enemy_count),
 			HORIZONTAL_ALIGNMENT_CENTER,
 			mass_radius * 2.0,

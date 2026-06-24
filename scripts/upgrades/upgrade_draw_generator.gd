@@ -13,7 +13,7 @@ func configure(
 	balance: UpgradeDrawBalance,
 	catalog: UpgradeCatalog,
 	runtime: UpgradeRuntime,
-	seed: int = 0
+	random_seed: int = 0
 ) -> void:
 	assert(balance != null and balance.is_valid())
 	assert(catalog != null and catalog.is_valid())
@@ -21,10 +21,10 @@ func configure(
 	_balance = balance
 	_catalog = catalog
 	_runtime = runtime
-	if seed == 0:
+	if random_seed == 0:
 		_rng.randomize()
 	else:
-		_rng.seed = seed
+		_rng.seed = random_seed
 	reset_for_run()
 
 func reset_for_run() -> void:
@@ -34,8 +34,8 @@ func reset_for_run() -> void:
 	for rule: UpgradeBranchWeightRule in _balance.branch_rules:
 		_branch_weights[rule.branch_id] = rule.starting_weight
 
-func set_seed(seed: int) -> void:
-	_rng.seed = seed
+func set_seed(random_seed: int) -> void:
+	_rng.seed = random_seed
 
 func get_branch_weight(branch_id: StringName) -> int:
 	return int(_branch_weights.get(branch_id, 0))

@@ -17,6 +17,9 @@ func _run_scenarios() -> void:
 	var difficulty: RunDifficulty = game.get_node("RunDifficulty")
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var shield: ShieldSystem = game.get_node("ShieldSystem")
+	var recharge: ShieldRechargeController = game.get_node(
+		"World/ShieldRechargeController"
+	)
 	var waves: StrategicWaveSystem = game.get_node(
 		"World/StrategicWaveSystem"
 	)
@@ -24,6 +27,7 @@ func _run_scenarios() -> void:
 		"World/StrategicWaveDirector"
 	)
 	var minimap: Control = game.get_node("CanvasLayer/StrategicMinimap")
+	recharge.set_physics_process(false)
 
 	assert(minimap.visible)
 	assert(game_flow.state == GameFlowController.RunState.START_DELAY)
@@ -65,14 +69,14 @@ func _run_scenarios() -> void:
 		waves.get_group_snapshots()[0].progress
 	)
 	game_flow.begin_card_selection()
-	assert(get_tree().paused)
+	assert(paused)
 	await _wait_physics_frames(5)
 	assert(is_equal_approx(
 		waves.get_group_snapshots()[0].progress,
 		progress_before_pause
 	))
 	game_flow.finish_card_selection()
-	assert(not get_tree().paused)
+	assert(not paused)
 
 	await _wait_until_groups_empty(waves, 180)
 	assert(waves.get_active_group_count() == 0)

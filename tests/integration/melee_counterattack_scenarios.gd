@@ -34,16 +34,20 @@ func _run_scenario() -> void:
 	assert(crew.apply_melee_flag(&"melee_specialization_duelist"))
 	assert(crew.apply_melee_flag(&"melee_duelist_counterattack"))
 	var defender: Defender = crew.get_defender(0)
+	defender.teleport_to(0.0)
 	defender.combat.set_physics_process(false)
 
 	var attacker: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
 	var bystander: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
 	assert(attacker != null and bystander != null)
-	attacker.force_board_at(12.0)
-	bystander.force_board_at(4.0)
+	attacker.force_board_at(30.0)
+	bystander.force_board_at(-27.0)
 	attacker.controller.set_physics_process(false)
 	bystander.controller.set_physics_process(false)
-	defender.teleport_to(attacker.controller.get_platform_local_x())
+	assert(
+		defender.global_position.distance_to(attacker.global_position)
+		<= director.balance.defender_attack_range
+	)
 
 	var health_before: int = defender.health.current_health
 	assert(attacker.melee.try_start(defender.health))

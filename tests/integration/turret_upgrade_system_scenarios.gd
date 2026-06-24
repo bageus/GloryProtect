@@ -4,6 +4,7 @@ const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 const BALANCE: TurretUpgradeBalance = preload(
 	"res://resources/balance/turret_specialization_balance.tres"
 )
+const TEST_CLUSTER_X: float = -180.0
 
 
 func _init() -> void:
@@ -21,9 +22,8 @@ func _run_scenarios() -> void:
 	var turrets: TurretUpgradeSystem = game.get_node("World/TurretSystem")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
 	assert(turrets != null)
-	assert(upgrades.catalog.resource_path.ends_with(
-		"turret_branch_upgrade_catalog.tres"
-	))
+	assert(upgrades.catalog.get_definition(&"turret_post") != null)
+	assert(upgrades.catalog.get_definition(&"turret_damage_basic") != null)
 	_test_live_domain_effects(turrets, upgrades)
 	await _test_piercing_hits_every_enemy_on_line(game)
 	await _test_heavy_explosive_fifth_shot(game)
@@ -65,9 +65,9 @@ func _test_live_domain_effects(
 func _test_piercing_hits_every_enemy_on_line(game: Node) -> void:
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
-	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"basic")
-	var second: BoardingEnemy = spawn.spawn_debug_on_platform(48.0, &"basic")
-	var third: BoardingEnemy = spawn.spawn_debug_on_platform(96.0, &"basic")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X, &"basic")
+	var second: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 48.0, &"basic")
+	var third: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 96.0, &"basic")
 	var origin := Vector2(primary.global_position.x - 120.0, primary.global_position.y)
 	var runtime := TurretUpgradeRuntime.new()
 	assert(runtime.apply_flag(TurretUpgradeRuntime.HEAVY))
@@ -91,9 +91,11 @@ func _test_piercing_hits_every_enemy_on_line(game: Node) -> void:
 func _test_heavy_explosive_fifth_shot(game: Node) -> void:
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
-	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"brute")
-	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(48.0, &"brute")
-	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(96.0, &"brute")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X, &"brute")
+	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 48.0, &"brute")
+	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 96.0, &"brute")
+	assert(primary.global_position.distance_to(nearby.global_position) <= BALANCE.heavy_explosion_radius)
+	assert(primary.global_position.distance_to(outside.global_position) > BALANCE.heavy_explosion_radius)
 	var origin := Vector2(primary.global_position.x - 120.0, primary.global_position.y)
 	var runtime := TurretUpgradeRuntime.new()
 	assert(runtime.apply_flag(TurretUpgradeRuntime.HEAVY))
@@ -121,9 +123,11 @@ func _test_heavy_explosive_fifth_shot(game: Node) -> void:
 func _test_electric_orb_fifth_volley(game: Node) -> void:
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
-	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"brute")
-	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(72.0, &"brute")
-	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(120.0, &"brute")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X, &"brute")
+	var nearby: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 72.0, &"brute")
+	var outside: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 120.0, &"brute")
+	assert(primary.global_position.distance_to(nearby.global_position) <= BALANCE.electric_orb_radius)
+	assert(primary.global_position.distance_to(outside.global_position) > BALANCE.electric_orb_radius)
 	primary.health.configure(6)
 	nearby.health.configure(6)
 	outside.health.configure(6)
@@ -161,9 +165,9 @@ func _test_chain_and_pause_safe_stun(
 ) -> void:
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	var registry: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
-	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(0.0, &"brute")
-	var second: BoardingEnemy = spawn.spawn_debug_on_platform(30.0, &"brute")
-	var third: BoardingEnemy = spawn.spawn_debug_on_platform(120.0, &"brute")
+	var primary: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X, &"brute")
+	var second: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 34.0, &"brute")
+	var third: BoardingEnemy = spawn.spawn_debug_on_platform(TEST_CLUSTER_X + 120.0, &"brute")
 	var origin := Vector2(primary.global_position.x - 120.0, primary.global_position.y)
 	var runtime := TurretUpgradeRuntime.new()
 	assert(runtime.apply_flag(TurretUpgradeRuntime.ELECTRIC))

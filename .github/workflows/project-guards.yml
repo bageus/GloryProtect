@@ -55,3 +55,12 @@ jobs:
 
       - name: Run unit and integration scenarios
         run: bash tools/run_godot_scenarios.sh
+
+      - name: Upload Godot scenario logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-scenario-logs
+          path: test-results/godot
+          if-no-files-found: warn
+          retention-days: 7

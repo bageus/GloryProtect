@@ -20,13 +20,13 @@ func _run_scenario() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 
 	assert(runtime.record_card(upgrades.catalog.get_definition(
-		&"tech_unlock_turret"
+		&"turret_post"
 	)))
 	assert(runtime.record_card(upgrades.catalog.get_definition(
-		&"tech_turret_basic"
+		&"turret_damage_basic"
 	)))
 	assert(runtime.record_card(upgrades.catalog.get_definition(
-		&"tech_turret_advanced"
+		&"turret_damage_advanced"
 	)))
 	assert(runtime.is_branch_ready_for_specialization(&"turret"))
 

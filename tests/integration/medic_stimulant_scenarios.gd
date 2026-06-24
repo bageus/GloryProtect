@@ -29,30 +29,44 @@ func _run_scenario() -> void:
 	var target: Defender = crew.get_defender(0)
 	var base_cooldown: float = target.melee.get_cooldown_duration()
 	var base_move_speed: float = target.movement.move_speed
+	var duration: float = medical.upgrade_balance.stimulant_duration
+	var attack_multiplier: float = (
+		1.0 + medical.upgrade_balance.stimulant_attack_speed_bonus_ratio
+	)
+	var move_multiplier: float = (
+		1.0 + medical.upgrade_balance.stimulant_move_speed_bonus_ratio
+	)
 	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.0))
 	medical.segment_restored.emit(1, target.defender_id, 1)
 	assert(controller.is_active(target.defender_id))
-	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
-	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.15))
+	assert(is_equal_approx(controller.get_remaining(target.defender_id), duration))
+	assert(is_equal_approx(
+		target.get_temporary_attack_speed_multiplier(),
+		attack_multiplier
+	))
 	assert(is_equal_approx(
 		target.melee.get_cooldown_duration(),
 		base_cooldown / target.get_temporary_attack_speed_multiplier()
 	))
-	assert(is_equal_approx(target.movement.move_speed, base_move_speed * 1.15))
+	assert(is_equal_approx(
+		target.movement.move_speed,
+		base_move_speed * move_multiplier
+	))
 
 	flow.toggle_manual_pause()
-	controller.call("_physics_process", 3.0)
-	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
+	controller.call("_physics_process", duration * 0.6)
+	assert(is_equal_approx(controller.get_remaining(target.defender_id), duration))
 	flow.toggle_manual_pause()
 
 	flow.begin_card_selection()
-	controller.call("_physics_process", 2.0)
-	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
+	controller.call("_physics_process", duration * 0.4)
+	assert(is_equal_approx(controller.get_remaining(target.defender_id), duration))
 	flow.finish_card_selection()
 
-	controller.call("_physics_process", 4.9)
+	var final_step: float = minf(0.1, duration)
+	controller.call("_physics_process", duration - final_step)
 	assert(controller.is_active(target.defender_id))
-	controller.call("_physics_process", 0.1)
+	controller.call("_physics_process", final_step)
 	assert(not controller.is_active(target.defender_id))
 	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.0))
 	assert(is_equal_approx(target.melee.get_cooldown_duration(), base_cooldown))

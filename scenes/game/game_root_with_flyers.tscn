@@ -30,9 +30,6 @@ combat_anchor_system_path = NodePath("../World/CombatAnchorSystem")
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
 
-[node name="GroundOrbVisualController" parent="World"]
-ground_core_half_size = Vector2(96, 192)
-
 [node name="AnchorSystem" parent="World"]
 script = ExtResource("15_anchor_host")
 

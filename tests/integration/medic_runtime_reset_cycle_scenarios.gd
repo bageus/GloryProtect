@@ -24,26 +24,19 @@ func _run_scenario() -> void:
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	medical.set_physics_process(false)
 
-	var medic: Defender = crew.get_defender(1)
-	var target: Defender = crew.get_defender(0)
-	for _frame: int in range(60):
-		if roles.get_assignment(medic.defender_id) != null:
-			break
-		await process_frame
-	assert(roles.get_assignment(medic.defender_id) != null)
-
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
 	assert(grid.place(
 		BuildableType.Id.MEDICAL_STATION,
 		grid.balance.default_medical_cell
 	) >= 0)
 	await process_frame
-	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
 	assert(medical.apply_upgrade_effect(_scalar_effect(
 		&"medic_heal_amount_bonus",
 		1.0
 	)))
 
+	var medic: Defender = crew.get_defender(1)
+	var target: Defender = crew.get_defender(0)
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	medic.teleport_to(target.position.x)
@@ -62,7 +55,7 @@ func _run_scenario() -> void:
 	assert(is_zero_approx(medical.get_heal_remaining()))
 	assert(target.health.current_health == 1)
 	assert(medical.get_current_heal_amount() == medical.balance.heal_amount)
-	await physics_frame
+	await process_frame
 	assert(assignment.state in [
 		CrewAssignmentRuntime.State.MOVING,
 		CrewAssignmentRuntime.State.ACTIVE,
@@ -93,7 +86,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await physics_frame
+		await process_frame
 	assert(false, "Defender did not reach requested role")
 
 

@@ -237,4 +237,5 @@ func _get_direction_targets_text() -> String:
 
 func _format_duration(total_seconds: float) -> String:
 	var rounded_seconds: int = maxi(0, floori(total_seconds))
-	return "%02d:%02d" % [rounded_seconds / 60, rounded_seconds % 60]
+	var minutes: int = floori(float(rounded_seconds) / 60.0)
+	return "%02d:%02d" % [minutes, rounded_seconds % 60]

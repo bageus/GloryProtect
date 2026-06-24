@@ -2,6 +2,8 @@ extends SceneTree
 
 const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 
+var _rejected_reason: StringName = &""
+
 
 func _init() -> void:
 	call_deferred("_run_scenario")
@@ -19,25 +21,20 @@ func _run_scenario() -> void:
 	var roles: CrewRoleManager = game.get_node(
 		"World/Platform/CrewRoleManager"
 	)
-	var rejected_reason: StringName = &""
-	roles.assignment_rejected.connect(func(
-		_defender_id: int,
-		_role_id: int,
-		reason: StringName
-	) -> void:
-		rejected_reason = reason
-	)
+	await _wait_for_assignment(roles, 0)
+	roles.assignment_rejected.connect(_on_assignment_rejected)
 
+	_rejected_reason = &""
 	roles.request_assignment(0, CrewRole.Id.SHOOTER)
-	assert(rejected_reason == &"role_unavailable")
+	assert(_rejected_reason == &"role_unavailable")
 	assert(roles.get_assignment(0).current_role != CrewRole.Id.SHOOTER)
 
 	assert(crew.apply_shooter_flag(&"shooter_role_unlocked"))
 	assert(crew.is_shooter_role_unlocked())
-	rejected_reason = &""
+	_rejected_reason = &""
 	roles.request_assignment(0, CrewRole.Id.SHOOTER)
 	await _wait_for_active_role(roles, 0, CrewRole.Id.SHOOTER)
-	assert(rejected_reason == &"")
+	assert(_rejected_reason == &"")
 
 	var defender: Defender = crew.get_defender(0)
 	defender.ranged.phase = RangedAttackComponent.Phase.WINDUP
@@ -67,6 +64,22 @@ func _run_scenario() -> void:
 	quit()
 
 
+func _on_assignment_rejected(
+	_defender_id: int,
+	_role_id: int,
+	reason: StringName
+) -> void:
+	_rejected_reason = reason
+
+
+func _wait_for_assignment(roles: CrewRoleManager, defender_id: int) -> void:
+	for _frame: int in range(60):
+		if roles.get_assignment(defender_id) != null:
+			return
+		await process_frame
+	assert(false, "Timed out waiting for crew assignment initialization")
+
+
 func _wait_for_active_role(
 	roles: CrewRoleManager,
 	defender_id: int,
@@ -80,5 +93,5 @@ func _wait_for_active_role(
 			and assignment.state == CrewAssignmentRuntime.State.ACTIVE
 		):
 			return
-		await process_frame
+		await physics_frame
 	assert(false, "Timed out waiting for role activation")

@@ -1,5 +1,7 @@
 extends SceneTree
 
+const PLATFORM_WORLD_Y: float = 300.0
+
 
 func _init() -> void:
 	_test_right_anchor_breaks_when_wind_pulls_right()
@@ -107,7 +109,7 @@ func _create_context() -> Dictionary:
 
 	var platform := PlatformController.new()
 	platform.balance = platform_balance
-	platform.position = Vector2.ZERO
+	platform.position = Vector2(0.0, PLATFORM_WORLD_Y)
 
 	var wind := WindSystem.new()
 	wind.balance = wind_balance

@@ -8,19 +8,19 @@ var _rng := RandomNumberGenerator.new()
 func configure(
 	catalog: UpgradeCatalog,
 	runtime: UpgradeRuntime,
-	seed: int = 0
+	random_seed: int = 0
 ) -> void:
 	assert(catalog != null and catalog.is_valid())
 	assert(runtime != null)
 	_catalog = catalog
 	_runtime = runtime
-	set_seed(seed)
+	set_seed(random_seed)
 
-func set_seed(seed: int) -> void:
-	if seed == 0:
+func set_seed(random_seed: int) -> void:
+	if random_seed == 0:
 		_rng.randomize()
 	else:
-		_rng.seed = seed
+		_rng.seed = random_seed
 
 func has_ready_event() -> bool:
 	return not get_ready_event_branches().is_empty()
