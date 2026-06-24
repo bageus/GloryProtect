@@ -93,7 +93,8 @@ func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
 		defender.melee.tick(0.4)
 		defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
-	assert(defender.combat.get_completed_hit_count() == 5)
+	var completed_hits: int = defender.combat.get_completed_hit_count()
+	assert(completed_hits == 5, "Expected 5 completed hits, got %d" % completed_hits)
 	assert(behind_one.health.current_health == 2)
 	assert(behind_two.health.current_health == 2)
 	assert(behind_three.health.current_health == 3)
