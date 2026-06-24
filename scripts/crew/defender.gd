@@ -21,6 +21,9 @@ var _melee_upgrades: MeleeDefenderUpgradeRuntime
 var _configured_once: bool = false
 var _lethal_guard_feature_enabled: bool = false
 var _base_movement_speed: float = 180.0
+var _base_melee_damage: int = 1
+var _base_melee_windup: float = 0.4
+var _base_melee_cooldown: float = 0.7
 var _medic_role_health_bonus: int = 0
 var _medic_role_active: bool = false
 var _medic_combat_enabled: bool = false
@@ -89,6 +92,18 @@ func get_melee_upgrades() -> MeleeDefenderUpgradeRuntime:
 
 func set_base_movement_speed(speed: float) -> void:
 	_base_movement_speed = maxf(0.0, speed)
+	if is_node_ready():
+		_refresh_action_configuration()
+
+
+func set_base_melee_configuration(
+	damage: int,
+	windup_duration: float,
+	cooldown_duration: float
+) -> void:
+	_base_melee_damage = maxi(1, damage)
+	_base_melee_windup = maxf(0.01, windup_duration)
+	_base_melee_cooldown = maxf(0.01, cooldown_duration)
 	if is_node_ready():
 		_refresh_action_configuration()
 
@@ -226,15 +241,15 @@ func _get_configured_base_max_health() -> int:
 func _refresh_action_configuration() -> void:
 	if _balance == null:
 		return
-	var damage: int = 1
-	var cooldown: float = 0.7
+	var damage: int = _base_melee_damage
+	var cooldown: float = _base_melee_cooldown
 	if _melee_upgrades != null:
 		damage = _melee_upgrades.get_damage(damage)
 		cooldown = _melee_upgrades.get_cooldown(cooldown)
 	if _medic_role_active and _medic_combat_enabled:
 		damage += _medic_damage_bonus
 	cooldown /= _temporary_attack_speed_multiplier
-	melee.configure(damage, 0.4, cooldown, self)
+	melee.configure(damage, _base_melee_windup, cooldown, self)
 	movement.configure(
 		_base_movement_speed
 		* _medic_move_speed_multiplier
