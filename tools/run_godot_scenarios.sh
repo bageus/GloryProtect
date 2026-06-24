@@ -22,6 +22,7 @@ fi
 priority_scenarios=(
   "tests/unit/anchor_constraint_scenarios.gd"
   "tests/unit/ranged_poison_attack_scenarios.gd"
+  "tests/unit/shooter_ranged_sequence_scenarios.gd"
 )
 mapfile -t discovered_scenarios < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
