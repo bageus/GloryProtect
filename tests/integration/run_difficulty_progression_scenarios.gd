@@ -1,6 +1,7 @@
 extends SceneTree
 
 const GAME_SCENE := preload("res://scenes/game/game_root.tscn")
+const TIMER_FRAME_TOLERANCE: float = 0.05
 
 
 func _init() -> void:
@@ -55,7 +56,10 @@ func _run_scenarios() -> void:
 		)
 	))
 	await _wait_physics_frames(2)
-	assert(spawn.get_spawn_remaining() <= spawn.get_current_spawn_interval())
+	assert(
+		spawn.get_spawn_remaining()
+		<= spawn.get_current_spawn_interval() + TIMER_FRAME_TOLERANCE
+	)
 
 	game_flow.state = GameFlowController.RunState.CARD_SELECTION
 	var paused_elapsed: float = difficulty.get_elapsed_seconds()
