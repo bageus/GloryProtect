@@ -38,23 +38,6 @@ func _run_scenario() -> void:
 	)
 	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.0))
 	medical.segment_restored.emit(1, target.defender_id, 1)
-	print("stimulant target id=%d active=%s remaining=%.6f expected_duration=%.6f" % [
-		target.defender_id,
-		str(controller.is_active(target.defender_id)),
-		controller.get_remaining(target.defender_id),
-		duration,
-	])
-	print("stimulant attack actual=%.9f expected=%.9f bonus=%.9f" % [
-		target.get_temporary_attack_speed_multiplier(),
-		attack_multiplier,
-		medical.upgrade_balance.stimulant_attack_speed_bonus_ratio,
-	])
-	print("stimulant cooldown actual=%.9f base=%.9f move_actual=%.9f move_expected=%.9f" % [
-		target.melee.get_cooldown_duration(),
-		base_cooldown,
-		target.movement.move_speed,
-		base_move_speed * move_multiplier,
-	])
 	assert(controller.is_active(target.defender_id))
 	assert(is_equal_approx(controller.get_remaining(target.defender_id), duration))
 	assert(is_equal_approx(
