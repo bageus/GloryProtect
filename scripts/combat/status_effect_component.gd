@@ -68,12 +68,15 @@ func _tick_poison(delta: float) -> void:
 	poison_remaining = maxf(0.0, poison_remaining - delta)
 	poison_tick_remaining = maxf(0.0, poison_tick_remaining - delta)
 	if poison_tick_remaining <= 0.0:
-		var damage: int = poison_profile.damage_per_tick * poison_stacks
+		var active_profile: PoisonEffectProfile = poison_profile
+		var active_stacks: int = poison_stacks
+		var damage: int = active_profile.damage_per_tick * active_stacks
+		var next_tick_interval: float = active_profile.tick_interval
 		health.apply_damage(damage)
-		poison_tick.emit(damage, poison_stacks)
-		poison_tick_remaining = poison_profile.tick_interval
+		poison_tick.emit(damage, active_stacks)
 		if not health.is_alive():
 			return
+		poison_tick_remaining = next_tick_interval
 	if poison_remaining <= 0.0:
 		clear_poison()
 	else:
