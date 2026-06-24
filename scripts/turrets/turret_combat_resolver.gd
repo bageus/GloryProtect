@@ -5,13 +5,13 @@ var _balance: TurretUpgradeBalance
 var _random := RandomNumberGenerator.new()
 
 
-func configure(balance: TurretUpgradeBalance, seed: int = 0) -> void:
+func configure(balance: TurretUpgradeBalance, random_seed: int = 0) -> void:
 	assert(balance != null and balance.is_valid())
 	_balance = balance
-	if seed == 0:
+	if random_seed == 0:
 		_random.randomize()
 	else:
-		_random.seed = seed
+		_random.seed = random_seed
 
 
 func resolve_shot(

@@ -29,8 +29,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not visible or not event.is_pressed() or event.is_echo():
 		return
 	if event.is_action(&"ui_accept"):
+		var viewport: Viewport = get_viewport()
+		if viewport != null:
+			viewport.set_input_as_handled()
 		_on_restart_pressed()
-		get_viewport().set_input_as_handled()
 
 
 func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
@@ -68,7 +70,7 @@ func _on_restart_pressed() -> void:
 
 func _format_duration(total_seconds: float) -> String:
 	var rounded_seconds: int = maxi(0, floori(total_seconds))
-	var minutes: int = rounded_seconds / 60
+	var minutes: int = floori(float(rounded_seconds) / 60.0)
 	var seconds: int = rounded_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]
 

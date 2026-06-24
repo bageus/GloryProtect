@@ -62,7 +62,7 @@ func _run_scenario() -> void:
 			and assignment.current_role == CrewRole.Id.FREE_FIGHTER
 		):
 			break
-		await process_frame
+		await physics_frame
 	assert(assignment.state == CrewAssignmentRuntime.State.ACTIVE)
 	assert(assignment.current_role == CrewRole.Id.FREE_FIGHTER)
 

@@ -43,9 +43,16 @@ for scenario_file in "${scenario_files[@]}"; do
   scenario_status=$?
   set -e
 
-  if (( scenario_status != 0 )); then
+  hidden_script_error=0
+  if grep -E -q 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script' "${log_path}"; then
+    hidden_script_error=1
+  fi
+
+  if (( scenario_status != 0 || hidden_script_error != 0 )); then
     if (( scenario_status == 124 || scenario_status == 137 )); then
       echo "Scenario timed out after ${SCENARIO_TIMEOUT_SECONDS}s." >&2
+    elif (( hidden_script_error != 0 )); then
+      echo "Scenario emitted a Godot script error." >&2
     else
       echo "Scenario failed with exit ${scenario_status}." >&2
     fi

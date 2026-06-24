@@ -88,6 +88,7 @@ func _test_respawn_effects(
 	applier: UpgradeEffectApplier,
 	replacements: CrewReplacementController
 ) -> void:
+	replacements.instant_respawn_for_tests = false
 	var base_delay: float = replacements.balance.replacement_delay_seconds
 	assert(applier.apply_effect(CATALOG.get_definition(
 		&"common_respawn_speed"

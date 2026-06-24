@@ -27,9 +27,6 @@ medical_system_path = NodePath("../World/MedicalStationSystem")
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
 
-[node name="GroundOrbVisualController" parent="World"]
-ground_core_half_size = Vector2(96, 192)
-
 [node name="PlatformVisualController" parent="World/Platform"]
 driver_console_surface_offset = Vector2(60, -2)
 

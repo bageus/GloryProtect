@@ -38,7 +38,10 @@ func _run_scenario() -> void:
 	revival.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 11) >= 0)
+	assert(grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		grid.balance.default_medical_cell
+	) >= 0)
 	await process_frame
 	assert(medical.apply_upgrade_effect(_scalar_effect(
 		&"medic_heal_amount_bonus",
@@ -61,6 +64,7 @@ func _run_scenario() -> void:
 
 	var medic: Defender = crew.get_defender(1)
 	var target: Defender = crew.get_defender(0)
+	var target_id: int = target.defender_id
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	await process_frame
@@ -70,8 +74,8 @@ func _run_scenario() -> void:
 
 	target.health.set_health(target.health.max_health - 1)
 	target.health.heal(1)
-	medical.segment_restored.emit(medic.defender_id, target.defender_id, 1)
-	assert(stimulant.is_active(target.defender_id))
+	medical.segment_restored.emit(medic.defender_id, target_id, 1)
+	assert(stimulant.is_active(target_id))
 	assert(target.durability.get_temporary_armor() == 0)
 	assert(medical.get_current_heal_amount() == 2)
 	assert(medical.upgrades.specialization_id == MedicUpgradeRuntime.STIMULANT)
@@ -108,7 +112,7 @@ func _run_scenario() -> void:
 	assert(medical.get_current_heal_amount() == medical.balance.heal_amount)
 	assert(medical.upgrades.specialization_id == &"")
 	assert(not medical.upgrades.revival_enabled)
-	assert(not stimulant.is_active(target.defender_id))
+	assert(not stimulant.is_active(target_id))
 	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(role_modifiers.get_stored_health_segments() == 0)
 	assert(role_modifiers.get_stored_armor_segments() == 0)

@@ -23,10 +23,6 @@ var _respawn_time_multiplier: float = 1.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
-@onready var _roles: CrewRoleManager = get_node(role_manager_path)
-@onready var _movement_resolver: BoardingMovementResolver = get_node(
-	movement_resolver_path
-)
 @onready var _portal: PlatformVisualController = get_node_or_null(
 	portal_visual_path
 ) as PlatformVisualController

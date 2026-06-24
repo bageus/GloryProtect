@@ -73,7 +73,7 @@ func _run_scenarios() -> void:
 	assert(economy.get_coins() == 2)
 	assert(statistics.get_physical_kills() == 2)
 
-	var reassignment_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-180.0)
+	var reassignment_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-340.0)
 	reassignment_enemy.health.configure(2)
 	var reassignment_enemy_id: int = reassignment_enemy.enemy_id
 	await _wait_for_firing(
