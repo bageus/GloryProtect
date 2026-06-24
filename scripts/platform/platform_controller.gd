@@ -93,6 +93,47 @@ func get_cell_local_x(cell_index: int) -> float:
 	)
 
 
+func get_cell_rect_local(cell_index: int) -> Rect2:
+	if not is_valid_cell(cell_index):
+		return Rect2()
+	return Rect2(
+		Vector2(
+			get_cell_local_x(cell_index) - balance.cell_width * 0.5,
+			-get_platform_height() * 0.5
+		),
+		Vector2(balance.cell_width, get_platform_height())
+	)
+
+
+func get_cell_index_at_local_position(local_position: Vector2) -> int:
+	var platform_rect := Rect2(
+		Vector2(-get_platform_width() * 0.5, -get_platform_height() * 0.5),
+		Vector2(get_platform_width(), get_platform_height())
+	)
+	if not platform_rect.has_point(local_position):
+		return -1
+	return get_nearest_cell_index(local_position.x)
+
+
+func canvas_position_to_local(canvas_position: Vector2) -> Vector2:
+	return get_global_transform_with_canvas().affine_inverse() * canvas_position
+
+
+func get_cell_index_at_canvas_position(canvas_position: Vector2) -> int:
+	return get_cell_index_at_local_position(
+		canvas_position_to_local(canvas_position)
+	)
+
+
+func get_cell_canvas_center(cell_index: int) -> Vector2:
+	if not is_valid_cell(cell_index):
+		return Vector2.ZERO
+	return get_global_transform_with_canvas() * Vector2(
+		get_cell_local_x(cell_index),
+		0.0
+	)
+
+
 func get_nearest_cell_index(local_x: float) -> int:
 	var left_edge: float = -get_platform_width() * 0.5
 	var raw_index: int = floori((local_x - left_edge) / balance.cell_width)
