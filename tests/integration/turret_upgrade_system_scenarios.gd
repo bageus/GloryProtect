@@ -21,9 +21,8 @@ func _run_scenarios() -> void:
 	var turrets: TurretUpgradeSystem = game.get_node("World/TurretSystem")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
 	assert(turrets != null)
-	assert(upgrades.catalog.resource_path.ends_with(
-		"turret_branch_upgrade_catalog.tres"
-	))
+	assert(upgrades.catalog.get_definition(&"turret_post") != null)
+	assert(upgrades.catalog.get_definition(&"turret_damage_basic") != null)
 	_test_live_domain_effects(turrets, upgrades)
 	await _test_piercing_hits_every_enemy_on_line(game)
 	await _test_heavy_explosive_fifth_shot(game)
