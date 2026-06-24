@@ -19,6 +19,7 @@ func _run_scenario() -> void:
 	var roles: CrewRoleManager = game.get_node(
 		"World/Platform/CrewRoleManager"
 	)
+	await _wait_for_assignment(roles, 0)
 	var rejected_reason: StringName = &""
 	roles.assignment_rejected.connect(func(
 		_defender_id: int,
@@ -67,6 +68,14 @@ func _run_scenario() -> void:
 	quit()
 
 
+func _wait_for_assignment(roles: CrewRoleManager, defender_id: int) -> void:
+	for _frame: int in range(60):
+		if roles.get_assignment(defender_id) != null:
+			return
+		await process_frame
+	assert(false, "Timed out waiting for crew assignment initialization")
+
+
 func _wait_for_active_role(
 	roles: CrewRoleManager,
 	defender_id: int,
@@ -80,5 +89,5 @@ func _wait_for_active_role(
 			and assignment.state == CrewAssignmentRuntime.State.ACTIVE
 		):
 			return
-		await process_frame
+		await physics_frame
 	assert(false, "Timed out waiting for role activation")
