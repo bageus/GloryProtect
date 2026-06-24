@@ -22,7 +22,7 @@
 [ext_resource type="Script" path="res://scripts/shield/shield_core_strategic_wave_system.gd" id="20_strategic"]
 [ext_resource type="Script" path="res://scripts/shield/shield_core_system.gd" id="21_shield_core"]
 [ext_resource type="Resource" path="res://resources/balance/shield_core_balance.tres" id="22_shield_core_balance"]
-[ext_resource type="Script" path="res://scripts/buildables/buildable_placement_controller.gd" id="23_placement"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_placement_controller_scene.gd" id="23_placement"]
 [ext_resource type="Script" path="res://scripts/buildables/buildable_placement_debug_bridge.gd" id="24_placement_bridge"]
 [ext_resource type="Script" path="res://scripts/ui/buildable_placement_panel_scene.gd" id="25_placement_panel"]
 
