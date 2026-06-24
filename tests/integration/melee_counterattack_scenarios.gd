@@ -46,8 +46,21 @@ func _run_scenario() -> void:
 	bystander.controller.set_physics_process(false)
 
 	var health_before: int = defender.health.current_health
+	print("counterattack before health=%d armor=%d/%d enemy_damage=%d" % [
+		health_before,
+		defender.durability.get_current_armor(),
+		defender.durability.get_max_armor(),
+		attacker.melee.get_damage(),
+	])
 	assert(attacker.melee.try_start(defender.health))
 	attacker.melee.tick(10.0)
+	print("counterattack after health=%d armor=%d/%d attacker_health=%d bystander_health=%d" % [
+		defender.health.current_health,
+		defender.durability.get_current_armor(),
+		defender.durability.get_max_armor(),
+		attacker.health.current_health,
+		bystander.health.current_health,
+	])
 	assert(defender.health.current_health == health_before)
 	assert(defender.durability.get_current_armor() == 0)
 	assert(attacker.health.current_health == 0)
