@@ -32,7 +32,7 @@ for scenario in scenarios:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            timeout=90,
+            timeout=25,
             check=False,
         )
         log_path.write_text(result.stdout, encoding="utf-8")
