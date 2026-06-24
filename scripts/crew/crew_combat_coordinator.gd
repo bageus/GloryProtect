@@ -30,7 +30,7 @@ func _configure_existing_defenders() -> void:
 
 func _configure_defender(defender: Defender) -> void:
 	defender.movement.configure_collision(defender, _movement_resolver)
-	defender.melee.configure(
+	defender.set_base_melee_configuration(
 		balance.defender_attack_damage,
 		balance.defender_attack_windup,
 		balance.defender_attack_cooldown
@@ -42,6 +42,7 @@ func _configure_defender(defender: Defender) -> void:
 		_platform,
 		_roles,
 		_enemies,
+		_movement_resolver,
 		defender.melee
 	)
 	defender.shooter_combat.configure(
