@@ -40,27 +40,18 @@ func _run_scenario() -> void:
 	var attacker: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
 	var bystander: BoardingEnemy = director.spawn_debug_archetype(&"basic", 1)
 	assert(attacker != null and bystander != null)
-	attacker.force_board_at(12.0)
-	bystander.force_board_at(4.0)
+	attacker.force_board_at(30.0)
+	bystander.force_board_at(-27.0)
 	attacker.controller.set_physics_process(false)
 	bystander.controller.set_physics_process(false)
+	assert(
+		defender.global_position.distance_to(attacker.global_position)
+		<= director.balance.defender_attack_range
+	)
 
 	var health_before: int = defender.health.current_health
-	print("counterattack before health=%d armor=%d/%d enemy_damage=%d" % [
-		health_before,
-		defender.durability.get_current_armor(),
-		defender.durability.get_max_armor(),
-		attacker.melee.get_damage(),
-	])
 	assert(attacker.melee.try_start(defender.health))
 	attacker.melee.tick(10.0)
-	print("counterattack after health=%d armor=%d/%d attacker_health=%d bystander_health=%d" % [
-		defender.health.current_health,
-		defender.durability.get_current_armor(),
-		defender.durability.get_max_armor(),
-		attacker.health.current_health,
-		bystander.health.current_health,
-	])
 	assert(defender.health.current_health == health_before)
 	assert(defender.durability.get_current_armor() == 0)
 	assert(attacker.health.current_health == 0)
