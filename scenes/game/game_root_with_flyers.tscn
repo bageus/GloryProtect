@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=23 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -6,7 +6,7 @@
 [ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="4_boarding"]
 [ext_resource type="Resource" path="res://resources/enemies/flying_enemy_profile.tres" id="5_profile"]
 [ext_resource type="Resource" path="res://resources/upgrades/active_game_upgrade_catalog.tres" id="6_upgrades"]
-[ext_resource type="Script" path="res://scripts/upgrades/combat_anchor_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
+[ext_resource type="Script" path="res://scripts/upgrades/shield_core_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
 [ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
 [ext_resource type="Script" path="res://scripts/medical/medic_role_modifier_controller.gd" id="10_medic_roles"]
@@ -16,6 +16,12 @@
 [ext_resource type="Script" path="res://scripts/crew/shooter_crew_role_manager.gd" id="14_shooter_roles"]
 [ext_resource type="Script" path="res://scripts/anchors/combat_anchor_host_system.gd" id="15_anchor_host"]
 [ext_resource type="Script" path="res://scripts/anchors/combat_anchor_system.gd" id="16_combat_anchors"]
+[ext_resource type="Script" path="res://scripts/shield/shield_core_shield_system.gd" id="17_shield_system"]
+[ext_resource type="Script" path="res://scripts/shield/shield_core_recharge_controller.gd" id="18_recharge"]
+[ext_resource type="Script" path="res://scripts/shield/shield_core_ground_orb_registry.gd" id="19_orb_registry"]
+[ext_resource type="Script" path="res://scripts/shield/shield_core_strategic_wave_system.gd" id="20_strategic"]
+[ext_resource type="Script" path="res://scripts/shield/shield_core_system.gd" id="21_shield_core"]
+[ext_resource type="Resource" path="res://resources/balance/shield_core_balance.tres" id="22_shield_core_balance"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -26,9 +32,22 @@ replacement_controller_path = NodePath("../CrewReplacementController")
 turret_system_path = NodePath("../World/TurretSystem")
 medical_system_path = NodePath("../World/MedicalStationSystem")
 combat_anchor_system_path = NodePath("../World/CombatAnchorSystem")
+shield_core_system_path = NodePath("../World/ShieldCoreSystem")
+
+[node name="ShieldSystem" parent="."]
+script = ExtResource("17_shield_system")
 
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
+
+[node name="GroundOrbRegistry" parent="World"]
+script = ExtResource("19_orb_registry")
+
+[node name="ShieldRechargeController" parent="World"]
+script = ExtResource("18_recharge")
+
+[node name="StrategicWaveSystem" parent="World"]
+script = ExtResource("20_strategic")
 
 [node name="AnchorSystem" parent="World"]
 script = ExtResource("15_anchor_host")
@@ -48,6 +67,16 @@ script = ExtResource("16_combat_anchors")
 game_flow_path = NodePath("../../GameFlowController")
 anchor_system_path = NodePath("../AnchorSystem")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+
+[node name="ShieldCoreSystem" type="Node" parent="World"]
+script = ExtResource("21_shield_core")
+game_flow_path = NodePath("../../GameFlowController")
+shield_system_path = NodePath("../../ShieldSystem")
+recharge_controller_path = NodePath("../ShieldRechargeController")
+contact_system_path = NodePath("../OrbContactSystem")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+strategic_wave_system_path = NodePath("../StrategicWaveSystem")
+balance = ExtResource("22_shield_core_balance")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
 script = ExtResource("10_medic_roles")
