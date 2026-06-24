@@ -20,11 +20,8 @@ if (( import_status != 0 )); then
 fi
 
 priority_scenarios=(
-  "tests/integration/shooter_role_unlock_scenarios.gd"
-  "tests/integration/strategic_wave_scenarios.gd"
-  "tests/integration/turret_scenarios.gd"
-  "tests/integration/turret_upgrade_system_scenarios.gd"
-  "tests/integration/upgrade_specialization_purchase_scenarios.gd"
+  "tests/unit/anchor_constraint_scenarios.gd"
+  "tests/unit/ranged_poison_attack_scenarios.gd"
 )
 mapfile -t discovered_scenarios < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
