@@ -81,6 +81,16 @@ func _run_scenario() -> void:
 	assert(waves.get_total_enemy_count() == 10)
 	assert(waves.get_enemy_count_for_section(2) == 7)
 
+	waves.reset_for_run()
+	contact.call("_set_active_orb", -1)
+	assert(waves.add_group(2, 10, 100.0, 0.0) >= 0)
+	while waves.get_available_group_slots() > 0:
+		assert(waves.add_group(0, 1, 100.0, 0.0) >= 0)
+	var full_group_total := waves.get_total_enemy_count()
+	contact.call("_set_active_orb", 2)
+	assert(waves.get_enemy_count_for_section(2) == 7)
+	assert(waves.get_total_enemy_count() == full_group_total)
+
 	core.reset_upgrade_runtime()
 	waves.reset_for_run()
 	contact.call("_set_active_orb", -1)
@@ -95,6 +105,11 @@ func _run_scenario() -> void:
 	contact.call("_set_active_orb", 2)
 	var destroyed_on_connect := before_surge - waves.get_total_enemy_count()
 	assert(destroyed_on_connect >= 1 and destroyed_on_connect <= 2)
+	var before_disconnect := waves.get_total_enemy_count()
+	contact.call("_set_active_orb", -1)
+	var destroyed_on_disconnect := before_disconnect - waves.get_total_enemy_count()
+	assert(destroyed_on_disconnect >= 1 and destroyed_on_disconnect <= 2)
+	contact.call("_set_active_orb", 2)
 
 	shield.set_health(0, 50.0)
 	shield.set_health(1, 100.0)
