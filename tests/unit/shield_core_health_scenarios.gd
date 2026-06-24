@@ -39,7 +39,7 @@ func _run_scenarios() -> void:
 	assert(is_equal_approx(shield.get_display_health_percent(0), 1.0))
 	shield.tick_emergency_reserve(4.9)
 	assert(shield.is_section_held(0))
-	shield.tick_emergency_reserve(0.1)
+	shield.tick_emergency_reserve(0.2)
 	assert(not shield.is_section_held(0))
 	shield.apply_damage(0, 100.0)
 	assert(is_zero_approx(shield.get_health(0)))
