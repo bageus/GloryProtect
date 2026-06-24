@@ -28,7 +28,6 @@ if (( ${#scenario_files[@]} == 0 )); then
   exit 1
 fi
 
-failed_scenarios=()
 for scenario_file in "${scenario_files[@]}"; do
   log_name="${scenario_file//\//__}"
   log_path="${RESULT_DIR}/${log_name%.gd}.log"
@@ -45,7 +44,6 @@ for scenario_file in "${scenario_files[@]}"; do
   set -e
 
   if (( scenario_status != 0 )); then
-    failed_scenarios+=("${scenario_file}")
     if (( scenario_status == 124 || scenario_status == 137 )); then
       echo "Scenario timed out after ${SCENARIO_TIMEOUT_SECONDS}s." >&2
     else
@@ -56,17 +54,11 @@ for scenario_file in "${scenario_files[@]}"; do
     echo "--- final output ---"
     tail -n 120 "${log_path}"
     echo "::endgroup::"
-    continue
+    exit 1
   fi
 
   grep -E -i 'scenarios? passed|warning|error' "${log_path}" | tail -n 40 || true
   echo "::endgroup::"
 done
-
-if (( ${#failed_scenarios[@]} > 0 )); then
-  echo "${#failed_scenarios[@]} Godot scenario(s) failed:" >&2
-  printf ' - %s\n' "${failed_scenarios[@]}" >&2
-  exit 1
-fi
 
 echo "All ${#scenario_files[@]} Godot scenarios passed."
