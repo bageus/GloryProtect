@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene load_steps=26 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -22,6 +22,9 @@
 [ext_resource type="Script" path="res://scripts/shield/shield_core_strategic_wave_system.gd" id="20_strategic"]
 [ext_resource type="Script" path="res://scripts/shield/shield_core_system.gd" id="21_shield_core"]
 [ext_resource type="Resource" path="res://resources/balance/shield_core_balance.tres" id="22_shield_core_balance"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_placement_controller.gd" id="23_placement"]
+[ext_resource type="Script" path="res://scripts/buildables/buildable_placement_debug_bridge.gd" id="24_placement_bridge"]
+[ext_resource type="Script" path="res://scripts/ui/buildable_placement_panel_scene.gd" id="25_placement_panel"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -36,6 +39,25 @@ shield_core_system_path = NodePath("../World/ShieldCoreSystem")
 
 [node name="ShieldSystem" parent="."]
 script = ExtResource("17_shield_system")
+
+[node name="BuildableDebugInput" parent="."]
+process_mode = 4
+
+[node name="TurretDebugInput" parent="."]
+process_mode = 4
+
+[node name="BuildablePlacementController" type="Node" parent="."]
+script = ExtResource("23_placement")
+game_flow_path = NodePath("../GameFlowController")
+platform_path = NodePath("../World/Platform")
+inventory_path = NodePath("../BuildableInventory")
+grid_path = NodePath("../World/BuildableGrid")
+
+[node name="BuildablePlacementDebugBridge" type="Node" parent="."]
+script = ExtResource("24_placement_bridge")
+controller_path = NodePath("../BuildablePlacementController")
+buildable_debug_input_path = NodePath("../BuildableDebugInput")
+turret_debug_input_path = NodePath("../TurretDebugInput")
 
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
@@ -54,6 +76,9 @@ script = ExtResource("15_anchor_host")
 
 [node name="PlatformVisualController" parent="World/Platform"]
 driver_console_surface_offset = Vector2(60, -2)
+
+[node name="BuildableGridVisual" parent="World/Platform"]
+placement_controller_path = NodePath("../../../BuildablePlacementController")
 
 [node name="CrewRoleManager" parent="World/Platform"]
 script = ExtResource("14_shooter_roles")
@@ -119,3 +144,10 @@ enemy_scene = ExtResource("3_enemy")
 boarding_balance = ExtResource("4_boarding")
 profile = ExtResource("5_profile")
 first_flying_wave_number = 10
+
+[node name="PrototypeHUD" parent="CanvasLayer"]
+buildable_placement_controller_path = NodePath("../../BuildablePlacementController")
+
+[node name="BuildablePlacementPanel" type="PanelContainer" parent="CanvasLayer"]
+script = ExtResource("25_placement_panel")
+controller_path = NodePath("../../BuildablePlacementController")
