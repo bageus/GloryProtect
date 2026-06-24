@@ -8,6 +8,7 @@ var _runtime: UpgradeRuntime
 var _turrets: TurretUpgradeSystem
 var _medical: MedicalStationSystem
 var _combat_anchors: CombatAnchorSystem
+var _shield_core: ShieldCoreSystem
 
 
 func configure(
@@ -17,7 +18,8 @@ func configure(
 	replacements: CrewReplacementController = null,
 	turrets: TurretUpgradeSystem = null,
 	medical: MedicalStationSystem = null,
-	combat_anchors: CombatAnchorSystem = null
+	combat_anchors: CombatAnchorSystem = null,
+	shield_core: ShieldCoreSystem = null
 ) -> void:
 	assert(buildables != null)
 	assert(runtime != null)
@@ -28,6 +30,7 @@ func configure(
 	_turrets = turrets
 	_medical = medical
 	_combat_anchors = combat_anchors
+	_shield_core = shield_core
 
 
 func can_apply(definition: UpgradeDefinition) -> bool:
@@ -78,6 +81,11 @@ func can_apply(definition: UpgradeDefinition) -> bool:
 				return (
 					_combat_anchors != null
 					and _combat_anchors.can_apply_upgrade_effect(effect)
+				)
+			if _is_shield_core_effect(effect):
+				return (
+					_shield_core != null
+					and _shield_core.can_apply_upgrade_effect(effect)
 				)
 			return _runtime != null
 	return false
@@ -134,6 +142,8 @@ func apply_effect(definition: UpgradeDefinition) -> bool:
 				)
 			if _is_combat_anchor_effect(effect):
 				return _combat_anchors.apply_upgrade_effect(effect)
+			if _is_shield_core_effect(effect):
+				return _shield_core.apply_upgrade_effect(effect)
 			if effect.effect_type == UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 				_runtime.set_domain_flag(effect.target_id, true)
 				return true
@@ -163,3 +173,7 @@ func _is_shooter_effect(effect: UpgradeEffectDefinition) -> bool:
 
 func _is_combat_anchor_effect(effect: UpgradeEffectDefinition) -> bool:
 	return String(effect.target_id).begins_with("anchor_")
+
+
+func _is_shield_core_effect(effect: UpgradeEffectDefinition) -> bool:
+	return String(effect.target_id).begins_with("shield_")
