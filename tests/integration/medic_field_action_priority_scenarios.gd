@@ -88,25 +88,10 @@ func _run_scenario() -> void:
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
 	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(not medic.can_medic_role_use_melee())
-	print(
-		"MEDIC_ACTION_BEFORE health=", enemy.health.current_health,
-		" state=", assignment.state,
-		" current_role=", assignment.current_role,
-		" target_role=", assignment.target_role,
-		" melee_busy=", medic.melee.is_busy()
-	)
 	medic.combat.call("_physics_process", 0.0)
-	print(
-		"MEDIC_ACTION_AFTER health=", enemy.health.current_health,
-		" state=", assignment.state,
-		" current_role=", assignment.current_role,
-		" target_role=", assignment.target_role,
-		" attacking=", medic.melee.is_attacking(),
-		" melee_busy=", medic.melee.is_busy()
-	)
 	assert(not medic.melee.is_attacking())
 	assert(enemy.health.current_health == 3)
-	await process_frame
+	await physics_frame
 	assert(assignment.state in [
 		CrewAssignmentRuntime.State.MOVING,
 		CrewAssignmentRuntime.State.ACTIVE,
