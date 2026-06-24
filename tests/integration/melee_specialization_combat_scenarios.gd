@@ -94,6 +94,17 @@ func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
 		defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
 	var completed_hits: int = defender.combat.get_completed_hit_count()
+	print("heavy bash hits=%d health=[%d,%d,%d] start=[%.2f,%.2f] end=[%.2f,%.2f,%.2f]" % [
+		completed_hits,
+		behind_one.health.current_health,
+		behind_two.health.current_health,
+		behind_three.health.current_health,
+		behind_one_start,
+		behind_two_start,
+		behind_one.controller.get_platform_local_x(),
+		behind_two.controller.get_platform_local_x(),
+		behind_three.controller.get_platform_local_x(),
+	])
 	assert(completed_hits == 5, "Expected 5 completed hits, got %d" % completed_hits)
 	assert(behind_one.health.current_health == 2)
 	assert(behind_two.health.current_health == 2)
