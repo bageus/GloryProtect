@@ -27,12 +27,22 @@ func _run_scenario() -> void:
 	)
 	medical.set_physics_process(false)
 
-	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	var station_id: int = grid.place(BuildableType.Id.MEDICAL_STATION, 11)
-	assert(station_id >= 0)
-	await process_frame
 	var medic: Defender = crew.get_defender(1)
 	var target: Defender = crew.get_defender(0)
+	for _frame: int in range(60):
+		if roles.get_assignment(medic.defender_id) != null:
+			break
+		await process_frame
+	assert(roles.get_assignment(medic.defender_id) != null)
+
+	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
+	var station_id: int = grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		grid.balance.default_medical_cell
+	)
+	assert(station_id >= 0)
+	await process_frame
+	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	medic.teleport_to(target.position.x)
@@ -41,7 +51,8 @@ func _run_scenario() -> void:
 	medical.call("_physics_process", 0.0)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
 	assert(is_equal_approx(medical.get_heal_remaining(), 5.0))
-	assert(grid.move(station_id, 12))
+	var relocation_cell: int = grid.balance.turret_cell_indices[4]
+	assert(grid.move(station_id, relocation_cell))
 	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
 	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
@@ -53,7 +64,7 @@ func _run_scenario() -> void:
 	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	assert(is_equal_approx(
 		medic.position.x,
-		grid.get_cell_local_x(12)
+		grid.get_cell_local_x(relocation_cell)
 	))
 
 	roles.request_assignment(target.defender_id, CrewRole.Id.FREE_FIGHTER)
@@ -101,7 +112,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await process_frame
+		await physics_frame
 	assert(false, "Defender did not reach requested role")
 
 
