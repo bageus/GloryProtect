@@ -23,7 +23,7 @@ func _test_duelist_double_attack_is_sequential() -> void:
 	assert(crew.apply_melee_flag(&"melee_duelist_double_attack"))
 	var defender: Defender = crew.get_defender(0)
 	defender.teleport_to(0.0)
-	var target: BoardingEnemy = _spawn_boarded_enemy(director, 12.0)
+	var target: BoardingEnemy = _spawn_boarded_enemy(director, 30.0)
 	target.health.configure(5)
 
 	assert(bool(defender.combat.call("_try_start_attack", target)))
@@ -50,12 +50,12 @@ func _test_assault_hits_forward_group_and_rear_enemy() -> void:
 	var defender: Defender = crew.get_defender(0)
 	defender.teleport_to(0.0)
 
-	var primary: BoardingEnemy = _spawn_boarded_enemy(director, 12.0)
-	var behind_one: BoardingEnemy = _spawn_boarded_enemy(director, 24.0)
-	var behind_two: BoardingEnemy = _spawn_boarded_enemy(director, 36.0)
-	var behind_three: BoardingEnemy = _spawn_boarded_enemy(director, 48.0)
-	var behind_four: BoardingEnemy = _spawn_boarded_enemy(director, 60.0)
-	var rear: BoardingEnemy = _spawn_boarded_enemy(director, -12.0)
+	var primary: BoardingEnemy = _spawn_boarded_enemy(director, 30.0)
+	var behind_one: BoardingEnemy = _spawn_boarded_enemy(director, 62.0)
+	var behind_two: BoardingEnemy = _spawn_boarded_enemy(director, 94.0)
+	var behind_three: BoardingEnemy = _spawn_boarded_enemy(director, 126.0)
+	var behind_four: BoardingEnemy = _spawn_boarded_enemy(director, 158.0)
+	var rear: BoardingEnemy = _spawn_boarded_enemy(director, -30.0)
 
 	assert(bool(defender.combat.call("_try_start_attack", primary)))
 	defender.melee.tick(0.4)
@@ -80,10 +80,10 @@ func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
 	defender.teleport_to(0.0)
 	assert(defender.blocks_enemy_jump())
 
-	var primary: BoardingEnemy = _spawn_boarded_enemy(director, 12.0)
-	var behind_one: BoardingEnemy = _spawn_boarded_enemy(director, 24.0)
-	var behind_two: BoardingEnemy = _spawn_boarded_enemy(director, 36.0)
-	var behind_three: BoardingEnemy = _spawn_boarded_enemy(director, 48.0)
+	var primary: BoardingEnemy = _spawn_boarded_enemy(director, 30.0)
+	var behind_one: BoardingEnemy = _spawn_boarded_enemy(director, 62.0)
+	var behind_two: BoardingEnemy = _spawn_boarded_enemy(director, 94.0)
+	var behind_three: BoardingEnemy = _spawn_boarded_enemy(director, 126.0)
 	primary.health.configure(20)
 	var behind_one_start: float = behind_one.controller.get_platform_local_x()
 	var behind_two_start: float = behind_two.controller.get_platform_local_x()
@@ -91,7 +91,7 @@ func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
 	for _hit: int in range(5):
 		assert(bool(defender.combat.call("_try_start_attack", primary)))
 		defender.melee.tick(0.4)
-		defender.melee.tick(defender.melee.get_cooldown_duration())
+		defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
 	assert(defender.combat.get_completed_hit_count() == 5)
 	assert(behind_one.health.current_health == 2)
