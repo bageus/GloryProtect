@@ -19,9 +19,34 @@ if (( import_status != 0 )); then
   exit 1
 fi
 
-mapfile -t scenario_files < <(
+priority_scenarios=(
+  "tests/integration/shooter_role_unlock_scenarios.gd"
+  "tests/integration/strategic_wave_scenarios.gd"
+  "tests/integration/turret_scenarios.gd"
+  "tests/integration/turret_upgrade_system_scenarios.gd"
+  "tests/integration/upgrade_specialization_purchase_scenarios.gd"
+)
+mapfile -t discovered_scenarios < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
 )
+scenario_files=()
+for priority_scenario in "${priority_scenarios[@]}"; do
+  if [[ -f "${priority_scenario}" ]]; then
+    scenario_files+=("${priority_scenario}")
+  fi
+done
+for scenario_file in "${discovered_scenarios[@]}"; do
+  skip_scenario=0
+  for priority_scenario in "${priority_scenarios[@]}"; do
+    if [[ "${scenario_file}" == "${priority_scenario}" ]]; then
+      skip_scenario=1
+      break
+    fi
+  done
+  if (( skip_scenario == 0 )); then
+    scenario_files+=("${scenario_file}")
+  fi
+done
 
 if (( ${#scenario_files[@]} == 0 )); then
   echo "No Godot scenario files found." >&2
