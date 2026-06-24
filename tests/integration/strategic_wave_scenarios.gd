@@ -17,6 +17,9 @@ func _run_scenarios() -> void:
 	var difficulty: RunDifficulty = game.get_node("RunDifficulty")
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var shield: ShieldSystem = game.get_node("ShieldSystem")
+	var recharge: ShieldRechargeController = game.get_node(
+		"World/ShieldRechargeController"
+	)
 	var waves: StrategicWaveSystem = game.get_node(
 		"World/StrategicWaveSystem"
 	)
@@ -24,6 +27,7 @@ func _run_scenarios() -> void:
 		"World/StrategicWaveDirector"
 	)
 	var minimap: Control = game.get_node("CanvasLayer/StrategicMinimap")
+	recharge.set_physics_process(false)
 
 	assert(minimap.visible)
 	assert(game_flow.state == GameFlowController.RunState.START_DELAY)
