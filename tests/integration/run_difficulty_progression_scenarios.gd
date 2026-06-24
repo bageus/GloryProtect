@@ -28,17 +28,32 @@ func _run_scenarios() -> void:
 		spawn.get_spawn_remaining(),
 		start_delay_spawn_remaining
 	))
-	assert(spawn.get_current_ground_limit() == 8)
-	assert(is_equal_approx(spawn.get_current_spawn_interval(), 3.0))
+	assert(spawn.get_current_ground_limit() == spawn.balance.max_ground_enemies)
+	assert(is_equal_approx(
+		spawn.get_current_spawn_interval(),
+		spawn.balance.spawn_interval
+	))
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	await _wait_process_frames(5)
 	assert(difficulty.get_elapsed_seconds() > 0.0)
 
 	difficulty.set_debug_elapsed_seconds(300.0)
-	assert(is_equal_approx(difficulty.get_normalized(), 0.5))
-	assert(spawn.get_current_ground_limit() == 14)
-	assert(is_equal_approx(spawn.get_current_spawn_interval(), 1.9))
+	var midpoint: float = difficulty.get_normalized()
+	assert(is_equal_approx(midpoint, 0.5))
+	assert(spawn.get_current_ground_limit() == roundi(lerpf(
+		float(spawn.balance.max_ground_enemies),
+		float(spawn.balance.maximum_ground_enemies),
+		midpoint
+	)))
+	assert(is_equal_approx(
+		spawn.get_current_spawn_interval(),
+		lerpf(
+			spawn.balance.spawn_interval,
+			spawn.balance.minimum_spawn_interval,
+			midpoint
+		)
+	))
 	await physics_frame
 	assert(spawn.get_spawn_remaining() <= spawn.get_current_spawn_interval())
 
@@ -55,17 +70,26 @@ func _run_scenarios() -> void:
 
 	difficulty.set_debug_elapsed_seconds(600.0)
 	assert(is_equal_approx(difficulty.get_normalized(), 1.0))
-	assert(spawn.get_current_ground_limit() == 20)
-	assert(is_equal_approx(spawn.get_current_spawn_interval(), 0.8))
+	assert(spawn.get_current_ground_limit() == spawn.balance.maximum_ground_enemies)
+	assert(is_equal_approx(
+		spawn.get_current_spawn_interval(),
+		spawn.balance.minimum_spawn_interval
+	))
 
 	game_flow.end_run(&"test_restart")
 	game_flow.start_run()
 	await process_frame
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), 0.0))
 	assert(is_equal_approx(difficulty.get_normalized(), 0.0))
-	assert(spawn.get_current_ground_limit() == 8)
-	assert(is_equal_approx(spawn.get_current_spawn_interval(), 3.0))
-	assert(is_equal_approx(spawn.get_spawn_remaining(), 3.0))
+	assert(spawn.get_current_ground_limit() == spawn.balance.max_ground_enemies)
+	assert(is_equal_approx(
+		spawn.get_current_spawn_interval(),
+		spawn.balance.spawn_interval
+	))
+	assert(is_equal_approx(
+		spawn.get_spawn_remaining(),
+		spawn.balance.spawn_interval
+	))
 
 	print("Run difficulty progression scenarios passed")
 	quit()
