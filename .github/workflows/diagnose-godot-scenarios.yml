@@ -1,0 +1,57 @@
+name: Diagnose Godot scenarios
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-godot-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  GODOT_VERSION: "4.6.2"
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      files: ${{ steps.matrix.outputs.files }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          files=$(find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort | jq -R -s -c 'split("\n")[:-1]')
+          echo "files=${files}" >> "$GITHUB_OUTPUT"
+
+  scenario:
+    needs: discover
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        scenario: ${{ fromJson(needs.discover.outputs.files) }}
+    name: ${{ matrix.scenario }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 \
+            --output /tmp/godot.zip \
+            "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 0755 \
+            "/tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" \
+            /usr/local/bin/godot
+      - name: Import project
+        run: timeout 120s godot --headless --path . --import
+      - name: Run scenario
+        run: timeout 90s godot --headless --path . --script "res://${{ matrix.scenario }}"
