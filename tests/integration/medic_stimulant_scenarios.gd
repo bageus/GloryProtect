@@ -34,7 +34,6 @@ func _run_scenario() -> void:
 	assert(controller.is_active(target.defender_id))
 	assert(is_equal_approx(controller.get_remaining(target.defender_id), 5.0))
 	assert(is_equal_approx(target.get_temporary_attack_speed_multiplier(), 1.15))
-	print("cooldown values ", base_cooldown, " ", target.melee.get_cooldown_duration())
 	assert(is_equal_approx(
 		target.melee.get_cooldown_duration(),
 		base_cooldown / target.get_temporary_attack_speed_multiplier()
