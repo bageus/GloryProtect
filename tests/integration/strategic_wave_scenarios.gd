@@ -65,14 +65,14 @@ func _run_scenarios() -> void:
 		waves.get_group_snapshots()[0].progress
 	)
 	game_flow.begin_card_selection()
-	assert(get_tree().paused)
+	assert(paused)
 	await _wait_physics_frames(5)
 	assert(is_equal_approx(
 		waves.get_group_snapshots()[0].progress,
 		progress_before_pause
 	))
 	game_flow.finish_card_selection()
-	assert(not get_tree().paused)
+	assert(not paused)
 
 	await _wait_until_groups_empty(waves, 180)
 	assert(waves.get_active_group_count() == 0)
