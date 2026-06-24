@@ -15,6 +15,7 @@ extends Control
 @export_node_path("BuildableInventory") var buildable_inventory_path: NodePath
 @export_node_path("BuildableGrid") var buildable_grid_path: NodePath
 @export_node_path("BuildableDebugInput") var buildable_debug_input_path: NodePath
+@export_node_path("BuildablePlacementController") var buildable_placement_controller_path: NodePath
 @export_node_path("MedicalStationSystem") var medical_station_system_path: NodePath
 @export_node_path("TurretSystem") var turret_system_path: NodePath
 @export_node_path("TurretDebugInput") var turret_debug_input_path: NodePath
@@ -75,11 +76,17 @@ extends Control
 @onready var _target_label: Label = %TargetLabel
 @onready var _pause_label: Label = %PauseLabel
 
+var _placement: BuildablePlacementController
+
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_title_label.text = "GloryProtect — Prototype 2.0"
 	_telemetry_panel.visible = false
+	if not buildable_placement_controller_path.is_empty():
+		_placement = get_node_or_null(
+			buildable_placement_controller_path
+		) as BuildablePlacementController
 	_create_crew_command_panel()
 
 
@@ -108,7 +115,7 @@ func _process(_delta: float) -> void:
 
 
 func _create_crew_command_panel() -> void:
-	var panel := CrewCommandPanelFixed.new()
+	var panel := CrewCommandPanelPlacementAware.new()
 	panel.name = "CrewCommandPanel"
 	panel.configure(
 		_game_flow,
@@ -183,15 +190,25 @@ func _update_anchors_crew_and_boarding() -> void:
 
 
 func _update_buildables_medical_and_turrets() -> void:
+	var placement_summary := _buildable_input.get_summary()
+	var turret_selection_summary := _turret_input.get_summary()
+	if _placement != null:
+		placement_summary = _placement.get_summary()
+		var selected_turret := _placement.get_selected_turret_id()
+		turret_selection_summary = (
+			"турель не выбрана"
+			if selected_turret < 0
+			else "выбрана T%d" % (selected_turret + 1)
+		)
 	_buildable_label.text = "Объекты: %s | %s | %s" % [
 		_buildable_inventory.get_summary(),
 		_buildable_grid.get_summary(),
-		_buildable_input.get_summary(),
+		placement_summary,
 	]
 	_medical_label.text = "Лечение: %s" % _medical.get_summary()
 	_turret_label.text = "Турели: %s | %s" % [
 		_turrets.get_summary(),
-		_turret_input.get_summary(),
+		turret_selection_summary,
 	]
 
 

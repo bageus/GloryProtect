@@ -6,6 +6,13 @@ signal buildable_moved(buildable_id: int, previous_cell: int, cell_index: int)
 signal buildable_demolished(buildable_id: int, type_id: int, cell_index: int)
 signal grid_reset
 
+const REASON_INVALID_CELL: StringName = &"invalid_cell"
+const REASON_UNSUPPORTED_TYPE: StringName = &"unsupported_type"
+const REASON_CELL_NOT_ALLOWED: StringName = &"cell_not_allowed"
+const REASON_CELL_OCCUPIED: StringName = &"cell_occupied"
+const REASON_BUILDABLE_LOCKED: StringName = &"buildable_locked"
+const REASON_DEPLOYMENT_LIMIT: StringName = &"deployment_limit"
+
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("BuildableInventory") var inventory_path: NodePath
@@ -27,9 +34,7 @@ func _ready() -> void:
 
 
 func place(type_id: int, cell_index: int) -> int:
-	if not is_cell_available_for_type(type_id, cell_index):
-		return -1
-	if not _inventory.can_deploy(type_id, get_count_by_type(type_id)):
+	if get_place_unavailability_reason(type_id, cell_index) != &"":
 		return -1
 	var runtime := BuildableRuntime.new(
 		_next_buildable_id,
@@ -49,11 +54,11 @@ func move(buildable_id: int, cell_index: int) -> bool:
 	var runtime: BuildableRuntime = _buildables[buildable_id]
 	if runtime.cell_index == cell_index:
 		return true
-	if not _is_cell_available_for_type(
+	if get_cell_unavailability_reason(
 		runtime.type_id,
 		cell_index,
 		buildable_id
-	):
+	) != &"":
 		return false
 	var previous_cell: int = runtime.cell_index
 	_cell_occupants.erase(previous_cell)
@@ -79,6 +84,10 @@ func demolish(buildable_id: int) -> bool:
 
 func has_buildable(buildable_id: int) -> bool:
 	return _buildables.has(buildable_id)
+
+
+func get_buildable_id_at_cell(cell_index: int) -> int:
+	return int(_cell_occupants.get(cell_index, -1))
 
 
 func get_buildable_id_by_type(type_id: int) -> int:
@@ -115,7 +124,43 @@ func is_cell_available(cell_index: int) -> bool:
 
 
 func is_cell_available_for_type(type_id: int, cell_index: int) -> bool:
-	return _is_cell_available_for_type(type_id, cell_index, -1)
+	return get_cell_unavailability_reason(type_id, cell_index) == &""
+
+
+func get_cell_unavailability_reason(
+	type_id: int,
+	cell_index: int,
+	ignored_buildable_id: int = -1
+) -> StringName:
+	if not _platform.is_valid_cell(cell_index):
+		return REASON_INVALID_CELL
+	if type_id == BuildableType.Id.MEDICAL_STATION:
+		if not balance.is_medical_cell(cell_index):
+			return REASON_CELL_NOT_ALLOWED
+	elif type_id == BuildableType.Id.TURRET:
+		if not balance.is_turret_cell(cell_index):
+			return REASON_CELL_NOT_ALLOWED
+	else:
+		return REASON_UNSUPPORTED_TYPE
+	if not _cell_occupants.has(cell_index):
+		return &""
+	if int(_cell_occupants[cell_index]) == ignored_buildable_id:
+		return &""
+	return REASON_CELL_OCCUPIED
+
+
+func get_place_unavailability_reason(
+	type_id: int,
+	cell_index: int
+) -> StringName:
+	var cell_reason := get_cell_unavailability_reason(type_id, cell_index)
+	if cell_reason != &"":
+		return cell_reason
+	if not _inventory.is_unlocked(type_id):
+		return REASON_BUILDABLE_LOCKED
+	if not _inventory.can_deploy(type_id, get_count_by_type(type_id)):
+		return REASON_DEPLOYMENT_LIMIT
+	return &""
 
 
 func find_nearest_available_cell(
@@ -145,11 +190,11 @@ func find_nearest_available_cell_for_type(
 	var best_cell: int = -1
 	var best_distance: int = 2147483647
 	for cell_index: int in candidates:
-		if not _is_cell_available_for_type(
+		if get_cell_unavailability_reason(
 			type_id,
 			cell_index,
 			ignored_buildable_id
-		):
+		) != &"":
 			continue
 		var distance: int = absi(cell_index - preferred_cell)
 		if distance < best_distance:
@@ -200,26 +245,6 @@ func get_summary() -> String:
 		medical_text,
 		get_count_by_type(BuildableType.Id.TURRET),
 	]
-
-
-func _is_cell_available_for_type(
-	type_id: int,
-	cell_index: int,
-	ignored_buildable_id: int
-) -> bool:
-	if not _platform.is_valid_cell(cell_index):
-		return false
-	if type_id == BuildableType.Id.MEDICAL_STATION:
-		if not balance.is_medical_cell(cell_index):
-			return false
-	elif type_id == BuildableType.Id.TURRET:
-		if not balance.is_turret_cell(cell_index):
-			return false
-	else:
-		return false
-	if not _cell_occupants.has(cell_index):
-		return true
-	return int(_cell_occupants[cell_index]) == ignored_buildable_id
 
 
 func _on_run_state_changed(previous_state: int, new_state: int) -> void:
