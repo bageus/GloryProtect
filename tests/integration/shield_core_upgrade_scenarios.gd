@@ -97,6 +97,9 @@ func _run_scenario() -> void:
 	assert(destroyed_on_connect >= 1 and destroyed_on_connect <= 2)
 
 	shield.set_health(0, 50.0)
+	shield.set_health(1, 100.0)
+	shield.set_health(3, 100.0)
+	shield.set_health(4, 100.0)
 	shield.set_health(2, 99.0)
 	shield.restore(2, 1.0)
 	assert(is_equal_approx(shield.get_health(0), 65.0))
