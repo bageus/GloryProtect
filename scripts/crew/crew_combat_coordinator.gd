@@ -42,7 +42,6 @@ func _configure_defender(defender: Defender) -> void:
 		_platform,
 		_roles,
 		_enemies,
-		_movement_resolver,
 		defender.melee
 	)
 	defender.shooter_combat.configure(
