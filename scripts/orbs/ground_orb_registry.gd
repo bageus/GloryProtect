@@ -32,6 +32,10 @@ func get_world_x(orb_id: int) -> float:
 	return catalog.world_positions[orb_id]
 
 
+func get_contact_half_width() -> float:
+	return catalog.contact_half_width
+
+
 func get_orb_world_position(orb_id: int) -> Vector2:
 	return Vector2(
 		get_world_x(orb_id),
@@ -52,7 +56,7 @@ func get_anchor_ground_point(
 
 
 func get_contact_orb_at(platform_x: float) -> int:
-	return _find_orb_in_range(platform_x, catalog.contact_half_width)
+	return _find_orb_in_range(platform_x, get_contact_half_width())
 
 
 func get_installation_orb_at(platform_x: float, half_width: float) -> int:
@@ -62,7 +66,7 @@ func get_installation_orb_at(platform_x: float, half_width: float) -> int:
 func is_platform_in_contact(orb_id: int, platform_x: float) -> bool:
 	if not is_valid_orb(orb_id):
 		return false
-	return absf(platform_x - get_world_x(orb_id)) <= catalog.contact_half_width
+	return absf(platform_x - get_world_x(orb_id)) <= get_contact_half_width()
 
 
 func is_platform_in_installation_zone(

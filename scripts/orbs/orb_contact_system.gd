@@ -18,13 +18,13 @@ var active_orb_id: int = -1
 
 func _ready() -> void:
 	process_physics_priority = -10
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
 
 
 func _physics_process(_delta: float) -> void:
-	var next_orb_id := -1
-	if _game_flow.is_world_simulation_active():
-		next_orb_id = _registry.get_contact_orb_at(_platform.position.x)
-	_set_active_orb(next_orb_id)
+	if not _game_flow.is_world_simulation_active():
+		return
+	_set_active_orb(_registry.get_contact_orb_at(_platform.position.x))
 
 
 func is_contact_active() -> bool:
@@ -54,3 +54,19 @@ func _set_active_orb(next_orb_id: int) -> void:
 		contact_started.emit(active_orb_id)
 
 	contact_changed.emit(previous_orb_id, active_orb_id)
+
+
+func _reset_contact_for_run() -> void:
+	if active_orb_id < 0:
+		return
+	var previous_orb_id: int = active_orb_id
+	active_orb_id = -1
+	contact_changed.emit(previous_orb_id, active_orb_id)
+
+
+func _on_run_state_changed(previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	if previous_state == GameFlowController.RunState.MANUAL_PAUSE:
+		return
+	call_deferred("_reset_contact_for_run")
