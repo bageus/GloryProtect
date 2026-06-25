@@ -58,3 +58,4 @@ health_path = NodePath("../HealthComponent")
 status_effects_path = NodePath("../StatusEffectComponent")
 role_manager_path = NodePath("../../../CrewRoleManager")
 body_radius = 14.0
+run_frame_rate = 7.0

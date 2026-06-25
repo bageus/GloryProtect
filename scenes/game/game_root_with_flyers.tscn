@@ -65,6 +65,9 @@ revival_controller_path = NodePath("../World/MedicRevivalController")
 [node name="GroundOrbRegistry" parent="World"]
 script = ExtResource("19_orb_registry")
 
+[node name="GroundOrbVisualController" parent="World"]
+ground_core_frame_rate = 4.0
+
 [node name="ShieldRechargeController" parent="World"]
 script = ExtResource("18_recharge")
 
@@ -76,6 +79,7 @@ script = ExtResource("15_anchor_host")
 
 [node name="PlatformVisualController" parent="World/Platform"]
 driver_console_surface_offset = Vector2(80, -2)
+platform_core_frame_rate = 4.0
 
 [node name="BuildableGridVisual" parent="World/Platform"]
 placement_controller_path = NodePath("../../../BuildablePlacementController")
