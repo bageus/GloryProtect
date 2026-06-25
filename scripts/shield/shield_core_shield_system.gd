@@ -37,6 +37,10 @@ func get_effective_max_health() -> float:
 	return balance.max_health * _capacity_multiplier
 
 
+func get_max_health() -> float:
+	return get_effective_max_health()
+
+
 func configure_emergency_reserve(enabled: bool, floor_percent: float, hold_seconds: float) -> void:
 	_reserve_floor_percent = clampf(floor_percent, 0.1, 100.0)
 	_reserve_hold_seconds = maxf(0.0, hold_seconds)
