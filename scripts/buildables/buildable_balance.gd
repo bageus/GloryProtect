@@ -7,8 +7,12 @@ const MEDICAL_FOOTPRINT_CELLS: Array[int] = [6, 7]
 @export_group("Inventory")
 @export_range(0, 8, 1) var medical_station_max_count: int = 1
 @export_range(0, 16, 1) var turret_max_count: int = 4
-@export_range(0, 32, 1) var default_medical_cell: int = 6
-@export var medical_station_cell_indices: Array[int] = [6, 7]
+@export_range(0, 32, 1) var default_medical_cell: int = MEDICAL_ANCHOR_CELL:
+	set(_value):
+		default_medical_cell = MEDICAL_ANCHOR_CELL
+@export var medical_station_cell_indices: Array[int] = MEDICAL_FOOTPRINT_CELLS.duplicate():
+	set(_value):
+		medical_station_cell_indices = MEDICAL_FOOTPRINT_CELLS.duplicate()
 @export var turret_cell_indices: Array[int] = [2, 3, 4, 5, 12, 13, 14, 15]
 @export var reserved_cell_indices: Array[int] = [0, 1, 6, 7, 8, 9, 10, 11, 16, 17]
 
