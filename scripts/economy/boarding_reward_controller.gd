@@ -27,14 +27,16 @@ func _ready() -> void:
 	_strategic = _resolve_strategic_wave_system()
 	if _strategic != null:
 		_strategic.strategic_enemy_impacted.connect(_on_strategic_enemy_impacted)
-	_game_flow = get_tree().current_scene.get_node_or_null(
-		"GameFlowController"
-	) as GameFlowController
-	_build_feedback_view()
+	var scene_root: Node = _resolve_scene_root()
+	if scene_root != null:
+		_game_flow = scene_root.get_node_or_null(
+			"GameFlowController"
+		) as GameFlowController
+		_build_feedback_view(scene_root)
 
 
 func _process(delta: float) -> void:
-	if _counter == null:
+	if _counter == null or _gain == null:
 		return
 	_counter.text = "Монеты: %d" % _economy.get_coins()
 	if _feedback_remaining <= 0.0:
@@ -78,6 +80,8 @@ func _grant_reward(enemy_id: int, amount: int, reason: StringName) -> void:
 		return
 	_economy.add_coins(amount, reason)
 	reward_granted.emit(enemy_id, amount, reason)
+	if _counter == null or _gain == null:
+		return
 	_pending_gain = _pending_gain + amount if _feedback_remaining > 0.0 else amount
 	_feedback_remaining = feedback_duration
 	_gain.text = "+%d" % _pending_gain
@@ -92,8 +96,21 @@ func _resolve_strategic_wave_system() -> StrategicWaveSystem:
 	return get_node_or_null("../StrategicWaveSystem") as StrategicWaveSystem
 
 
-func _build_feedback_view() -> void:
-	var canvas: CanvasLayer = get_tree().current_scene.get_node_or_null(
+func _resolve_scene_root() -> Node:
+	var current: Node = get_tree().current_scene
+	if current != null and current.is_ancestor_of(self):
+		return current
+	current = self
+	while (
+		current.get_parent() != null
+		and current.get_parent() != get_tree().root
+	):
+		current = current.get_parent()
+	return current
+
+
+func _build_feedback_view(scene_root: Node) -> void:
+	var canvas: CanvasLayer = scene_root.get_node_or_null(
 		"CanvasLayer"
 	) as CanvasLayer
 	if canvas == null:
