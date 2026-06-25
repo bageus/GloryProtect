@@ -75,10 +75,11 @@ script = ExtResource("20_strategic")
 script = ExtResource("15_anchor_host")
 
 [node name="PlatformVisualController" parent="World/Platform"]
-driver_console_surface_offset = Vector2(60, -2)
+driver_console_surface_offset = Vector2(80, -2)
 
 [node name="BuildableGridVisual" parent="World/Platform"]
 placement_controller_path = NodePath("../../../BuildablePlacementController")
+medical_post_scale = 0.38
 
 [node name="CrewRoleManager" parent="World/Platform"]
 script = ExtResource("14_shooter_roles")
