@@ -19,8 +19,14 @@ func _ready() -> void:
 	super._ready()
 	if anchorless_control_path.is_empty():
 		return
-	_anchorless = get_node_or_null(anchorless_control_path) as AnchorlessControlSystem
-	assert(_anchorless != null, "Anchorless control path must resolve")
+	set_anchorless_control(
+		get_node_or_null(anchorless_control_path) as AnchorlessControlSystem
+	)
+
+
+func set_anchorless_control(value: AnchorlessControlSystem) -> void:
+	_anchorless = value
+	assert(_anchorless != null, "Anchorless control system is required")
 
 
 func set_upgrade_modifiers(speed_multiplier: float, distribution_ratio: float) -> void:
@@ -71,7 +77,9 @@ func _physics_process(delta: float) -> void:
 
 func _find_weakest_other_section(excluded_section_id: int) -> int:
 	if _shield is ShieldCoreShieldSystem:
-		return (_shield as ShieldCoreShieldSystem).get_weakest_damaged_section(excluded_section_id)
+		return (_shield as ShieldCoreShieldSystem).get_weakest_damaged_section(
+			excluded_section_id
+		)
 	var best_id := -1
 	var best_percent := INF
 	for section_id: int in range(_shield.get_section_count()):
