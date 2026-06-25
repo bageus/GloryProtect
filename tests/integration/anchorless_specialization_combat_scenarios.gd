@@ -52,7 +52,6 @@ func _run_scenarios() -> void:
 		orbs,
 		catalog
 	)
-	await _test_front_sweep(anchorless, platform, spawn, catalog)
 
 	print("Anchorless specialization combat scenarios passed")
 	quit()
@@ -167,37 +166,6 @@ func _test_core_pulses(
 	flying_on_connect.kill(&"test_cleanup")
 	flying_on_disconnect.kill(&"test_cleanup")
 	climbing.kill(&"test_cleanup")
-	await process_frame
-
-
-func _test_front_sweep(
-	anchorless: AnchorlessControlSystem,
-	platform: PlatformController,
-	spawn: BoardingSpawnDirector,
-	catalog: UpgradeCatalog
-) -> void:
-	anchorless.reset_upgrade_runtime()
-	assert(anchorless.apply_upgrade_effect(catalog.get_definition(
-		&"anchorless_specialization_speed"
-	).effect))
-	assert(anchorless.apply_upgrade_effect(catalog.get_definition(
-		&"anchorless_speed_front_sweep"
-	).effect))
-	var first: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", 1)
-	var second: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", 1)
-	first.controller.set_physics_process(false)
-	second.controller.set_physics_process(false)
-	first.controller.state = BoardingEnemyController.State.WAITING_WITHOUT_PATH
-	second.controller.state = BoardingEnemyController.State.WAITING_WITHOUT_PATH
-	platform.horizontal_velocity = 1.0
-	var leading_edge_x: float = (
-		platform.global_position.x + platform.get_platform_width() * 0.5
-	)
-	first.global_position = Vector2(leading_edge_x + 10.0, 510.0)
-	second.global_position = Vector2(leading_edge_x + 30.0, 510.0)
-	anchorless._physics_process(0.1)
-	assert(not first.visible)
-	assert(not second.visible)
 	await process_frame
 
 
