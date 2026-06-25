@@ -63,6 +63,7 @@ func _run_scenario() -> void:
 		target.defender_id,
 		CrewRole.Id.FREE_FIGHTER
 	)
+	medic.teleport_to(target.position.x)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
 
 	roles.request_assignment(medic.defender_id, CrewRole.Id.DRIVER)
