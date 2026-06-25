@@ -3,10 +3,10 @@ extends Node
 
 signal mode_changed(mode: int, type_id: int, buildable_id: int)
 signal hovered_cell_changed(cell_index: int)
+signal selected_cell_changed(cell_index: int)
 signal selected_buildable_changed(buildable_id: int)
 signal selected_turret_changed(buildable_id: int)
 signal feedback_changed(message: String, is_error: bool)
-
 
 enum Mode {
 	IDLE,
@@ -22,8 +22,9 @@ enum Mode {
 var mode: Mode = Mode.IDLE
 var selected_type_id: int = -1
 var selected_buildable_id: int = -1
+var selected_cell_index: int = -1
 var hovered_cell_index: int = -1
-var _feedback_message: String = "Выберите тип объекта"
+var _feedback_message: String = "Выберите клетку платформы"
 var _feedback_is_error: bool = false
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
@@ -50,7 +51,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not mouse_event.pressed:
 		return
 	if mouse_event.button_index == MOUSE_BUTTON_RIGHT:
-		cancel_current_action()
+		clear_selection()
 		get_viewport().set_input_as_handled()
 		return
 	if mouse_event.button_index != MOUSE_BUTTON_LEFT:
@@ -66,21 +67,43 @@ func are_commands_enabled() -> bool:
 func begin_placement(type_id: int) -> bool:
 	if not _ensure_commands_enabled():
 		return false
+	if not _can_deploy_type(type_id):
+		return false
 	selected_type_id = type_id
 	_set_selected_buildable(-1)
-	if not _inventory.is_unlocked(type_id):
-		_set_mode(Mode.IDLE)
-		_set_feedback("Объект ещё не открыт улучшением", true)
-		return false
-	if not _inventory.can_deploy(type_id, _grid.get_count_by_type(type_id)):
-		_set_mode(Mode.IDLE)
-		_set_feedback("Все доступные объекты этого типа уже установлены", true)
-		return false
 	_set_mode(Mode.PLACE)
 	_set_feedback(
 		"Выберите зелёную клетку для объекта «%s»" % _get_type_title(type_id),
 		false
 	)
+	return true
+
+
+func place_type_in_selected_cell(type_id: int) -> bool:
+	if not _ensure_commands_enabled():
+		return false
+	if selected_cell_index < 0:
+		_set_feedback("Сначала выберите пустую клетку платформы", true)
+		return false
+	if _grid.get_buildable_id_at_cell(selected_cell_index) >= 0:
+		_set_feedback("Выбранная клетка уже занята", true)
+		return false
+	if not _can_deploy_type(type_id):
+		return false
+	selected_type_id = type_id
+	return _place_selected_type(selected_cell_index, true)
+
+
+func select_empty_cell(cell_index: int) -> bool:
+	if not _platform.is_valid_cell(cell_index):
+		return false
+	if _grid.get_buildable_id_at_cell(cell_index) >= 0:
+		return false
+	selected_type_id = -1
+	_set_selected_buildable(-1)
+	_set_selected_cell(cell_index)
+	_set_mode(Mode.IDLE)
+	_set_feedback("Выберите объект для клетки %d" % (cell_index + 1), false)
 	return true
 
 
@@ -91,6 +114,7 @@ func select_buildable(buildable_id: int) -> bool:
 		return false
 	selected_type_id = snapshot.type_id
 	_set_selected_buildable(buildable_id)
+	_set_selected_cell(snapshot.cell_index)
 	_set_mode(Mode.IDLE)
 	_set_feedback(
 		"Выбран объект «%s» в клетке %d" % [
@@ -108,6 +132,9 @@ func begin_move_selected() -> bool:
 	var snapshot: BuildableSnapshot = _grid.get_snapshot(selected_buildable_id)
 	if snapshot == null:
 		_set_feedback("Сначала выберите установленный объект", true)
+		return false
+	if snapshot.type_id == BuildableType.Id.MEDICAL_STATION:
+		_set_feedback("Медицинский пост закреплён в служебной зоне", true)
 		return false
 	selected_type_id = snapshot.type_id
 	_set_mode(Mode.MOVE)
@@ -131,17 +158,16 @@ func demolish_selected() -> bool:
 
 
 func cancel_current_action() -> void:
-	_set_mode(Mode.IDLE)
-	if selected_buildable_id < 0:
-		selected_type_id = -1
+	clear_selection()
 	_set_feedback("Действие отменено", false)
 
 
 func clear_selection() -> void:
 	selected_type_id = -1
 	_set_selected_buildable(-1)
+	_set_selected_cell(-1)
 	_set_mode(Mode.IDLE)
-	_set_feedback("Выберите тип объекта", false)
+	_set_feedback("Выберите клетку платформы", false)
 
 
 func handle_pointer_motion(canvas_position: Vector2) -> int:
@@ -156,6 +182,8 @@ func handle_pointer_motion(canvas_position: Vector2) -> int:
 func handle_primary_click(canvas_position: Vector2) -> bool:
 	var cell_index := handle_pointer_motion(canvas_position)
 	if cell_index < 0:
+		if has_cell_context() or mode != Mode.IDLE:
+			clear_selection()
 		return false
 	if not _ensure_commands_enabled():
 		return true
@@ -165,11 +193,10 @@ func handle_primary_click(canvas_position: Vector2) -> bool:
 	if mode == Mode.PLACE:
 		if occupant_id >= 0:
 			return select_buildable(occupant_id)
-		return _place_selected_type(cell_index)
+		return _place_selected_type(cell_index, true)
 	if occupant_id >= 0:
 		return select_buildable(occupant_id)
-	clear_selection()
-	return true
+	return select_empty_cell(cell_index)
 
 
 func get_mode() -> int:
@@ -184,6 +211,14 @@ func get_selected_buildable_id() -> int:
 	return selected_buildable_id
 
 
+func get_selected_cell_index() -> int:
+	return selected_cell_index
+
+
+func has_cell_context() -> bool:
+	return selected_cell_index >= 0 or selected_buildable_id >= 0
+
+
 func get_selected_turret_id() -> int:
 	var snapshot: BuildableSnapshot = _grid.get_snapshot(selected_buildable_id)
 	if snapshot == null or snapshot.type_id != BuildableType.Id.TURRET:
@@ -196,11 +231,17 @@ func get_hovered_cell_index() -> int:
 
 
 func is_grid_preview_visible() -> bool:
-	return (
-		mode != Mode.IDLE
-		or selected_type_id >= 0
-		or selected_buildable_id >= 0
-	)
+	return mode == Mode.PLACE or mode == Mode.MOVE
+
+
+func can_place_type_in_selected_cell(type_id: int) -> bool:
+	return get_place_reason_for_type(type_id) == &""
+
+
+func get_place_reason_for_type(type_id: int) -> StringName:
+	if selected_cell_index < 0:
+		return BuildableGrid.REASON_INVALID_CELL
+	return _grid.get_place_unavailability_reason(type_id, selected_cell_index)
 
 
 func get_cell_unavailability_reason(cell_index: int) -> StringName:
@@ -263,20 +304,20 @@ func is_feedback_error() -> bool:
 
 
 func get_summary() -> String:
-	var mode_text := "выбор"
+	var mode_text := "контекст"
 	if mode == Mode.PLACE:
 		mode_text = "установка"
 	elif mode == Mode.MOVE:
 		mode_text = "перенос"
-	var selected_text := "ничего"
+	var selected_text := "клетка не выбрана"
 	if selected_buildable_id >= 0:
 		selected_text = "объект %d" % (selected_buildable_id + 1)
-	elif selected_type_id >= 0:
-		selected_text = _get_type_title(selected_type_id)
+	elif selected_cell_index >= 0:
+		selected_text = "клетка %d" % (selected_cell_index + 1)
 	return "%s | %s" % [mode_text, selected_text]
 
 
-func _place_selected_type(cell_index: int) -> bool:
+func _place_selected_type(cell_index: int, close_after: bool) -> bool:
 	var reason := _grid.get_place_unavailability_reason(
 		selected_type_id,
 		cell_index
@@ -288,7 +329,13 @@ func _place_selected_type(cell_index: int) -> bool:
 	if buildable_id < 0:
 		_set_feedback("Объект не удалось установить", true)
 		return true
-	select_buildable(buildable_id)
+	if close_after:
+		selected_type_id = -1
+		_set_selected_buildable(-1)
+		_set_selected_cell(-1)
+		_set_mode(Mode.IDLE)
+	else:
+		select_buildable(buildable_id)
 	_set_feedback(
 		"Объект установлен в клетку %d" % (cell_index + 1),
 		false
@@ -313,13 +360,28 @@ func _move_selected_to(cell_index: int) -> bool:
 	if not _grid.move(selected_buildable_id, cell_index):
 		_set_feedback("Объект не удалось перенести", true)
 		return true
+	selected_type_id = -1
+	_set_selected_buildable(-1)
+	_set_selected_cell(-1)
 	_set_mode(Mode.IDLE)
 	_set_feedback(
-		"Объект мгновенно перенесён в клетку %d; оператор следует к посту" % (
+		"Объект перенесён в клетку %d; оператор следует к посту" % (
 			cell_index + 1
 		),
 		false
 	)
+	return true
+
+
+func _can_deploy_type(type_id: int) -> bool:
+	if not _inventory.is_unlocked(type_id):
+		_set_mode(Mode.IDLE)
+		_set_feedback("Объект ещё не открыт улучшением", true)
+		return false
+	if not _inventory.can_deploy(type_id, _grid.get_count_by_type(type_id)):
+		_set_mode(Mode.IDLE)
+		_set_feedback("Все доступные объекты этого типа уже установлены", true)
+		return false
 	return true
 
 
@@ -365,6 +427,13 @@ func _set_selected_buildable(buildable_id: int) -> void:
 	selected_turret_changed.emit(get_selected_turret_id())
 
 
+func _set_selected_cell(cell_index: int) -> void:
+	if selected_cell_index == cell_index:
+		return
+	selected_cell_index = cell_index
+	selected_cell_changed.emit(selected_cell_index)
+
+
 func _set_feedback(message: String, is_error: bool) -> void:
 	_feedback_message = message
 	_feedback_is_error = is_error
@@ -380,6 +449,7 @@ func _on_buildable_demolished(
 		return
 	selected_type_id = -1
 	_set_selected_buildable(-1)
+	_set_selected_cell(-1)
 	_set_mode(Mode.IDLE)
 
 
@@ -387,9 +457,10 @@ func _on_grid_reset() -> void:
 	selected_type_id = -1
 	hovered_cell_index = -1
 	_set_selected_buildable(-1)
+	_set_selected_cell(-1)
 	_set_mode(Mode.IDLE)
 	hovered_cell_changed.emit(-1)
-	_set_feedback("Выберите тип объекта", false)
+	_set_feedback("Выберите клетку платформы", false)
 
 
 func _on_run_state_changed(_previous_state: int, new_state: int) -> void:
