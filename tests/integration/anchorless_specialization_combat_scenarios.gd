@@ -194,8 +194,8 @@ func _test_front_sweep(
 	first.global_position = Vector2(leading_edge_x + 10.0, 510.0)
 	second.global_position = Vector2(leading_edge_x + 30.0, 510.0)
 	anchorless._physics_process(0.1)
-	assert(not first.health.is_alive())
-	assert(not second.health.is_alive())
+	assert(not first.visible)
+	assert(not second.visible)
 	await process_frame
 
 
