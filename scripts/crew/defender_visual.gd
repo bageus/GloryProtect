@@ -68,6 +68,8 @@ enum AnimationState {
 @export_range(1.0, 30.0, 0.5) var attack_frame_rate: float = 12.0
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 6.0
 
+static var _alpha_bounds_cache: Dictionary = {}
+
 var _selected: bool = false
 var _poisoned: bool = false
 var _poison_stacks: int = 0
@@ -121,7 +123,14 @@ func _process(delta: float) -> void:
 	if _state == AnimationState.DYING:
 		_advance_death(delta)
 	elif _state == AnimationState.ATTACK:
-		_advance_clamped(WARRIOR_ATTACK_RIGHT_TEXTURES.size(), attack_frame_rate, delta)
+		if _melee == null or not _melee.is_attacking():
+			_sync_locomotion_state()
+		else:
+			_advance_clamped(
+				WARRIOR_ATTACK_RIGHT_TEXTURES.size(),
+				attack_frame_rate,
+				delta
+			)
 	else:
 		_sync_locomotion_state()
 		if _state == AnimationState.RUN:
@@ -225,8 +234,20 @@ func _draw() -> void:
 func _build_source_rects(textures: Array[Texture2D]) -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	for texture: Texture2D in textures:
-		result.append(TextureRegionLayout.get_alpha_bounds(texture, alpha_crop_threshold))
+		result.append(_get_cached_alpha_bounds(texture))
 	return result
+
+
+func _get_cached_alpha_bounds(texture: Texture2D) -> Rect2:
+	var key := "%s|%.3f" % [texture.resource_path, alpha_crop_threshold]
+	if _alpha_bounds_cache.has(key):
+		return _alpha_bounds_cache[key] as Rect2
+	var bounds := TextureRegionLayout.get_alpha_bounds(
+		texture,
+		alpha_crop_threshold
+	)
+	_alpha_bounds_cache[key] = bounds
+	return bounds
 
 
 func _sync_locomotion_state() -> void:
@@ -414,7 +435,9 @@ func _on_attack_started(target: HealthComponent) -> void:
 	var target_actor: Node2D = target.get_parent() as Node2D
 	if target_actor != null and _defender != null:
 		_facing_right = target_actor.global_position.x >= _defender.global_position.x
-	_set_animation_state(AnimationState.ATTACK)
+	_state = AnimationState.ATTACK
+	_frame_index = 0
+	_frame_elapsed = 0.0
 	queue_redraw()
 
 
