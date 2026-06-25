@@ -42,7 +42,7 @@ func _ensure_anchorless_system() -> AnchorlessControlSystem:
 	system.name = "AnchorlessControlSystem"
 	system.game_flow_path = NodePath("../../GameFlowController")
 	system.platform_path = NodePath("../Platform")
-	system.wind_system_path = NodePath("../WindSystem")
+	system.wind_system_path = NodePath("../../WindSystem")
 	system.contact_system_path = NodePath("../OrbContactSystem")
 	system.orb_registry_path = NodePath("../GroundOrbRegistry")
 	system.shield_system_path = NodePath("../../ShieldSystem")
