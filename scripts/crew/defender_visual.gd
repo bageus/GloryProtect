@@ -241,7 +241,8 @@ func _build_source_rects(textures: Array[Texture2D]) -> Array[Rect2]:
 func _get_cached_alpha_bounds(texture: Texture2D) -> Rect2:
 	var key := "%s|%.3f" % [texture.resource_path, alpha_crop_threshold]
 	if _alpha_bounds_cache.has(key):
-		return _alpha_bounds_cache[key] as Rect2
+		var cached_bounds: Rect2 = _alpha_bounds_cache[key]
+		return cached_bounds
 	var bounds := TextureRegionLayout.get_alpha_bounds(
 		texture,
 		alpha_crop_threshold
