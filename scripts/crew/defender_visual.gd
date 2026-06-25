@@ -3,9 +3,6 @@ extends Node2D
 
 signal death_animation_finished(defender_id: int)
 
-const MEDIC_TEXTURE: Texture2D = preload(
-	"res://visual/defenders/ChatGPT Image Jun 24, 2026, 12_29_17 AM.png"
-)
 const WARRIOR_IDLE_TEXTURES: Array[Texture2D] = [
 	preload("res://visual/defenders/warrior/base/idle/warrior_idle_01.png"),
 	preload("res://visual/defenders/warrior/base/idle/warrior_idle_02.png"),
@@ -79,7 +76,6 @@ var _state: AnimationState = AnimationState.IDLE
 var _frame_index: int = 0
 var _frame_elapsed: float = 0.0
 var _facing_right: bool = true
-var _medic_source_rect: Rect2
 var _idle_source_rects: Array[Rect2] = []
 var _run_left_source_rects: Array[Rect2] = []
 var _run_right_source_rects: Array[Rect2] = []
@@ -96,10 +92,6 @@ var _role_manager: CrewRoleManager
 
 
 func _ready() -> void:
-	_medic_source_rect = TextureRegionLayout.get_alpha_bounds(
-		MEDIC_TEXTURE,
-		alpha_crop_threshold
-	)
 	_idle_source_rects = _build_source_rects(WARRIOR_IDLE_TEXTURES)
 	_run_left_source_rects = _build_source_rects(WARRIOR_RUN_LEFT_TEXTURES)
 	_run_right_source_rects = _build_source_rects(WARRIOR_RUN_RIGHT_TEXTURES)
@@ -132,11 +124,10 @@ func _process(delta: float) -> void:
 		_advance_clamped(WARRIOR_ATTACK_RIGHT_TEXTURES.size(), attack_frame_rate, delta)
 	else:
 		_sync_locomotion_state()
-		match _state:
-			AnimationState.RUN:
-				_advance_loop(WARRIOR_RUN_RIGHT_TEXTURES.size(), run_frame_rate, delta)
-			_:
-				_advance_loop(WARRIOR_IDLE_TEXTURES.size(), idle_frame_rate, delta)
+		if _state == AnimationState.RUN:
+			_advance_loop(WARRIOR_RUN_RIGHT_TEXTURES.size(), run_frame_rate, delta)
+		else:
+			_advance_loop(WARRIOR_IDLE_TEXTURES.size(), idle_frame_rate, delta)
 	queue_redraw()
 
 
@@ -194,8 +185,6 @@ func _draw() -> void:
 		return
 	var source_rect: Rect2 = _get_current_source_rect()
 	var asset_size: Vector2 = _fit_asset_size(source_rect.size)
-	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
-		asset_size = Vector2(asset_max_width, asset_height)
 	var feet := Vector2(0.0, body_radius) + asset_offset
 	var asset_rect := Rect2(
 		feet - Vector2(asset_size.x * 0.5, asset_size.y),
@@ -308,7 +297,9 @@ func _finish_death_animation() -> void:
 
 func _get_current_texture() -> Texture2D:
 	if _state == AnimationState.DYING:
-		return WARRIOR_DIE_RIGHT_TEXTURES[mini(_frame_index, WARRIOR_DIE_RIGHT_TEXTURES.size() - 1)]
+		return WARRIOR_DIE_RIGHT_TEXTURES[
+			mini(_frame_index, WARRIOR_DIE_RIGHT_TEXTURES.size() - 1)
+		]
 	if _role_id == CrewRole.Id.DRIVER:
 		return null
 	if _state == AnimationState.ATTACK:
@@ -318,8 +309,6 @@ func _get_current_texture() -> Texture2D:
 			else WARRIOR_ATTACK_LEFT_TEXTURES
 		)
 		return attacks[mini(_frame_index, attacks.size() - 1)]
-	if _role_id == CrewRole.Id.MEDIC:
-		return MEDIC_TEXTURE
 	if _state == AnimationState.RUN:
 		var runs: Array[Texture2D] = (
 			WARRIOR_RUN_RIGHT_TEXTURES
@@ -342,8 +331,6 @@ func _get_current_source_rect() -> Rect2:
 			else _attack_left_source_rects
 		)
 		return attacks[mini(_frame_index, attacks.size() - 1)]
-	if _role_id == CrewRole.Id.MEDIC:
-		return _medic_source_rect
 	if _state == AnimationState.RUN:
 		var runs: Array[Rect2] = (
 			_run_right_source_rects
