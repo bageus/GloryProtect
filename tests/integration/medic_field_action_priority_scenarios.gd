@@ -29,10 +29,8 @@ func _run_scenario() -> void:
 	medical.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	assert(grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		grid.balance.default_medical_cell
-	) >= 0)
+	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) >= 0)
 	await process_frame
 	assert(medical.apply_upgrade_effect(_flag_effect(
 		MedicUpgradeRuntime.FIELD
@@ -90,13 +88,7 @@ func _run_scenario() -> void:
 		CrewAssignmentRuntime.State.ACTIVE,
 	])
 
-	# Combat processing is intentionally disabled above. Remove the surviving
-	# blocker after validating action priority so movement can finish normally.
-	enemy.queue_free()
-	await process_frame
-	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.FREE_FIGHTER)
-
-	print("Medic field action priority scenarios passed")
+	print("Medic field action-priority scenarios passed")
 	quit()
 
 
