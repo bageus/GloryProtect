@@ -13,19 +13,19 @@ const WINCH_TEXTURE: Texture2D = preload(
 const ANCHOR_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_anchor.png"
 )
-const CHAIN_BACKING_WIDTH := 7.0
+const CHAIN_BACKING_WIDTH := 4.0
 const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
 @export_group("Anchor Assets")
-@export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.24
-@export_range(8.0, 128.0, 1.0) var chain_tile_height := 46.0
+@export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.12
+@export_range(8.0, 128.0, 1.0) var chain_tile_height := 23.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
-@export var clamp_ground_offset := Vector2(0.0, 4.0)
-@export var clamp_chain_connection_offset := Vector2(0.0, -34.0)
-@export var stowed_chain_length := 40.0
-@export var winch_vertical_offset := -56.0
-@export var winch_chain_exit_offset := Vector2(0.0, 24.0)
+@export var clamp_ground_offset := Vector2(0.0, 2.0)
+@export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
+@export var stowed_chain_length := 20.0
+@export var winch_vertical_offset := -28.0
+@export var winch_chain_exit_offset := Vector2(0.0, 12.0)
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -312,7 +312,7 @@ func _draw_durability_meter(
 	ratio: float,
 	fill: Color
 ) -> void:
-	var size := Vector2(44.0, 6.0)
+	var size := Vector2(32.0, 5.0)
 	var rect := Rect2(center - size * 0.5, size)
 	draw_rect(rect.grow(2.0), Color(0.08, 0.06, 0.05, 0.9), true)
 	draw_rect(
@@ -323,11 +323,11 @@ func _draw_durability_meter(
 	draw_rect(rect, Color(1.0, 0.92, 0.72, 0.8), false, 1.0)
 	draw_string(
 		ThemeDB.fallback_font,
-		center + Vector2(-16.0, -8.0),
+		center + Vector2(-14.0, -7.0),
 		"%d%%" % roundi(ratio * 100.0),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1.0,
-		12,
+		10,
 		Color.WHITE
 	)
 
