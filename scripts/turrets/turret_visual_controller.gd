@@ -1,8 +1,17 @@
 class_name TurretVisualController
 extends Node2D
 
-const TURRET_POST_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_object_turret_post.png"
+const TURRET_BASE_TEXTURE: Texture2D = preload(
+	"res://visual/objects/turret/asset_turret_base_01.png"
+)
+const TURRET_HEAVY_TEXTURE: Texture2D = preload(
+	"res://visual/objects/turret/asset_turret_base_02.png"
+)
+const TURRET_RAPID_TEXTURE: Texture2D = preload(
+	"res://visual/objects/turret/asset_turret_base_03.png"
+)
+const TURRET_ELECTRIC_TEXTURE: Texture2D = preload(
+	"res://visual/objects/turret/asset_turret_base_04.png"
 )
 const ALPHA_CROP_THRESHOLD: float = 0.08
 
@@ -17,7 +26,10 @@ var _input: TurretDebugInput
 var _enemies: BoardingEnemyRegistry
 var _balance: BuildableBalance
 var _configured: bool = false
-var _turret_source_rect: Rect2
+var _turret_base_source_rect: Rect2
+var _turret_heavy_source_rect: Rect2
+var _turret_rapid_source_rect: Rect2
+var _turret_electric_source_rect: Rect2
 
 
 func configure(
@@ -40,7 +52,10 @@ func configure(
 func _ready() -> void:
 	assert(_configured, "TurretVisualController must be configured")
 	assert(_balance != null, "TurretVisualController requires BuildableBalance")
-	_turret_source_rect = _get_alpha_bounds(TURRET_POST_TEXTURE)
+	_turret_base_source_rect = _get_alpha_bounds(TURRET_BASE_TEXTURE)
+	_turret_heavy_source_rect = _get_alpha_bounds(TURRET_HEAVY_TEXTURE)
+	_turret_rapid_source_rect = _get_alpha_bounds(TURRET_RAPID_TEXTURE)
+	_turret_electric_source_rect = _get_alpha_bounds(TURRET_ELECTRIC_TEXTURE)
 	_turrets.turret_registered.connect(_on_turret_registered)
 	_turrets.turret_removed.connect(_on_turret_removed)
 	_turrets.shot_started.connect(_on_shot_started)
@@ -125,10 +140,11 @@ func _draw_range(pivot: Vector2, operational: bool) -> void:
 			_balance.turret_radius_fill_alpha
 		)
 		outline_color = Color(0.58, 0.62, 0.68, 0.5)
-	draw_circle(pivot, _balance.turret_range, range_color)
+	var current_range: float = _get_current_range()
+	draw_circle(pivot, current_range, range_color)
 	draw_arc(
 		pivot,
-		_balance.turret_range,
+		current_range,
 		0.0,
 		TAU,
 		96,
@@ -149,7 +165,9 @@ func _draw_turret_body(
 	if operational:
 		alpha = 1.0
 
-	var asset_size: Vector2 = _turret_source_rect.size * turret_asset_scale
+	var texture: Texture2D = _get_current_turret_texture()
+	var source_rect: Rect2 = _get_current_turret_source_rect()
+	var asset_size: Vector2 = source_rect.size * turret_asset_scale
 	var bottom_center := Vector2(
 		pivot.x + turret_surface_offset.x,
 		_balance.turret_bottom_y + turret_surface_offset.y
@@ -159,9 +177,9 @@ func _draw_turret_body(
 		asset_size
 	)
 	draw_texture_rect_region(
-		TURRET_POST_TEXTURE,
+		texture,
 		asset_rect,
-		_turret_source_rect,
+		source_rect,
 		Color(1.0, 1.0, 1.0, alpha)
 	)
 
@@ -217,10 +235,11 @@ func _draw_charge(buildable_id: int, pivot: Vector2, muzzle: Vector2) -> void:
 
 func _draw_cooldown(buildable_id: int, pivot: Vector2) -> void:
 	var remaining: float = _turrets.get_cooldown_remaining(buildable_id)
-	if remaining <= 0.0 or _balance.turret_shot_cooldown <= 0.0:
+	var cooldown_duration: float = _get_current_cooldown()
+	if remaining <= 0.0 or cooldown_duration <= 0.0:
 		return
 	var progress: float = clampf(
-		1.0 - remaining / _balance.turret_shot_cooldown,
+		1.0 - remaining / cooldown_duration,
 		0.0,
 		1.0
 	)
@@ -296,6 +315,51 @@ func _get_aim_direction(
 	if direction.length_squared() <= 0.001:
 		return TurretGeometry.get_default_aim_direction()
 	return direction.normalized()
+
+
+func _get_current_turret_texture() -> Texture2D:
+	match _get_specialization_id():
+		TurretUpgradeRuntime.HEAVY:
+			return TURRET_HEAVY_TEXTURE
+		TurretUpgradeRuntime.RAPID:
+			return TURRET_RAPID_TEXTURE
+		TurretUpgradeRuntime.ELECTRIC:
+			return TURRET_ELECTRIC_TEXTURE
+		_:
+			return TURRET_BASE_TEXTURE
+
+
+func _get_current_turret_source_rect() -> Rect2:
+	match _get_specialization_id():
+		TurretUpgradeRuntime.HEAVY:
+			return _turret_heavy_source_rect
+		TurretUpgradeRuntime.RAPID:
+			return _turret_rapid_source_rect
+		TurretUpgradeRuntime.ELECTRIC:
+			return _turret_electric_source_rect
+		_:
+			return _turret_base_source_rect
+
+
+func _get_specialization_id() -> StringName:
+	var upgrade_system: TurretUpgradeSystem = _turrets as TurretUpgradeSystem
+	if upgrade_system == null:
+		return &""
+	return upgrade_system.get_specialization_id()
+
+
+func _get_current_range() -> float:
+	var upgrade_system: TurretUpgradeSystem = _turrets as TurretUpgradeSystem
+	if upgrade_system == null:
+		return _balance.turret_range
+	return upgrade_system.get_current_range()
+
+
+func _get_current_cooldown() -> float:
+	var upgrade_system: TurretUpgradeSystem = _turrets as TurretUpgradeSystem
+	if upgrade_system == null:
+		return _balance.turret_shot_cooldown
+	return upgrade_system.get_current_cooldown()
 
 
 func _get_recoil(runtime: TurretVisualRuntime) -> float:
