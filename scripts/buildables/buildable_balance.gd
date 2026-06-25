@@ -1,6 +1,9 @@
 class_name BuildableBalance
 extends Resource
 
+const MEDICAL_ANCHOR_CELL: int = 6
+const MEDICAL_FOOTPRINT_CELLS: Array[int] = [6, 7]
+
 @export_group("Inventory")
 @export_range(0, 8, 1) var medical_station_max_count: int = 1
 @export_range(0, 16, 1) var turret_max_count: int = 4
@@ -54,15 +57,15 @@ func is_turret_cell(cell_index: int) -> bool:
 
 
 func is_medical_cell(cell_index: int) -> bool:
-	return cell_index == default_medical_cell
+	return cell_index == MEDICAL_ANCHOR_CELL
 
 
 func get_medical_cell_indices() -> Array[int]:
-	return [default_medical_cell]
+	return [MEDICAL_ANCHOR_CELL]
 
 
 func get_medical_footprint_cells() -> Array[int]:
-	return medical_station_cell_indices.duplicate()
+	return MEDICAL_FOOTPRINT_CELLS.duplicate()
 
 
 func get_footprint_cells(type_id: int, anchor_cell: int) -> Array[int]:
