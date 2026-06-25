@@ -187,6 +187,8 @@ func _test_front_sweep(
 	var second: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", 1)
 	first.controller.set_physics_process(false)
 	second.controller.set_physics_process(false)
+	first.controller.state = BoardingEnemyController.State.WAITING_WITHOUT_PATH
+	second.controller.state = BoardingEnemyController.State.WAITING_WITHOUT_PATH
 	platform.horizontal_velocity = 1.0
 	var leading_edge_x: float = (
 		platform.global_position.x + platform.get_platform_width() * 0.5
