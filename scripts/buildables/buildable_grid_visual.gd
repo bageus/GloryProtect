@@ -5,6 +5,7 @@ const MEDICAL_POST_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_heal_post_base.png"
 )
 const ALPHA_CROP_THRESHOLD: float = 0.08
+const MEDICAL_FLASH_DURATION: float = 0.4
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("BuildableGrid") var grid_path: NodePath
@@ -14,6 +15,7 @@ const ALPHA_CROP_THRESHOLD: float = 0.08
 @export_node_path("BuildablePlacementController") var placement_controller_path: NodePath
 @export_node_path("TurretSystem") var turret_system_path: NodePath = NodePath("../../TurretSystem")
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath = NodePath("../../BoardingEnemyRegistry")
+@export_node_path("MedicalStationSystem") var medical_system_path: NodePath = NodePath("../../MedicalStationSystem")
 @export var balance: BuildableBalance
 @export_range(0.05, 0.5, 0.01) var medical_post_scale: float = 0.24
 @export var medical_post_surface_offset: Vector2 = Vector2.ZERO
@@ -30,8 +32,14 @@ const ALPHA_CROP_THRESHOLD: float = 0.08
 ) as BuildablePlacementController
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
+@onready var _medical: MedicalStationSystem = get_node(medical_system_path)
 
 var _medical_source_rect: Rect2
+var _medical_cycle_active: bool = false
+var _medical_cycle_remaining: float = 0.0
+var _medical_cycle_total: float = 0.0
+var _medical_flash_remaining: float = 0.0
+var _visual_elapsed: float = 0.0
 
 
 func _ready() -> void:
@@ -43,6 +51,10 @@ func _ready() -> void:
 	_grid.grid_reset.connect(_on_grid_reset)
 	_inventory.buildable_unlocked.connect(_on_inventory_changed)
 	_inventory.inventory_reset.connect(_on_grid_reset)
+	_medical.healing_started.connect(_on_healing_started)
+	_medical.healing_progress.connect(_on_healing_progress)
+	_medical.segment_restored.connect(_on_segment_restored)
+	_medical.healing_stopped.connect(_on_healing_stopped)
 	if _placement != null:
 		_placement.mode_changed.connect(_on_placement_changed)
 		_placement.hovered_cell_changed.connect(_on_selected_cell_changed)
@@ -51,6 +63,21 @@ func _ready() -> void:
 		_debug_input.selected_cell_changed.connect(_on_selected_cell_changed)
 	_create_turret_visual()
 	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	var changed: bool = false
+	if _medical_cycle_active:
+		_visual_elapsed += maxf(0.0, delta)
+		changed = true
+	if _medical_flash_remaining > 0.0:
+		_medical_flash_remaining = maxf(
+			0.0,
+			_medical_flash_remaining - maxf(0.0, delta)
+		)
+		changed = true
+	if changed:
+		queue_redraw()
 
 
 func _draw() -> void:
@@ -65,6 +92,24 @@ func _draw() -> void:
 				_placement != null
 				and snapshot.buildable_id == _placement.get_selected_buildable_id()
 			)
+
+
+func is_medical_cycle_visual_active() -> bool:
+	return _medical_cycle_active
+
+
+func get_medical_cycle_progress() -> float:
+	if not _medical_cycle_active or _medical_cycle_total <= 0.0:
+		return 0.0
+	return clampf(
+		1.0 - _medical_cycle_remaining / _medical_cycle_total,
+		0.0,
+		1.0
+	)
+
+
+func get_medical_flash_remaining() -> float:
+	return _medical_flash_remaining
 
 
 func _create_turret_visual() -> void:
@@ -132,13 +177,58 @@ func _draw_medical_station(snapshot: BuildableSnapshot, selected: bool) -> void:
 		bottom_center - Vector2(asset_size.x * 0.5, asset_size.y),
 		asset_size
 	)
+	if _medical_cycle_active:
+		_draw_medical_active_glow(rect)
 	draw_texture_rect_region(
 		MEDICAL_POST_TEXTURE,
 		rect,
 		_medical_source_rect
 	)
+	_draw_medical_status(rect)
+	if _medical_flash_remaining > 0.0:
+		var flash_ratio := clampf(
+			_medical_flash_remaining / MEDICAL_FLASH_DURATION,
+			0.0,
+			1.0
+		)
+		draw_rect(
+			rect.grow(5.0 + flash_ratio * 5.0),
+			Color(0.7, 1.0, 0.82, flash_ratio),
+			false,
+			2.0 + flash_ratio * 2.0
+		)
 	if selected:
 		draw_rect(rect.grow(4.0), Color(1.0, 0.84, 0.3), false, 3.0)
+
+
+func _draw_medical_active_glow(rect: Rect2) -> void:
+	var pulse := 0.5 + 0.5 * sin(_visual_elapsed * 6.0)
+	var center := rect.get_center() + Vector2(0.0, rect.size.y * 0.08)
+	draw_circle(
+		center,
+		maxf(rect.size.x, rect.size.y) * (0.42 + pulse * 0.04),
+		Color(0.28, 1.0, 0.62, 0.08 + pulse * 0.1)
+	)
+
+
+func _draw_medical_status(rect: Rect2) -> void:
+	var center := rect.position + Vector2(rect.size.x * 0.5, 10.0)
+	var indicator := Color(0.45, 0.55, 0.58, 0.9)
+	if _medical_cycle_active:
+		indicator = Color(0.28, 1.0, 0.62, 1.0)
+	draw_circle(center, 4.0, indicator)
+	if not _medical_cycle_active:
+		return
+	var progress := get_medical_cycle_progress()
+	draw_arc(
+		center,
+		9.0,
+		-PI * 0.5,
+		-PI * 0.5 + TAU * progress,
+		24,
+		Color(0.72, 1.0, 0.84, 1.0),
+		2.5
+	)
 
 
 func _get_alpha_bounds(texture: Texture2D) -> Rect2:
@@ -168,6 +258,51 @@ func _get_alpha_bounds(texture: Texture2D) -> Rect2:
 	)
 
 
+func _reset_medical_visual_state() -> void:
+	_medical_cycle_active = false
+	_medical_cycle_remaining = 0.0
+	_medical_cycle_total = 0.0
+	_medical_flash_remaining = 0.0
+	_visual_elapsed = 0.0
+
+
+func _on_healing_started(_medic_id: int, _target_id: int) -> void:
+	_medical_cycle_active = true
+	_medical_cycle_remaining = 0.0
+	_medical_cycle_total = 0.0
+	_visual_elapsed = 0.0
+	queue_redraw()
+
+
+func _on_healing_progress(
+	_medic_id: int,
+	_target_id: int,
+	remaining: float
+) -> void:
+	var safe_remaining := maxf(0.0, remaining)
+	_medical_cycle_active = true
+	if _medical_cycle_total <= 0.0 or safe_remaining > _medical_cycle_total:
+		_medical_cycle_total = maxf(0.01, safe_remaining)
+	_medical_cycle_remaining = safe_remaining
+	queue_redraw()
+
+
+func _on_segment_restored(
+	_medic_id: int,
+	_target_id: int,
+	_amount: int
+) -> void:
+	_medical_flash_remaining = MEDICAL_FLASH_DURATION
+	queue_redraw()
+
+
+func _on_healing_stopped(_medic_id: int, _target_id: int) -> void:
+	_medical_cycle_active = false
+	_medical_cycle_remaining = 0.0
+	_medical_cycle_total = 0.0
+	queue_redraw()
+
+
 func _on_visual_changed(_a: int, _b: int, _c: int) -> void:
 	queue_redraw()
 
@@ -189,4 +324,5 @@ func _on_placement_changed(_mode: int, _type_id: int, _buildable_id: int) -> voi
 
 
 func _on_grid_reset() -> void:
+	_reset_medical_visual_state()
 	queue_redraw()
