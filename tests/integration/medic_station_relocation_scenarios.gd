@@ -81,8 +81,13 @@ func _run_scenario() -> void:
 	medical.call("_physics_process", demolition_remaining)
 	assert(target.health.current_health == 2)
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
-	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.DRIVER)
 	await process_frame
+	assignment = roles.get_assignment(medic.defender_id)
+	assert(assignment.target_role == CrewRole.Id.DRIVER)
+	assert(assignment.state in [
+		CrewAssignmentRuntime.State.MOVING,
+		CrewAssignmentRuntime.State.ACTIVE,
+	])
 	assert(role_modifiers.get_active_medic_id() == -1)
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
 	medical.call("_physics_process", 10.0)
