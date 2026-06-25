@@ -57,6 +57,14 @@ func _run_scenario() -> void:
 	assert(station_snapshot.cell_index == medical_anchor)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
 
+	roles.request_assignment(target.defender_id, CrewRole.Id.FREE_FIGHTER)
+	await _wait_for_role(
+		roles,
+		target.defender_id,
+		CrewRole.Id.FREE_FIGHTER
+	)
+	assert(medical.is_healing_cycle_active(medic.defender_id))
+
 	roles.request_assignment(medic.defender_id, CrewRole.Id.DRIVER)
 	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
 	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
