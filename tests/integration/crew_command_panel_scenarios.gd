@@ -17,17 +17,11 @@ func _run_scenarios() -> void:
 	var game_flow: GameFlowController = game.get_node("GameFlowController")
 	var selection: CrewSelectionController = game.get_node("CrewDebugInput")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
-	var roles: CrewRoleManager = game.get_node(
-		"World/Platform/CrewRoleManager"
-	)
-	var replacements: CrewReplacementController = game.get_node(
-		"CrewReplacementController"
-	)
+	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
+	var replacements: CrewReplacementController = game.get_node("CrewReplacementController")
 	var inventory: BuildableInventory = game.get_node("BuildableInventory")
 	var grid: BuildableGrid = game.get_node("World/BuildableGrid")
-	var panel: CrewCommandPanel = game.get_node(
-		"CanvasLayer/PrototypeHUD/CrewCommandPanel"
-	)
+	var panel: CrewCommandPanel = game.get_node("CanvasLayer/PrototypeHUD/CrewCommandPanel")
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	await process_frame
@@ -47,21 +41,13 @@ func _run_scenarios() -> void:
 	assert(panel.is_standard_role_enabled(CrewRole.Id.FREE_FIGHTER))
 
 	panel.request_selected_role(CrewRole.Id.FREE_FIGHTER)
-	await _wait_for_role(
-		roles,
-		1,
-		CrewRole.Id.FREE_FIGHTER,
-		-1,
-		240
-	)
+	await _wait_for_role(roles, 1, CrewRole.Id.FREE_FIGHTER, -1, 240)
 	assert(panel.are_commands_enabled())
 
 	assert(not panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
-	var medical_id: int = grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		grid.balance.default_medical_cell
-	)
+	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
+	var medical_id: int = grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor)
 	assert(medical_id >= 0)
 	await process_frame
 	assert(panel.is_standard_role_enabled(CrewRole.Id.MEDIC))
@@ -83,13 +69,7 @@ func _run_scenarios() -> void:
 
 	assert(panel.select_defender(2))
 	panel.request_selected_role(CrewRole.Id.TURRET, turret_id)
-	await _wait_for_role(
-		roles,
-		2,
-		CrewRole.Id.TURRET,
-		turret_id,
-		300
-	)
+	await _wait_for_role(roles, 2, CrewRole.Id.TURRET, turret_id, 300)
 	assert(roles.get_role_owner(CrewRole.Id.TURRET, turret_id) == 2)
 
 	assert(panel.select_defender(0))
