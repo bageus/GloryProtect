@@ -21,10 +21,12 @@ func _run_scenarios() -> void:
 		"World/BoardingEnemyRegistry"
 	)
 	var platform: PlatformController = game.get_node("World/Platform")
+	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	game_flow.state = GameFlowController.RunState.RUNNING
 	director.profile.spawn_interval = 999.0
 
 	await _test_flight_without_anchors(director, registry, platform)
+	await _test_landing_before_melee(director, registry, platform, crew)
 	await _test_pause_stops_flight(game_flow, director)
 	await _test_turret_contract(director, registry)
 	await _test_shared_death_flow(director, registry)
@@ -53,6 +55,45 @@ func _test_flight_without_anchors(
 		platform.global_position
 	)
 	assert(end_distance < start_distance)
+	enemy.kill(&"test_cleanup")
+	await _wait_physics_frames(3)
+
+
+func _test_landing_before_melee(
+	director: FlyingEnemySpawnDirector,
+	registry: BoardingEnemyRegistry,
+	platform: PlatformController,
+	crew: CrewManager
+) -> void:
+	var target: Defender = crew.get_defender(0)
+	var enemy: BoardingEnemy = director.spawn_now(1)
+	var behavior := enemy.behavior as FlyingEnemyBehavior
+	assert(behavior != null)
+	var health_before: int = target.health.current_health
+	enemy.global_position = Vector2(
+		target.global_position.x,
+		platform.global_position.y - director.profile.hover_height
+	)
+	await physics_frame
+	assert(behavior.state == FlyingEnemyBehavior.State.LANDING)
+	assert(not behavior.is_landed())
+	assert(not enemy.is_counted_as_boarded())
+	assert(target.health.current_health == health_before)
+
+	for _frame: int in range(180):
+		if behavior.is_landed():
+			break
+		await physics_frame
+	assert(behavior.is_landed())
+	assert(enemy.is_counted_as_boarded())
+	assert(enemy.get_target_domain() == EnemyBehaviorComponent.TargetDomain.GROUND)
+	assert(registry.get_boarded_count() == 1)
+
+	for _frame: int in range(180):
+		if target.health.current_health < health_before:
+			break
+		await physics_frame
+	assert(target.health.current_health < health_before)
 	enemy.kill(&"test_cleanup")
 	await _wait_physics_frames(3)
 
