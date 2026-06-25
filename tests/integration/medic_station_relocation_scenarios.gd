@@ -28,12 +28,14 @@ func _run_scenario() -> void:
 	medical.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
+	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
 	var station_id: int = grid.place(
 		BuildableType.Id.MEDICAL_STATION,
-		grid.balance.default_medical_cell
+		medical_anchor
 	)
 	assert(station_id >= 0)
 	await process_frame
+
 	var medic: Defender = crew.get_defender(1)
 	var target: Defender = crew.get_defender(0)
 	roles.request_assignment(medic.defender_id, CrewRole.Id.MEDIC)
@@ -43,34 +45,24 @@ func _run_scenario() -> void:
 
 	medical.call("_physics_process", 0.0)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
-	assert(is_equal_approx(medical.get_heal_remaining(), 5.0))
-	var relocation_cell: int = grid.balance.turret_cell_indices[4]
-	assert(grid.move(station_id, relocation_cell))
-	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
-	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
-	assert(medical.is_healing_cycle_active(medic.defender_id))
-	assert(is_equal_approx(medical.get_heal_remaining(), 5.0))
-
-	medical.call("_physics_process", 5.0)
-	assert(target.health.current_health == 2)
-	assert(not medical.is_healing_cycle_active(medic.defender_id))
-	await _wait_for_role(roles, medic.defender_id, CrewRole.Id.MEDIC)
 	assert(is_equal_approx(
-		medic.position.x,
-		grid.get_cell_local_x(relocation_cell)
+		medical.get_heal_remaining(),
+		medical.get_current_heal_interval()
 	))
 
-	roles.request_assignment(target.defender_id, CrewRole.Id.FREE_FIGHTER)
-	await _wait_for_role(roles, target.defender_id, CrewRole.Id.FREE_FIGHTER)
-	medic.teleport_to(target.position.x)
-	target.health.set_health(1)
-	medical.call("_physics_process", 0.0)
+	var rejected_cell: int = grid.balance.turret_cell_indices[4]
+	assert(not grid.move(station_id, rejected_cell))
+	var station_snapshot: BuildableSnapshot = grid.get_snapshot(station_id)
+	assert(station_snapshot != null)
+	assert(station_snapshot.cell_index == medical_anchor)
 	assert(medical.is_healing_cycle_active(medic.defender_id))
+
 	roles.request_assignment(medic.defender_id, CrewRole.Id.DRIVER)
-	assignment = roles.get_assignment(medic.defender_id)
+	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
 	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
 	assert(assignment.target_role == CrewRole.Id.DRIVER)
 	var demolition_remaining: float = medical.get_heal_remaining()
+
 	assert(grid.demolish(station_id))
 	assert(not medical.has_station())
 	assert(medical.is_healing_cycle_active(medic.defender_id))
@@ -88,7 +80,7 @@ func _run_scenario() -> void:
 	medical.call("_physics_process", 10.0)
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
 
-	print("Medic station relocation scenarios passed")
+	print("Fixed medic station scenarios passed")
 	quit()
 
 
