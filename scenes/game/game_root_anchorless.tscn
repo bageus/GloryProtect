@@ -1,0 +1,25 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/game/game_root_with_flyers.tscn" id="1_base"]
+[ext_resource type="Script" path="res://scripts/upgrades/anchorless_upgrade_coordinator.gd" id="2_coordinator"]
+[ext_resource type="Script" path="res://scripts/platform/anchorless_control_system.gd" id="3_system"]
+
+[node name="GameRoot" instance=ExtResource("1_base")]
+
+[node name="UpgradeSystem" parent="."]
+script = ExtResource("2_coordinator")
+anchorless_system_path = NodePath("../World/AnchorlessControlSystem")
+
+[node name="ShieldRechargeController" parent="World"]
+anchorless_control_path = NodePath("../AnchorlessControlSystem")
+
+[node name="AnchorlessControlSystem" type="Node" parent="World"]
+script = ExtResource("3_system")
+game_flow_path = NodePath("../../GameFlowController")
+platform_path = NodePath("../Platform")
+wind_system_path = NodePath("../WindSystem")
+contact_system_path = NodePath("../OrbContactSystem")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+shield_system_path = NodePath("../../ShieldSystem")
+anchor_system_path = NodePath("../AnchorSystem")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
