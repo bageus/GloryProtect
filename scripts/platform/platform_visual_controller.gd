@@ -12,8 +12,14 @@ const PORTAL_SPAWN1_TEXTURE: Texture2D = preload(
 const PORTAL_SPAWN2_TEXTURE: Texture2D = preload(
 	"res://visual/objects/portal/overlay_portal_spawn_02.png"
 )
-const CAPTAIN_POST_TEXTURE_PATH := (
-	"res://visual/objects/asset_captain_post_base.png"
+const CAPTAIN_CENTER_TEXTURE: Texture2D = preload(
+	"res://visual/defenders/captain_platform/asset_captain_center.png"
+)
+const CAPTAIN_LEFT_TEXTURE: Texture2D = preload(
+	"res://visual/defenders/captain_platform/asset_captain_left.png"
+)
+const CAPTAIN_RIGHT_TEXTURE: Texture2D = preload(
+	"res://visual/defenders/captain_platform/asset_captain_right.png"
 )
 
 enum PortalState {
@@ -57,8 +63,9 @@ var _surface_visual := PlatformSurfaceVisual.new()
 var _portal_source_rect: Rect2
 var _portal_spawn1_source_rect: Rect2
 var _portal_spawn2_source_rect: Rect2
-var _captain_post_texture: Texture2D
-var _captain_post_source_rect: Rect2
+var _captain_center_source_rect: Rect2
+var _captain_left_source_rect: Rect2
+var _captain_right_source_rect: Rect2
 var _portal_state: PortalState = PortalState.IDLE
 var _portal_state_elapsed: float = 0.0
 var _portal_active_defender_id: int = -1
@@ -84,12 +91,18 @@ func _ready() -> void:
 		PORTAL_SPAWN2_TEXTURE,
 		alpha_crop_threshold
 	)
-	_captain_post_texture = load(CAPTAIN_POST_TEXTURE_PATH) as Texture2D
-	if _captain_post_texture != null:
-		_captain_post_source_rect = TextureRegionLayout.get_alpha_bounds(
-			_captain_post_texture,
-			alpha_crop_threshold
-		)
+	_captain_center_source_rect = TextureRegionLayout.get_alpha_bounds(
+		CAPTAIN_CENTER_TEXTURE,
+		alpha_crop_threshold
+	)
+	_captain_left_source_rect = TextureRegionLayout.get_alpha_bounds(
+		CAPTAIN_LEFT_TEXTURE,
+		alpha_crop_threshold
+	)
+	_captain_right_source_rect = TextureRegionLayout.get_alpha_bounds(
+		CAPTAIN_RIGHT_TEXTURE,
+		alpha_crop_threshold
+	)
 	var scene_root: Node = get_tree().current_scene
 	if scene_root != null:
 		_game_flow = scene_root.get_node_or_null(
@@ -210,9 +223,18 @@ func _draw_portal_overlay(
 
 
 func _draw_driver_console() -> void:
-	if _captain_post_texture == null:
+	if not _steering_input.driver_available:
 		return
-	var post_size: Vector2 = _captain_post_source_rect.size * object_asset_scale
+	var texture: Texture2D = CAPTAIN_CENTER_TEXTURE
+	var source_rect: Rect2 = _captain_center_source_rect
+	var steering_axis: float = _steering_input.get_steering_axis()
+	if steering_axis < -0.01:
+		texture = CAPTAIN_LEFT_TEXTURE
+		source_rect = _captain_left_source_rect
+	elif steering_axis > 0.01:
+		texture = CAPTAIN_RIGHT_TEXTURE
+		source_rect = _captain_right_source_rect
+	var post_size: Vector2 = source_rect.size * object_asset_scale
 	var platform_top: float = -balance.platform_height * 0.5
 	var post_bottom := Vector2(
 		driver_console_surface_offset.x,
@@ -222,15 +244,7 @@ func _draw_driver_console() -> void:
 		post_bottom - Vector2(post_size.x * 0.5, post_size.y),
 		post_size
 	)
-	var post_tint := Color.WHITE
-	if not _steering_input.driver_available:
-		post_tint = Color(0.55, 0.58, 0.62, 1.0)
-	draw_texture_rect_region(
-		_captain_post_texture,
-		post_rect,
-		_captain_post_source_rect,
-		post_tint
-	)
+	draw_texture_rect_region(texture, post_rect, source_rect)
 
 
 func _update_portal(delta: float) -> void:
