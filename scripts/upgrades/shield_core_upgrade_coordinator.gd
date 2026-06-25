@@ -13,7 +13,8 @@ func _ready() -> void:
 	_anchorless = _ensure_anchorless_system()
 	_effect_applier = AnchorlessUpgradeEffectApplier.new()
 	super._ready()
-	_effect_applier.configure(
+	var adapter := _effect_applier as AnchorlessUpgradeEffectApplier
+	adapter.configure(
 		_buildables,
 		_runtime,
 		_crew,
@@ -24,9 +25,9 @@ func _ready() -> void:
 		_shield_core,
 		_anchorless
 	)
-	var recharge := get_node(
+	var recharge: ShieldCoreRechargeController = get_node(
 		"../World/ShieldRechargeController"
-	) as ShieldCoreRechargeController
+	)
 	recharge.set_anchorless_control(_anchorless)
 
 
