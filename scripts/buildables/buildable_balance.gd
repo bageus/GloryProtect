@@ -4,7 +4,8 @@ extends Resource
 @export_group("Inventory")
 @export_range(0, 8, 1) var medical_station_max_count: int = 1
 @export_range(0, 16, 1) var turret_max_count: int = 4
-@export_range(0, 32, 1) var default_medical_cell: int = 7
+@export_range(0, 32, 1) var default_medical_cell: int = 6
+@export var medical_station_cell_indices: Array[int] = [6, 7]
 @export var turret_cell_indices: Array[int] = [2, 3, 4, 5, 12, 13, 14, 15]
 @export var reserved_cell_indices: Array[int] = [0, 1, 6, 7, 8, 9, 10, 11, 16, 17]
 
@@ -12,7 +13,7 @@ extends Resource
 @export_range(0.1, 30.0, 0.1) var heal_interval: float = 5.0
 @export_range(1, 10, 1) var heal_amount: int = 1
 @export_range(1.0, 120.0, 1.0) var heal_range: float = 18.0
-@export_range(10.0, 100.0, 1.0) var medical_station_width: float = 34.0
+@export_range(10.0, 180.0, 1.0) var medical_station_width: float = 68.0
 @export_range(20.0, 160.0, 1.0) var medical_station_height: float = 66.0
 @export_range(-120.0, 20.0, 1.0) var medical_station_bottom_y: float = -28.0
 
@@ -53,12 +54,22 @@ func is_turret_cell(cell_index: int) -> bool:
 
 
 func is_medical_cell(cell_index: int) -> bool:
-	return cell_index == default_medical_cell or is_turret_cell(cell_index)
+	return cell_index == default_medical_cell
 
 
 func get_medical_cell_indices() -> Array[int]:
-	var result: Array[int] = [default_medical_cell]
-	for cell_index: int in turret_cell_indices:
-		if not result.has(cell_index):
-			result.append(cell_index)
-	return result
+	return [default_medical_cell]
+
+
+func get_medical_footprint_cells() -> Array[int]:
+	return medical_station_cell_indices.duplicate()
+
+
+func get_footprint_cells(type_id: int, anchor_cell: int) -> Array[int]:
+	if type_id == BuildableType.Id.MEDICAL_STATION:
+		if not is_medical_cell(anchor_cell):
+			return []
+		return get_medical_footprint_cells()
+	if type_id == BuildableType.Id.TURRET:
+		return [anchor_cell]
+	return []
