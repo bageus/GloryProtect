@@ -25,6 +25,7 @@ extends Control
 @export_node_path("ShieldDebugInput") var shield_debug_input_path: NodePath
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export_node_path("BoardingSpawnDirector") var spawn_director_path: NodePath
+@export_range(0.2, 3.0, 0.1) var coin_feedback_duration: float = 1.0
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
@@ -77,6 +78,10 @@ extends Control
 @onready var _pause_label: Label = %PauseLabel
 
 var _placement: BuildablePlacementController
+var _coin_counter_label: Label
+var _coin_gain_label: Label
+var _pending_coin_gain: int = 0
+var _coin_feedback_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -87,6 +92,8 @@ func _ready() -> void:
 		_placement = get_node_or_null(
 			buildable_placement_controller_path
 		) as BuildablePlacementController
+	_create_coin_feedback()
+	_economy.coins_added.connect(_on_coins_added)
 	_create_crew_command_panel()
 
 
@@ -102,16 +109,90 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	_update_run_state()
 	_update_statistics()
 	_update_wind_and_platform()
 	_update_anchors_crew_and_boarding()
 	_update_buildables_medical_and_turrets()
 	_update_contact_and_shield()
+	_update_coin_feedback(maxf(0.0, delta))
 	_pause_label.visible = (
 		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
 	)
+
+
+func get_coin_counter_text() -> String:
+	return "" if _coin_counter_label == null else _coin_counter_label.text
+
+
+func get_coin_gain_text() -> String:
+	return "" if _coin_gain_label == null else _coin_gain_label.text
+
+
+func is_coin_gain_visible() -> bool:
+	return _coin_gain_label != null and _coin_gain_label.visible
+
+
+func _create_coin_feedback() -> void:
+	_coin_counter_label = Label.new()
+	_coin_counter_label.name = "CoinCounter"
+	_coin_counter_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coin_counter_label.anchor_left = 1.0
+	_coin_counter_label.anchor_right = 1.0
+	_coin_counter_label.offset_left = -240.0
+	_coin_counter_label.offset_top = 18.0
+	_coin_counter_label.offset_right = -24.0
+	_coin_counter_label.offset_bottom = 58.0
+	_coin_counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_coin_counter_label.add_theme_font_size_override("font_size", 26)
+	add_child(_coin_counter_label)
+
+	_coin_gain_label = Label.new()
+	_coin_gain_label.name = "CoinGain"
+	_coin_gain_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coin_gain_label.anchor_left = 1.0
+	_coin_gain_label.anchor_right = 1.0
+	_coin_gain_label.offset_left = -240.0
+	_coin_gain_label.offset_top = 56.0
+	_coin_gain_label.offset_right = -24.0
+	_coin_gain_label.offset_bottom = 90.0
+	_coin_gain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_coin_gain_label.add_theme_font_size_override("font_size", 22)
+	_coin_gain_label.visible = false
+	add_child(_coin_gain_label)
+
+
+func _on_coins_added(amount: int, _source: StringName) -> void:
+	if amount <= 0:
+		return
+	if _coin_feedback_remaining > 0.0:
+		_pending_coin_gain += amount
+	else:
+		_pending_coin_gain = amount
+	_coin_feedback_remaining = coin_feedback_duration
+	_coin_gain_label.text = "+%d" % _pending_coin_gain
+	_coin_gain_label.visible = true
+	_coin_gain_label.modulate.a = 1.0
+
+
+func _update_coin_feedback(delta: float) -> void:
+	_coin_counter_label.text = "Монеты: %d" % _economy.get_coins()
+	if _coin_feedback_remaining <= 0.0:
+		_coin_gain_label.visible = false
+		_pending_coin_gain = 0
+		return
+	if _game_flow.is_world_simulation_active():
+		_coin_feedback_remaining = maxf(0.0, _coin_feedback_remaining - delta)
+	var fade_window: float = maxf(0.1, coin_feedback_duration * 0.35)
+	_coin_gain_label.modulate.a = clampf(
+		_coin_feedback_remaining / fade_window,
+		0.0,
+		1.0
+	)
+	if _coin_feedback_remaining <= 0.0:
+		_coin_gain_label.visible = false
+		_pending_coin_gain = 0
 
 
 func _create_crew_command_panel() -> void:
