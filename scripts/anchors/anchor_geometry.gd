@@ -55,16 +55,15 @@ func get_runtime_ground_point(anchor: AnchorRuntime) -> Vector2:
 
 
 func get_platform_attachment_local_x(anchor_id: int) -> float:
-	var half_width := _platform.get_platform_width() * 0.5
 	match anchor_id:
 		0:
-			return -half_width + _balance.platform_outer_inset
+			return _platform.get_cell_local_x(0)
 		1:
-			return -half_width + _balance.platform_inner_inset
+			return _platform.get_cell_local_x(1)
 		2:
-			return half_width - _balance.platform_inner_inset
+			return _platform.get_cell_local_x(_platform.get_cell_count() - 2)
 		3:
-			return half_width - _balance.platform_outer_inset
+			return _platform.get_cell_local_x(_platform.get_cell_count() - 1)
 		_:
 			return 0.0
 
