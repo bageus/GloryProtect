@@ -20,7 +20,8 @@ func _run_scenario() -> void:
 		"World/AnchorlessControlSystem"
 	)
 	var platform: PlatformController = game.get_node("World/Platform")
-	assert(upgrade_system is AnchorlessUpgradeCoordinator)
+	assert(upgrade_system is ShieldCoreUpgradeCoordinator)
+	assert(upgrade_system._effect_applier is AnchorlessUpgradeEffectApplier)
 
 	var definition: UpgradeDefinition = upgrade_system.catalog.get_definition(
 		&"anchorless_steering_force_basic"
