@@ -27,10 +27,8 @@ func _run_scenario() -> void:
 	)
 	var director: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	assert(grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		grid.balance.default_medical_cell
-	) >= 0)
+	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) >= 0)
 	await process_frame
 
 	var medic: Defender = crew.get_defender(1)
