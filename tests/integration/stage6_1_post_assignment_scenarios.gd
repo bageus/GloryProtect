@@ -69,13 +69,13 @@ func _run() -> void:
 	roles.request_assignment(0, CrewRole.Id.DRIVER)
 	await _wait_for_role(roles, 0, CrewRole.Id.DRIVER)
 	var first_life: Defender = crew.get_defender(0)
-	first_life.health.apply_damage(999, &"test", self)
+	first_life.health.apply_damage(999, &"test")
 	var first_replacement: Defender = replacements.complete_replacement_now(0)
 	assert(first_replacement != null)
 	await process_frame
 	_assert_returning_to_driver(roles, 0)
 
-	first_replacement.health.apply_damage(999, &"test", self)
+	first_replacement.health.apply_damage(999, &"test")
 	var second_replacement: Defender = replacements.complete_replacement_now(0)
 	assert(second_replacement != null)
 	await process_frame
