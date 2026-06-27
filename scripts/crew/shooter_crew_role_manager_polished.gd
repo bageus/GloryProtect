@@ -78,11 +78,16 @@ func _on_defender_died(defender_id: int) -> void:
 	if runtime == null:
 		return
 	_deactivate_capability(runtime.current_role)
-	_stations.release(
-		runtime.current_role,
-		runtime.current_station_id,
-		defender_id
+	var current_is_target: bool = (
+		runtime.current_role == runtime.target_role
+		and runtime.current_station_id == runtime.target_station_id
 	)
+	if not current_is_target:
+		_stations.release(
+			runtime.current_role,
+			runtime.current_station_id,
+			defender_id
+		)
 	_external_action_roles.erase(defender_id)
 	if not _has_valid_post_target(runtime):
 		runtime.target_role = get_combat_role(defender_id)
