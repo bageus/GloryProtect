@@ -1,6 +1,22 @@
 class_name ShooterCrewRoleManagerPolished
 extends ShooterCrewRoleManager
 
+const DRIVER_FIRST_CELL_INDEX: int = 10
+const DRIVER_SECOND_CELL_INDEX: int = 11
+
+
+func _initialize_assignments() -> void:
+	_stations.configure(_platform)
+	_stations.set_dynamic_target(
+		CrewRole.Id.DRIVER,
+		-1,
+		(
+			_platform.get_cell_local_x(DRIVER_FIRST_CELL_INDEX)
+			+ _platform.get_cell_local_x(DRIVER_SECOND_CELL_INDEX)
+		) * 0.5
+	)
+	super._initialize_assignments()
+
 
 func request_assignment(
 	defender_id: int,
