@@ -5,6 +5,11 @@ extends StrategicMinimap
 @export_range(0.1, 0.35, 0.01) var cloud_wobble_amount: float = 0.2
 
 
+func _ready() -> void:
+	cloud_morph_speed = 2.1
+	super._ready()
+
+
 func get_cloud_radius(enemy_count: int) -> Vector2:
 	var count_scale: float = sqrt(float(maxi(1, enemy_count)))
 	return Vector2(
@@ -22,7 +27,9 @@ func _draw_enemy_cloud(
 	var points := PackedVector2Array()
 	var point_count: int = 18
 	var time: float = _blink_elapsed * cloud_morph_speed
-	var breathing: float = 1.0 + sin(time * 0.72 + snapshot.group_id) * 0.07
+	var breathing: float = 1.0 + sin(
+		time * 0.72 + float(snapshot.group_id)
+	) * 0.07
 
 	for index: int in range(point_count):
 		var angle: float = TAU * float(index) / float(point_count)
@@ -31,7 +38,9 @@ func _draw_enemy_cloud(
 			+ float(snapshot.group_id) * 1.37
 			+ float(index) * 1.73
 		)
-		var secondary: float = sin(time * 1.63 - float(index) * 0.91) * 0.06
+		var secondary: float = (
+			sin(time * 1.63 - float(index) * 0.91) * 0.06
+		)
 		var wobble: float = (
 			1.0
 			+ sin(phase) * cloud_wobble_amount
@@ -62,7 +71,9 @@ func _draw_enemy_cloud(
 	var visible_specks: int = mini(snapshot.enemy_count, 8)
 	for index: int in range(visible_specks):
 		var seed: float = float(snapshot.group_id * 17 + index * 11)
-		var orbit: float = time * (0.42 + float(index % 3) * 0.09) + seed
+		var orbit: float = (
+			time * (0.42 + float(index % 3) * 0.09) + seed
+		)
 		var offset := Vector2(
 			sin(orbit * 1.7) * radius.x * 0.55,
 			cos(orbit * 2.3) * radius.y * 0.46
