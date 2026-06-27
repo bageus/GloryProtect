@@ -1,8 +1,7 @@
 class_name RoleStationRegistry
 extends RefCounted
 
-const DRIVER_FIRST_CELL_INDEX: int = 10
-const DRIVER_SECOND_CELL_INDEX: int = 11
+const DRIVER_CELL_INDEX: int = 10
 
 var _platform: PlatformController
 var _owners: Dictionary[StringName, int] = {}
@@ -74,10 +73,7 @@ func get_target_x(
 	)
 	match role_id:
 		CrewRole.Id.DRIVER:
-			return (
-				_platform.get_cell_local_x(DRIVER_FIRST_CELL_INDEX)
-				+ _platform.get_cell_local_x(DRIVER_SECOND_CELL_INDEX)
-			) * 0.5
+			return _platform.get_cell_local_x(DRIVER_CELL_INDEX)
 		CrewRole.Id.LEFT_ANCHOR:
 			return -post_offset
 		CrewRole.Id.RIGHT_ANCHOR:
