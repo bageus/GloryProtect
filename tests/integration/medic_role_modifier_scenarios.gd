@@ -78,10 +78,11 @@ func _run_scenario() -> void:
 	assert(controller.get_stored_armor_segments() == 1)
 
 	var second: Defender = crew.get_defender(2)
-	roles.request_assignment(second.defender_id, CrewRole.Id.MEDIC)
-	await _wait_for_role(roles, second.defender_id, CrewRole.Id.MEDIC)
+	var second_id: int = second.defender_id
+	roles.request_assignment(second_id, CrewRole.Id.MEDIC)
+	await _wait_for_role(roles, second_id, CrewRole.Id.MEDIC)
 	await process_frame
-	assert(controller.get_active_medic_id() == second.defender_id)
+	assert(controller.get_active_medic_id() == second_id)
 	assert(second.health.max_health == base_with_melee + 2)
 	assert(second.health.current_health == second.health.max_health)
 	assert(second.durability.get_base_max_armor() == 1)
@@ -98,24 +99,17 @@ func _run_scenario() -> void:
 	assert(second.durability.get_role_max_armor() == 0)
 
 	var second_replacement: Defender = replacements.complete_replacement_now(
-		second.defender_id
+		second_id
 	)
 	assert(second_replacement != null)
-	await _wait_for_role(roles, second.defender_id, CrewRole.Id.MEDIC)
+	await _wait_for_role(roles, second_id, CrewRole.Id.MEDIC)
 	await process_frame
-	assert(controller.get_active_medic_id() == second.defender_id)
+	assert(controller.get_active_medic_id() == second_id)
 	assert(second_replacement.get_medic_role_health_current() == 2)
 	assert(second_replacement.durability.get_role_current_armor() == 2)
 
-	roles.request_assignment(
-		second.defender_id,
-		CrewRole.Id.FREE_FIGHTER
-	)
-	await _wait_for_role(
-		roles,
-		second.defender_id,
-		CrewRole.Id.FREE_FIGHTER
-	)
+	roles.request_assignment(second_id, CrewRole.Id.FREE_FIGHTER)
+	await _wait_for_role(roles, second_id, CrewRole.Id.FREE_FIGHTER)
 	await process_frame
 	assert(controller.get_active_medic_id() == -1)
 	assert(controller.get_stored_health_segments() == 2)
