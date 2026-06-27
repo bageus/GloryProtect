@@ -38,15 +38,16 @@ enum PortalState {
 @export_range(0.0, 4.0, 0.25) var platform_tile_overlap: float = 1.0
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export var show_cell_guides: bool = false
-@export var platform_core_size: Vector2 = Vector2(112.0, 112.0)
-@export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.33
-@export var platform_core_offset: Vector2 = Vector2.ZERO
+@export var platform_core_size: Vector2 = Vector2(92.0, 92.0)
+@export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.38
+@export var platform_core_offset: Vector2 = Vector2(0.0, 12.0)
 @export_range(1, 24, 1) var platform_core_frame_count: int = 6
 @export_range(1.0, 30.0, 0.5) var platform_core_frame_rate: float = 8.0
 @export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
 @export_group("Driver Console")
 @export var driver_console_surface_offset: Vector2 = Vector2(0.0, -2.0)
+@export var empty_console_size: Vector2 = Vector2(76.0, 50.0)
 
 @export_group("Portal Visual")
 @export var portal_surface_offset: Vector2 = Vector2(0.0, 2.0)
@@ -189,18 +190,13 @@ func _draw_portal() -> void:
 		portal_rect,
 		_portal_source_rect
 	)
-
 	if _portal_state == PortalState.IDLE:
 		return
-
-	# The first spawn layer remains visible through the whole sequence.
 	_draw_portal_overlay(
 		PORTAL_SPAWN1_TEXTURE,
 		_portal_spawn1_source_rect,
 		center
 	)
-
-	# The second frame is added on top without removing the first one.
 	if _portal_state == PortalState.GHOST or _portal_state == PortalState.FINISH:
 		_draw_portal_overlay(
 			PORTAL_SPAWN2_TEXTURE,
@@ -224,6 +220,7 @@ func _draw_portal_overlay(
 
 func _draw_driver_console() -> void:
 	if not _steering_input.driver_available:
+		_draw_empty_driver_console()
 		return
 	var texture: Texture2D = CAPTAIN_CENTER_TEXTURE
 	var source_rect: Rect2 = _captain_center_source_rect
@@ -235,16 +232,56 @@ func _draw_driver_console() -> void:
 		texture = CAPTAIN_RIGHT_TEXTURE
 		source_rect = _captain_right_source_rect
 	var post_size: Vector2 = source_rect.size * object_asset_scale
-	var platform_top: float = -balance.platform_height * 0.5
-	var post_bottom := Vector2(
-		driver_console_surface_offset.x,
-		platform_top + driver_console_surface_offset.y
-	)
+	var post_bottom := _get_driver_console_bottom()
 	var post_rect := Rect2(
 		post_bottom - Vector2(post_size.x * 0.5, post_size.y),
 		post_size
 	)
 	draw_texture_rect_region(texture, post_rect, source_rect)
+
+
+func _draw_empty_driver_console() -> void:
+	var bottom := _get_driver_console_bottom()
+	var body_rect := Rect2(
+		bottom - Vector2(empty_console_size.x * 0.5, empty_console_size.y),
+		empty_console_size
+	)
+	var base_rect := Rect2(
+		Vector2(body_rect.position.x - 4.0, bottom.y - 10.0),
+		Vector2(body_rect.size.x + 8.0, 10.0)
+	)
+	draw_rect(body_rect, Color(0.16, 0.22, 0.3, 1.0), true)
+	draw_rect(body_rect, Color(0.38, 0.48, 0.58, 1.0), false, 3.0)
+	draw_rect(base_rect, Color(0.1, 0.14, 0.2, 1.0), true)
+	draw_rect(base_rect, Color(0.34, 0.42, 0.5, 1.0), false, 2.0)
+	var panel_rect := Rect2(
+		body_rect.position + Vector2(12.0, 9.0),
+		Vector2(body_rect.size.x - 24.0, 18.0)
+	)
+	draw_rect(panel_rect, Color(0.08, 0.12, 0.16, 1.0), true)
+	draw_rect(panel_rect, Color(0.3, 0.38, 0.46, 1.0), false, 2.0)
+	var lever_base := bottom + Vector2(0.0, -22.0)
+	draw_circle(lever_base, 6.0, Color(0.22, 0.28, 0.34, 1.0))
+	draw_line(
+		lever_base,
+		lever_base + Vector2(0.0, -15.0),
+		Color(0.46, 0.54, 0.6, 1.0),
+		4.0,
+		true
+	)
+	draw_circle(
+		lever_base + Vector2(0.0, -17.0),
+		5.0,
+		Color(0.34, 0.4, 0.46, 1.0)
+	)
+
+
+func _get_driver_console_bottom() -> Vector2:
+	var platform_top: float = -balance.platform_height * 0.5
+	return Vector2(
+		driver_console_surface_offset.x,
+		platform_top + driver_console_surface_offset.y
+	)
 
 
 func _update_portal(delta: float) -> void:
@@ -274,7 +311,6 @@ func _start_next_portal_sequence() -> void:
 
 func _finish_portal_sequence() -> void:
 	var completed_id: int = _portal_active_defender_id
-	# The receiver creates the defender synchronously. Clear both overlays after that.
 	spawn_sequence_finished.emit(completed_id)
 	_portal_active_defender_id = -1
 	_set_portal_state(PortalState.IDLE)

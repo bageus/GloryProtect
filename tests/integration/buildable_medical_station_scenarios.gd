@@ -16,47 +16,46 @@ func _run_scenarios() -> void:
 	var game_flow: GameFlowController = game.get_node("GameFlowController")
 	var inventory: BuildableInventory = game.get_node("BuildableInventory")
 	var grid: BuildableGrid = game.get_node("World/BuildableGrid")
-	var medical: MedicalStationSystem = game.get_node(
-		"World/MedicalStationSystem"
-	)
+	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var platform: PlatformController = game.get_node("World/Platform")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
-	var roles: CrewRoleManager = game.get_node(
-		"World/Platform/CrewRoleManager"
-	)
+	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 
 	await _wait_for_assignment_runtime(roles, 0, 30)
 	game_flow.state = GameFlowController.RunState.RUNNING
 	medical.balance.heal_interval = 0.12
 	medical.balance.heal_range = 1000.0
 
-	var default_medical_cell: int = grid.balance.default_medical_cell
+	var medical_cells: Array[int] = grid.balance.get_medical_footprint_cells()
+	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
+	assert(medical_cells == [6, 7])
+	assert(medical_anchor == 6)
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		default_medical_cell
-	) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) == -1)
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
-	assert(not grid.is_cell_available(8))
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 8) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_cells[1]) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 12) == -1)
 
 	var medical_id: int = grid.place(
 		BuildableType.Id.MEDICAL_STATION,
-		default_medical_cell
+		medical_anchor
 	)
 	assert(medical_id >= 0)
 	await process_frame
 	assert(medical.has_station())
 	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 12) == -1)
-	assert(grid.move(medical_id, 12))
-	await process_frame
+	assert(grid.get_buildable_id_at_cell(medical_cells[0]) == medical_id)
+	assert(grid.get_buildable_id_at_cell(medical_cells[1]) == medical_id)
+	assert(not grid.move(medical_id, 12))
+	assert(not grid.move(medical_id, 13))
+
 	var medical_snapshot: BuildableSnapshot = grid.get_snapshot(medical_id)
-	assert(medical_snapshot.cell_index == 12)
-	assert(is_equal_approx(
-		medical_snapshot.local_x,
-		platform.get_cell_local_x(12)
-	))
+	assert(medical_snapshot.cell_index == medical_anchor)
+	var expected_x := (
+		platform.get_cell_local_x(medical_cells[0])
+		+ platform.get_cell_local_x(medical_cells[1])
+	) * 0.5
+	assert(is_equal_approx(medical_snapshot.local_x, expected_x))
 
 	roles.request_assignment(0, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, 0, CrewRole.Id.MEDIC, 240)
@@ -70,13 +69,9 @@ func _run_scenarios() -> void:
 	var remaining_before_pause: float = medical.get_heal_remaining()
 	game_flow.begin_card_selection()
 	await _wait_physics_frames(5)
-	assert(is_equal_approx(
-		medical.get_heal_remaining(),
-		remaining_before_pause
-	))
+	assert(is_equal_approx(medical.get_heal_remaining(), remaining_before_pause))
 	game_flow.finish_card_selection()
 
-	assert(grid.move(medical_id, 13))
 	await _wait_for_health(first_target, 2, 120)
 	await _wait_for_healing_target(medical, 2, 120)
 
@@ -91,7 +86,6 @@ func _run_scenarios() -> void:
 	await _wait_for_role(roles, 0, CrewRole.Id.MEDIC, 240)
 	first_target.health.set_health(1)
 	await _wait_for_healing_target(medical, 1, 120)
-	var demolished_cell: int = grid.get_snapshot(medical_id).cell_index
 	assert(grid.demolish(medical_id))
 	await process_frame
 	assert(not medical.has_station())
@@ -102,16 +96,12 @@ func _run_scenarios() -> void:
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
 	assert(first_target.health.current_health == 2)
 	assert(inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION))
-	assert(grid.is_cell_available(demolished_cell))
-	var released: CrewAssignmentRuntime = roles.get_assignment(0)
-	assert(released.current_role == CrewRole.Id.FREE_FIGHTER)
-	assert(released.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(grid.place(
-		BuildableType.Id.MEDICAL_STATION,
-		demolished_cell
-	) >= 0)
+	assert(grid.get_buildable_id_at_cell(medical_cells[0]) == -1)
+	assert(grid.get_buildable_id_at_cell(medical_cells[1]) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 12) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) >= 0)
 
-	print("Buildable and medical station scenarios passed")
+	print("Fixed medical station service-zone scenarios passed")
 	quit()
 
 

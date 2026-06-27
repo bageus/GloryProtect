@@ -43,7 +43,7 @@ func place(type_id: int, cell_index: int) -> int:
 	)
 	_next_buildable_id += 1
 	_buildables[runtime.buildable_id] = runtime
-	_cell_occupants[cell_index] = runtime.buildable_id
+	_occupy_runtime(runtime)
 	buildable_placed.emit(runtime.buildable_id, type_id, cell_index)
 	return runtime.buildable_id
 
@@ -61,9 +61,9 @@ func move(buildable_id: int, cell_index: int) -> bool:
 	) != &"":
 		return false
 	var previous_cell: int = runtime.cell_index
-	_cell_occupants.erase(previous_cell)
+	_release_runtime(runtime)
 	runtime.cell_index = cell_index
-	_cell_occupants[cell_index] = buildable_id
+	_occupy_runtime(runtime)
 	buildable_moved.emit(buildable_id, previous_cell, cell_index)
 	return true
 
@@ -73,7 +73,7 @@ func demolish(buildable_id: int) -> bool:
 		return false
 	var runtime: BuildableRuntime = _buildables[buildable_id]
 	_buildables.erase(buildable_id)
-	_cell_occupants.erase(runtime.cell_index)
+	_release_runtime(runtime)
 	buildable_demolished.emit(
 		runtime.buildable_id,
 		runtime.type_id,
@@ -142,11 +142,18 @@ func get_cell_unavailability_reason(
 			return REASON_CELL_NOT_ALLOWED
 	else:
 		return REASON_UNSUPPORTED_TYPE
-	if not _cell_occupants.has(cell_index):
-		return &""
-	if int(_cell_occupants[cell_index]) == ignored_buildable_id:
-		return &""
-	return REASON_CELL_OCCUPIED
+
+	var footprint: Array[int] = balance.get_footprint_cells(type_id, cell_index)
+	if footprint.is_empty():
+		return REASON_CELL_NOT_ALLOWED
+	for footprint_cell: int in footprint:
+		if not _platform.is_valid_cell(footprint_cell):
+			return REASON_INVALID_CELL
+		if not _cell_occupants.has(footprint_cell):
+			continue
+		if int(_cell_occupants[footprint_cell]) != ignored_buildable_id:
+			return REASON_CELL_OCCUPIED
+	return &""
 
 
 func get_place_unavailability_reason(
@@ -207,13 +214,20 @@ func get_cell_local_x(cell_index: int) -> float:
 	return _platform.get_cell_local_x(cell_index)
 
 
+func get_buildable_footprint_cells(buildable_id: int) -> Array[int]:
+	var runtime: BuildableRuntime = _buildables.get(buildable_id)
+	if runtime == null:
+		return []
+	return balance.get_footprint_cells(runtime.type_id, runtime.cell_index)
+
+
 func get_snapshot(buildable_id: int) -> BuildableSnapshot:
 	var runtime: BuildableRuntime = _buildables.get(buildable_id)
 	if runtime == null:
 		return null
 	return BuildableSnapshot.new(
 		runtime,
-		_platform.get_cell_local_x(runtime.cell_index)
+		_get_runtime_local_x(runtime)
 	)
 
 
@@ -239,12 +253,45 @@ func get_summary() -> String:
 	)
 	var medical_text: String = "медпост не установлен"
 	if medical_id >= 0:
-		var snapshot: BuildableSnapshot = get_snapshot(medical_id)
-		medical_text = "медпост клетка %d" % (snapshot.cell_index + 1)
+		var cells: Array[int] = get_buildable_footprint_cells(medical_id)
+		medical_text = "медпост клетки %d–%d" % [
+			cells[0] + 1,
+			cells[cells.size() - 1] + 1,
+		]
 	return "%s | турелей %d" % [
 		medical_text,
 		get_count_by_type(BuildableType.Id.TURRET),
 	]
+
+
+func _occupy_runtime(runtime: BuildableRuntime) -> void:
+	for cell_index: int in balance.get_footprint_cells(
+		runtime.type_id,
+		runtime.cell_index
+	):
+		_cell_occupants[cell_index] = runtime.buildable_id
+
+
+func _release_runtime(runtime: BuildableRuntime) -> void:
+	for cell_index: int in balance.get_footprint_cells(
+		runtime.type_id,
+		runtime.cell_index
+	):
+		if int(_cell_occupants.get(cell_index, -1)) == runtime.buildable_id:
+			_cell_occupants.erase(cell_index)
+
+
+func _get_runtime_local_x(runtime: BuildableRuntime) -> float:
+	var footprint: Array[int] = balance.get_footprint_cells(
+		runtime.type_id,
+		runtime.cell_index
+	)
+	if footprint.is_empty():
+		return _platform.get_cell_local_x(runtime.cell_index)
+	var total_x: float = 0.0
+	for cell_index: int in footprint:
+		total_x += _platform.get_cell_local_x(cell_index)
+	return total_x / float(footprint.size())
 
 
 func _on_run_state_changed(previous_state: int, new_state: int) -> void:

@@ -3,6 +3,8 @@ extends EnemyBehaviorComponent
 
 enum State {
 	FLYING,
+	LANDING,
+	BOARDED,
 	ATTACKING,
 }
 
@@ -41,6 +43,7 @@ func _on_configured() -> void:
 	assert(registry != null, "FlyingEnemyBehavior requires registry")
 	assert(melee != null, "FlyingEnemyBehavior requires melee")
 	state = State.FLYING
+	_set_air_domain()
 	publish_visual_state(&"flying")
 
 
@@ -53,30 +56,103 @@ func _tick_behavior(delta: float) -> void:
 	var target: Defender = crew.get_nearest_living_defender(enemy.global_position)
 	if target == null:
 		return
-	var target_position := Vector2(
+	match state:
+		State.FLYING:
+			_tick_flying(delta, target)
+		State.LANDING:
+			_tick_landing(delta, target)
+		State.BOARDED, State.ATTACKING:
+			_tick_boarded(delta, target)
+
+
+func is_landed() -> bool:
+	return state == State.BOARDED or state == State.ATTACKING
+
+
+func _tick_flying(delta: float, target: Defender) -> void:
+	var approach_position := Vector2(
 		target.global_position.x,
 		platform.global_position.y - profile.hover_height
 	)
-	var distance: float = enemy.global_position.distance_to(target_position)
+	var distance: float = enemy.global_position.distance_to(approach_position)
 	if distance <= profile.attack_range:
-		_set_state(State.ATTACKING)
-		melee.try_start(target.health)
+		_set_state(State.LANDING)
 		return
-	_set_state(State.FLYING)
-	var direction: Vector2 = enemy.global_position.direction_to(target_position)
+	var direction: Vector2 = enemy.global_position.direction_to(approach_position)
 	var velocity: Vector2 = direction * profile.flight_speed
 	velocity += _get_separation_velocity()
 	enemy.global_position += velocity * delta
+
+
+func _tick_landing(delta: float, target: Defender) -> void:
+	var landing_position := _get_landing_position(target)
+	var distance: float = enemy.global_position.distance_to(landing_position)
+	var step: float = profile.flight_speed * delta
+	if distance <= maxf(3.0, step):
+		enemy.global_position = landing_position
+		_complete_landing()
+		return
+	enemy.global_position = enemy.global_position.move_toward(
+		landing_position,
+		step
+	)
+
+
+func _tick_boarded(delta: float, target: Defender) -> void:
+	enemy.global_position.y = target.global_position.y
+	var horizontal_distance: float = absf(
+		target.global_position.x - enemy.global_position.x
+	)
+	if horizontal_distance <= profile.attack_range:
+		_set_state(State.ATTACKING)
+		melee.try_start(target.health)
+		return
+	_set_state(State.BOARDED)
+	var direction: float = signf(
+		target.global_position.x - enemy.global_position.x
+	)
+	enemy.global_position.x += direction * profile.flight_speed * delta
+
+
+func _get_landing_position(target: Defender) -> Vector2:
+	var half_width: float = platform.get_platform_width() * 0.5
+	var body_margin: float = maxf(4.0, enemy.get_body_radius())
+	var minimum_x: float = platform.global_position.x - half_width + body_margin
+	var maximum_x: float = platform.global_position.x + half_width - body_margin
+	return Vector2(
+		clampf(target.global_position.x, minimum_x, maximum_x),
+		target.global_position.y
+	)
+
+
+func _complete_landing() -> void:
+	target_domain = TargetDomain.GROUND
+	counts_as_ground = false
+	counts_as_climbing = false
+	counts_as_boarded = true
+	_set_state(State.BOARDED)
+
+
+func _set_air_domain() -> void:
+	target_domain = TargetDomain.AIR
+	counts_as_ground = false
+	counts_as_climbing = false
+	counts_as_boarded = false
 
 
 func _set_state(new_state: int) -> void:
 	if state == new_state:
 		return
 	state = new_state
-	if state == State.ATTACKING:
-		publish_visual_state(&"attacking")
-	else:
-		publish_visual_state(&"flying")
+	match state:
+		State.FLYING:
+			publish_visual_state(&"flying")
+		State.LANDING:
+			publish_visual_state(&"landing")
+		State.BOARDED:
+			publish_visual_state(&"boarded")
+		State.ATTACKING:
+			publish_visual_state(&"attacking")
 
 
 func _get_separation_velocity() -> Vector2:
@@ -85,6 +161,9 @@ func _get_separation_velocity() -> Vector2:
 		if other == enemy or other.behavior == null:
 			continue
 		if not (other.behavior is FlyingEnemyBehavior):
+			continue
+		var other_flying := other.behavior as FlyingEnemyBehavior
+		if other_flying.state != State.FLYING:
 			continue
 		var offset: Vector2 = enemy.global_position - other.global_position
 		var distance: float = offset.length()

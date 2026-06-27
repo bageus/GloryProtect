@@ -26,8 +26,12 @@ func _run_scenarios() -> void:
 	var director: StrategicWaveDirector = game.get_node(
 		"World/StrategicWaveDirector"
 	)
+	var mutation: StrategicGroupMutationController = game.get_node(
+		"World/StrategicGroupMutationController"
+	)
 	var minimap: Control = game.get_node("CanvasLayer/StrategicMinimap")
 	recharge.set_physics_process(false)
+	mutation.set_physics_process(false)
 
 	assert(minimap.visible)
 	assert(game_flow.state == GameFlowController.RunState.START_DELAY)
@@ -44,13 +48,14 @@ func _run_scenarios() -> void:
 	director.balance.maximum_target_sections = 2
 	director.balance.initial_travel_duration = 0.2
 	director.balance.minimum_travel_duration = 0.2
-	director.balance.impact_interval = 0.03
-	director.balance.damage_per_enemy = 1.0
+	waves.balance.impact_interval = 0.03
+	waves.balance.damage_per_enemy = 1.0
 	director.balance.initial_wave_interval = 999.0
 	director.balance.minimum_wave_interval = 999.0
 	director.set_debug_seed(12345)
 
 	var shield_before: float = _get_total_shield_health(shield)
+	var coins_before: int = economy.get_coins()
 	assert(director.spawn_wave_now() == 8)
 	assert(director.get_wave_number() == 1)
 	assert(waves.get_active_group_count() == 2)
@@ -64,13 +69,15 @@ func _run_scenarios() -> void:
 		assert(snapshot.section_id < shield.get_section_count())
 		assert(snapshot.enemy_count > 0)
 
-	await _wait_physics_frames(2)
+	director.set_physics_process(false)
+	waves.set_physics_process(false)
+	waves.call("_physics_process", 0.05)
 	var progress_before_pause: float = (
 		waves.get_group_snapshots()[0].progress
 	)
 	game_flow.begin_card_selection()
 	assert(paused)
-	await _wait_physics_frames(5)
+	waves.call("_physics_process", 1.0)
 	assert(is_equal_approx(
 		waves.get_group_snapshots()[0].progress,
 		progress_before_pause
@@ -78,14 +85,14 @@ func _run_scenarios() -> void:
 	game_flow.finish_card_selection()
 	assert(not paused)
 
-	await _wait_until_groups_empty(waves, 180)
+	await _step_until_groups_empty(waves, 120, 0.05)
 	assert(waves.get_active_group_count() == 0)
 	assert(waves.get_total_enemy_count() == 0)
 	assert(is_equal_approx(
 		_get_total_shield_health(shield),
 		shield_before - 8.0
 	))
-	assert(economy.get_coins() == economy.balance.starting_coins)
+	assert(economy.get_coins() == coins_before + 8)
 
 	director.balance.initial_travel_duration = 10.0
 	director.balance.minimum_travel_duration = 10.0
@@ -118,12 +125,14 @@ func _wait_physics_frames(frame_count: int) -> void:
 		await physics_frame
 
 
-func _wait_until_groups_empty(
+func _step_until_groups_empty(
 	waves: StrategicWaveSystem,
-	max_frames: int
+	max_steps: int,
+	delta: float
 ) -> void:
-	for _frame: int in range(max_frames):
+	for _step: int in range(max_steps):
 		if waves.get_active_group_count() == 0:
 			return
-		await physics_frame
+		waves.call("_physics_process", delta)
+		await process_frame
 	assert(false, "Strategic groups did not finish in time")

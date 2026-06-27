@@ -52,18 +52,42 @@ func rebuild_context(
 		_add_centered_label("Пост появится после получения улучшения")
 		_add_close_button(close_pressed)
 		return
-
 	var owner_id: int = int(description["owner"])
 	if owner_id >= 0:
 		var release := Button.new()
 		release.text = "Освободить пост — защитник %d" % (owner_id + 1)
 		release.pressed.connect(release_pressed.bind(slot_index))
 		_context_box.add_child(release)
-
 	if free_ids.is_empty():
 		_add_centered_label("Свободных защитников нет")
 	else:
 		_add_assignment_buttons(free_ids, slot_index, assign_pressed)
+	_add_close_button(close_pressed)
+
+
+func rebuild_defender_type_context(
+	defender_id: int,
+	current_role: int,
+	shooter_unlocked: bool,
+	type_pressed: Callable,
+	close_pressed: Callable
+) -> void:
+	_clear_children(_context_box)
+	_context_panel.visible = true
+	_add_context_title("Защитник %d — тип" % (defender_id + 1))
+	var melee := Button.new()
+	melee.text = "Ближний бой"
+	melee.disabled = current_role == CrewRole.Id.FREE_FIGHTER
+	melee.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.FREE_FIGHTER))
+	_context_box.add_child(melee)
+	if shooter_unlocked:
+		var shooter := Button.new()
+		shooter.text = "Стрелок"
+		shooter.disabled = current_role == CrewRole.Id.SHOOTER
+		shooter.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.SHOOTER))
+		_context_box.add_child(shooter)
+	else:
+		_add_centered_label("Тип «Стрелок» ещё не открыт")
 	_add_close_button(close_pressed)
 
 
@@ -107,14 +131,12 @@ func _build_side_panel(
 	panel.add_theme_stylebox_override("panel", _make_panel_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_host.add_child(panel)
-
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 6)
 	margin.add_theme_constant_override("margin_top", 6)
 	margin.add_theme_constant_override("margin_right", 6)
 	margin.add_theme_constant_override("margin_bottom", 6)
 	panel.add_child(margin)
-
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	margin.add_child(row)
@@ -139,7 +161,6 @@ func _build_context_panel() -> void:
 	_context_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_context_panel.visible = false
 	_host.add_child(_context_panel)
-
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_top", 10)
@@ -160,10 +181,7 @@ func _build_feedback_label() -> void:
 	_feedback_label.offset_bottom = -118.0
 	_feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_feedback_label.add_theme_font_size_override("font_size", 13)
-	_feedback_label.add_theme_color_override(
-		"font_color",
-		Color(0.72, 0.82, 0.92)
-	)
+	_feedback_label.add_theme_color_override("font_color", Color(0.72, 0.82, 0.92))
 	_feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_host.add_child(_feedback_label)
 

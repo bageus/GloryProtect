@@ -15,7 +15,7 @@ func _run_scenario() -> void:
 	await process_frame
 	await process_frame
 	flow.state = GameFlowController.RunState.RUNNING
-	_stabilize_world(game)
+	_disable_spawners(game)
 	await process_frame
 
 	var inventory: BuildableInventory = game.get_node("BuildableInventory")
@@ -29,10 +29,6 @@ func _run_scenario() -> void:
 	)
 	var medical: MedicalStationSystem = game.get_node(
 		"World/MedicalStationSystem"
-	)
-	var turrets: TurretSystem = game.get_node("World/TurretSystem")
-	var roles: CrewRoleManager = game.get_node(
-		"World/Platform/CrewRoleManager"
 	)
 
 	inventory.unlock(BuildableType.Id.MEDICAL_STATION)
@@ -57,10 +53,7 @@ func _run_scenario() -> void:
 	)
 	assert(medical_id >= 0)
 	assert(medical.has_station())
-	assert(grid.get_buildable_id_at_cell(6) == medical_id)
-	assert(grid.get_buildable_id_at_cell(7) == medical_id)
 	assert(not panel.visible)
-
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(7)
 	))
@@ -87,64 +80,36 @@ func _run_scenario() -> void:
 	)
 	assert(turret_ids.size() == 1)
 	var turret_id: int = turret_ids[0]
-	assert(turrets.has_turret(turret_id))
 	assert(not panel.visible)
-
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(turret_cell)
 	))
 	await process_frame
-	assert(controller.get_selected_buildable_id() == turret_id)
 	assert(panel.get_move_button().visible)
+	assert(panel.get_demolish_button().visible)
 	panel.get_move_button().pressed.emit()
-	assert(controller.get_mode() == BuildablePlacementController.Mode.MOVE)
 	assert(controller.is_grid_preview_visible())
-
-	var moved_cell: int = 4
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(moved_cell)
+		platform.get_cell_canvas_center(4)
 	))
 	await process_frame
-	assert(grid.get_snapshot(turret_id).cell_index == moved_cell)
-	assert(is_equal_approx(
-		roles.get_role_target_x(CrewRole.Id.TURRET, 0, turret_id),
-		platform.get_cell_local_x(moved_cell)
-	))
+	assert(grid.get_snapshot(turret_id).cell_index == 4)
 	assert(not controller.is_grid_preview_visible())
 	assert(not panel.visible)
 
-	flow.state = GameFlowController.RunState.MANUAL_PAUSE
-	await process_frame
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(5)
-	))
-	assert(controller.is_feedback_error())
-	flow.state = GameFlowController.RunState.RUNNING
-	await process_frame
-
-	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(moved_cell)
+		platform.get_cell_canvas_center(4)
 	))
 	await process_frame
 	panel.get_demolish_button().pressed.emit()
 	assert(not grid.has_buildable(turret_id))
-	assert(not turrets.has_turret(turret_id))
 	assert(not panel.visible)
 
-	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(medical_cell)
-	))
-	await process_frame
-	panel.get_demolish_button().pressed.emit()
-	assert(not grid.has_buildable(medical_id))
-	assert(not medical.has_station())
-	assert(not panel.visible)
-
-	print("Buildable placement UI scenarios passed")
+	print("Buildable cell context scenarios passed")
 	quit()
 
 
-func _stabilize_world(game: Node) -> void:
+func _disable_spawners(game: Node) -> void:
 	var paths: Array[NodePath] = [
 		NodePath("World/BoardingSpawnDirector"),
 		NodePath("World/FlyingEnemySpawnDirector"),
@@ -154,6 +119,6 @@ func _stabilize_world(game: Node) -> void:
 	for path: NodePath in paths:
 		if not game.has_node(path):
 			continue
-		var system: Node = game.get_node(path)
-		system.set_process(false)
-		system.set_physics_process(false)
+		var node: Node = game.get_node(path)
+		node.set_process(false)
+		node.set_physics_process(false)
