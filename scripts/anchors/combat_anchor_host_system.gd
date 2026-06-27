@@ -9,6 +9,26 @@ func _connect_component_signals() -> void:
 	_commands.anchor_detaching.connect(_on_anchor_detaching)
 
 
+func _create_visual_controller() -> void:
+	var combat_visual := CombatAnchorVisualController.new()
+	combat_visual.name = "AnchorVisualController"
+	combat_visual.winch_vertical_offset = -42.0
+	_visual = combat_visual
+	add_child(_visual)
+	var combat_anchors := get_node_or_null(
+		"../CombatAnchorSystem"
+	) as CombatAnchorSystem
+	combat_visual.configure_combat(
+		_store,
+		_geometry,
+		balance,
+		Callable(self, "is_operator_assigned"),
+		Callable(_game_flow, "is_world_simulation_active"),
+		self,
+		combat_anchors
+	)
+
+
 func set_combat_anchor_modifiers(
 	overload_bonus_seconds: float,
 	install_speed_bonus_ratio: float,
@@ -41,6 +61,12 @@ func is_instant_remove_all_enabled() -> bool:
 
 func get_platform_attachment_world(anchor_id: int) -> Vector2:
 	return _geometry.get_platform_attachment_world(anchor_id)
+
+
+func get_winch_vertical_offset() -> float:
+	if _visual is AnchorVisualController:
+		return (_visual as AnchorVisualController).winch_vertical_offset
+	return 0.0
 
 
 func _on_anchor_detaching(anchor_id: int) -> void:
