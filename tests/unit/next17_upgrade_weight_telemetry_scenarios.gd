@@ -57,15 +57,23 @@ func _test_every_branch_selection_has_equal_total_delta() -> void:
 
 
 func _test_general_pool_weight_floor() -> void:
+	assert(DRAW_BALANCE.general_pool_weight == 10)
 	var branch_weight_samples: Array[int] = [0, 70, 100, 1000, 10000]
 	for branch_weight: int in branch_weight_samples:
-		var general_weight: int = DRAW_BALANCE.get_general_pool_weight(branch_weight)
-		assert(general_weight >= DRAW_BALANCE.general_pool_weight)
+		var branch_scale: float = DRAW_BALANCE.get_branch_draw_weight_scale(
+			branch_weight
+		)
+		assert(branch_scale > 0.0 and branch_scale <= 1.0)
 		if branch_weight <= 0:
+			assert(is_equal_approx(branch_scale, 1.0))
 			continue
+		var effective_branch_weight: float = float(branch_weight) * branch_scale
 		var relative_share: float = (
-			float(general_weight)
-			/ float(general_weight + branch_weight)
+			float(DRAW_BALANCE.general_pool_weight)
+			/ (
+				float(DRAW_BALANCE.general_pool_weight)
+				+ effective_branch_weight
+			)
 		)
 		assert(
 			relative_share + 0.000001
