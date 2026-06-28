@@ -19,4 +19,4 @@ attack_cooldown = 1.1
 attack_range = 34.0
 unlock_difficulty = 0.45
 weight_at_unlock = 0.15
-weight_at_max_difficulty = 0.9
+weight_at_max_difficulty = 1.0
