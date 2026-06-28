@@ -3,7 +3,7 @@ extends Resource
 
 @export_range(0.0, 60.0, 0.5) var first_wave_delay: float = 5.0
 @export_range(0.5, 60.0, 0.5) var initial_wave_interval: float = 12.0
-@export_range(0.5, 60.0, 0.5) var minimum_wave_interval: float = 4.0
+@export_range(0.5, 60.0, 0.5) var minimum_wave_interval: float = 5.5
 @export_range(1, 500, 1) var initial_wave_size: int = 6
 @export_range(1, 1000, 1) var maximum_wave_size: int = 30
 @export_range(0.5, 60.0, 0.5) var initial_travel_duration: float = 8.0
@@ -14,6 +14,10 @@ extends Resource
 @export_range(0.1, 100.0, 0.1) var damage_per_enemy: float = 1.0
 @export_range(1, 100, 1) var max_active_groups: int = 15
 @export_range(0.0, 1.2, 0.05) var maximum_lane_offset: float = 0.35
+
+@export_group("Overtime")
+@export_range(0, 100, 1) var overtime_wave_size_per_tier: int = 3
+@export_range(1, 1000, 1) var maximum_overtime_wave_size: int = 48
 
 @export_group("Group Mutations")
 @export_range(0.1, 30.0, 0.1) var mutation_check_interval: float = 1.0
@@ -37,10 +41,12 @@ func get_wave_interval(normalized_difficulty: float) -> float:
 	)
 
 
-func get_wave_size(normalized_difficulty: float) -> int:
+func get_wave_size(normalized_difficulty: float, overtime_tier: int = 0) -> int:
 	var progress: float = clampf(normalized_difficulty, 0.0, 1.0)
 	var final_size: int = maxi(initial_wave_size, maximum_wave_size)
-	return roundi(lerpf(float(initial_wave_size), float(final_size), progress))
+	var result: int = roundi(lerpf(float(initial_wave_size), float(final_size), progress))
+	result += maxi(0, overtime_tier) * overtime_wave_size_per_tier
+	return mini(maximum_overtime_wave_size, result)
 
 
 func get_travel_duration(normalized_difficulty: float) -> float:
