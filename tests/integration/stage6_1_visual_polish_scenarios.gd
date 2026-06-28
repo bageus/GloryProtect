@@ -40,6 +40,14 @@ func _run() -> void:
 		roles.get_role_target_x(CrewRole.Id.DRIVER),
 		platform_visual.driver_console_surface_offset.x
 	))
+	var two_cell_width: float = platform_visual.balance.cell_width * 2.0
+	assert(platform_visual.get_occupied_console_max_width() < two_cell_width)
+	for steering_axis: float in [-1.0, 0.0, 1.0]:
+		var console_size: Vector2 = (
+			platform_visual.get_occupied_console_size_for_axis(steering_axis)
+		)
+		assert(console_size.x <= two_cell_width)
+		assert(console_size.x <= platform_visual.get_occupied_console_max_width())
 	assert(anchors.get_winch_vertical_offset() <= -40.0)
 	assert(is_equal_approx(buildable_visual.medical_post_scale, 0.3))
 	assert(minimap.cloud_morph_speed >= 2.0)
