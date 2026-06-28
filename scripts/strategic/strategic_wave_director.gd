@@ -55,24 +55,32 @@ func get_wave_remaining() -> float:
 	return maxf(0.0, _wave_remaining)
 
 
+func get_current_difficulty() -> float:
+	return _difficulty.get_normalized()
+
+
+func get_current_overtime_tier() -> int:
+	return _difficulty.get_overtime_tier()
+
+
 func get_current_wave_interval() -> float:
-	return balance.get_wave_interval(_difficulty.get_normalized())
+	return balance.get_wave_interval(get_current_difficulty())
 
 
 func get_current_wave_size() -> int:
 	return balance.get_wave_size(
-		_difficulty.get_normalized(),
-		_difficulty.get_overtime_tier()
+		get_current_difficulty(),
+		get_current_overtime_tier()
 	)
 
 
 func get_current_travel_duration() -> float:
-	return balance.get_travel_duration(_difficulty.get_normalized())
+	return balance.get_travel_duration(get_current_difficulty())
 
 
 func get_current_target_section_count() -> int:
 	return balance.get_target_section_count(
-		_difficulty.get_normalized(),
+		get_current_difficulty(),
 		_shield.get_section_count()
 	)
 
