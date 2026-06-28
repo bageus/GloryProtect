@@ -131,37 +131,35 @@ func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 		if pool.is_empty() or pool_id == GENERAL_POOL_ID:
 			continue
 		available_branch_weight += maxi(0, get_branch_weight(pool_id))
-	var general_weight: int = _balance.get_general_pool_weight(
+	var branch_scale: float = _balance.get_branch_draw_weight_scale(
 		available_branch_weight
 	)
-	var total_weight: int = 0
+	var weights: Dictionary[StringName, float] = {}
+	var total_weight: float = 0.0
 	for raw_id: Variant in pools.keys():
 		var pool_id: StringName = raw_id
 		var pool: Array = pools[pool_id]
 		if pool.is_empty():
 			continue
-		var weight: int = (
-			general_weight
+		var weight: float = (
+			float(_balance.general_pool_weight)
 			if pool_id == GENERAL_POOL_ID
-			else get_branch_weight(pool_id)
+			else float(get_branch_weight(pool_id)) * branch_scale
 		)
-		if weight <= 0:
+		if weight <= 0.0:
 			continue
 		ids.append(pool_id)
+		weights[pool_id] = weight
 		total_weight += weight
-	if total_weight <= 0:
+	if total_weight <= 0.0:
 		return &""
-	var roll: int = _rng.randi_range(1, total_weight)
-	var cursor: int = 0
+	var roll: float = _rng.randf() * total_weight
+	var cursor: float = 0.0
 	for pool_id: StringName in ids:
-		cursor += (
-			general_weight
-			if pool_id == GENERAL_POOL_ID
-			else get_branch_weight(pool_id)
-		)
-		if roll <= cursor:
+		cursor += weights[pool_id]
+		if roll < cursor:
 			return pool_id
-	return &""
+	return ids.back() if not ids.is_empty() else &""
 
 func _has_completed_line(branch_id: StringName) -> bool:
 	for definition: UpgradeDefinition in _catalog.get_all_definitions():
