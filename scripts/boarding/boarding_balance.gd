@@ -15,17 +15,17 @@ extends Resource
 @export_range(-100.0, 100.0, 1.0) var platform_local_y: float = -48.0
 @export_range(0.0, 100.0, 1.0) var ground_arrival_epsilon: float = 8.0
 @export_range(10.0, 1000.0, 1.0) var spawn_distance_from_platform: float = 720.0
-@export_range(0.1, 30.0, 0.1) var spawn_interval: float = 3.0
-@export_range(0.1, 30.0, 0.1) var minimum_spawn_interval: float = 0.8
-@export_range(1, 100, 1) var max_ground_enemies: int = 8
-@export_range(1, 200, 1) var maximum_ground_enemies: int = 28
+@export_range(0.1, 30.0, 0.1) var spawn_interval: float = 1.0
+@export_range(0.1, 30.0, 0.01) var minimum_spawn_interval: float = 0.27
+@export_range(1, 100, 1) var max_ground_enemies: int = 24
+@export_range(1, 200, 1) var maximum_ground_enemies: int = 84
 @export_range(0.0, 200.0, 1.0) var path_tie_epsilon: float = 24.0
 
 @export_group("Overtime Spawn")
-@export_range(0, 20, 1) var overtime_ground_limit_per_tier: int = 2
-@export_range(1, 200, 1) var maximum_overtime_ground_enemies: int = 36
+@export_range(0, 20, 1) var overtime_ground_limit_per_tier: int = 6
+@export_range(1, 200, 1) var maximum_overtime_ground_enemies: int = 108
 @export_range(0.5, 1.0, 0.01) var overtime_spawn_interval_multiplier: float = 0.95
-@export_range(0.1, 5.0, 0.05) var minimum_overtime_spawn_interval: float = 0.55
+@export_range(0.1, 5.0, 0.05) var minimum_overtime_spawn_interval: float = 0.2
 
 @export_group("Separation")
 @export_range(4.0, 120.0, 1.0) var ground_enemy_spacing: float = 28.0
