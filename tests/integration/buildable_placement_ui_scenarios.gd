@@ -40,12 +40,26 @@ func _run_scenario() -> void:
 
 	assert(not upgrade_panel.z_as_relative)
 	assert(upgrade_panel.z_index > panel.z_index)
+	assert(not panel.visible)
+	assert(not controller.is_grid_preview_visible())
+
+	var locked_cell: int = 3
+	assert(controller.handle_primary_click(
+		platform.get_cell_canvas_center(locked_cell)
+	))
+	await process_frame
+	assert(panel.visible)
+	assert(panel.get_selection_text() == "Ячейка 4")
+	assert(panel.get_cell_feedback_text() == "Пустая")
+	assert(not panel.get_medical_button().visible)
+	assert(not panel.get_turret_button().visible)
+	controller.clear_selection()
+	await process_frame
 
 	inventory.unlock(BuildableType.Id.MEDICAL_STATION)
 	inventory.unlock(BuildableType.Id.TURRET, 2)
 	await process_frame
 	assert(not panel.visible)
-	assert(not controller.is_grid_preview_visible())
 
 	var medical_cell: int = grid.balance.get_medical_cell_indices()[0]
 	assert(controller.handle_primary_click(
@@ -53,6 +67,8 @@ func _run_scenario() -> void:
 	))
 	await process_frame
 	assert(panel.visible)
+	assert(panel.get_selection_text() == "Ячейка %d" % (medical_cell + 1))
+	assert(panel.get_cell_feedback_text() == "Пустая")
 	assert(panel.get_medical_button().visible)
 	assert(not panel.get_turret_button().visible)
 	panel.get_medical_button().pressed.emit()
@@ -72,6 +88,9 @@ func _run_scenario() -> void:
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == medical_id)
+	assert(panel.get_cell_feedback_text() == "Медицинский пост")
+	assert(not panel.get_medical_button().visible)
+	assert(not panel.get_turret_button().visible)
 	assert(panel.get_demolish_button().visible)
 	assert(not panel.get_move_button().visible)
 	assert(not controller.begin_move_selected())
@@ -83,6 +102,8 @@ func _run_scenario() -> void:
 	))
 	await process_frame
 	assert(panel.visible)
+	assert(panel.get_selection_text() == "Ячейка 4")
+	assert(panel.get_cell_feedback_text() == "Пустая")
 	assert(panel.get_turret_button().visible)
 	assert(not panel.get_medical_button().visible)
 	panel.get_turret_button().pressed.emit()
@@ -101,6 +122,9 @@ func _run_scenario() -> void:
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == turret_id)
+	assert(panel.get_cell_feedback_text() == "Турель")
+	assert(not panel.get_medical_button().visible)
+	assert(not panel.get_turret_button().visible)
 	assert(panel.get_move_button().visible)
 	panel.get_move_button().pressed.emit()
 	assert(controller.get_mode() == BuildablePlacementController.Mode.MOVE)
