@@ -76,6 +76,10 @@ func get_platform_attachment_world(anchor_id: int) -> Vector2:
 	)
 
 
+func get_platform_surface_world_y() -> float:
+	return _platform.position.y - _platform.get_platform_height() * 0.5
+
+
 func is_within_rope_length(anchor: AnchorRuntime) -> bool:
 	if not anchor.has_target():
 		return false
