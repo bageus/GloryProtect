@@ -12,7 +12,7 @@ func _connect_component_signals() -> void:
 func _create_visual_controller() -> void:
 	var combat_visual := CombatAnchorVisualController.new()
 	combat_visual.name = "AnchorVisualController"
-	combat_visual.winch_vertical_offset = -42.0
+	combat_visual.winch_vertical_offset = 0.0
 	_visual = combat_visual
 	add_child(_visual)
 	var combat_anchors := get_node_or_null(
