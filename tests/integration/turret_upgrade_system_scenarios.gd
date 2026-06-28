@@ -38,28 +38,28 @@ func _test_live_domain_effects(
 	upgrades: UpgradeSystem
 ) -> void:
 	var catalog: UpgradeCatalog = upgrades.catalog
-	assert(turrets.get_current_damage() == 1)
+	assert(turrets.get_current_damage() == 2)
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_damage_basic").effect
 	))
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_damage_advanced").effect
 	))
-	assert(turrets.get_current_damage() == 3)
+	assert(turrets.get_current_damage() == 4)
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_cooldown_basic").effect
 	))
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_cooldown_advanced").effect
 	))
-	assert(is_equal_approx(turrets.get_current_cooldown(), 0.8 * 0.7))
+	assert(is_equal_approx(turrets.get_current_cooldown(), 1.2 * 0.7))
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_range_basic").effect
 	))
 	assert(turrets.apply_upgrade_effect(
 		catalog.get_definition(&"turret_range_advanced").effect
 	))
-	assert(is_equal_approx(turrets.get_current_range(), 360.0 * 1.4))
+	assert(is_equal_approx(turrets.get_current_range(), 520.0 * 1.4))
 
 
 func _test_piercing_hits_every_enemy_on_line(game: Node) -> void:

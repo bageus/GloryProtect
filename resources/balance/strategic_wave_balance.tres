@@ -6,7 +6,7 @@
 script = ExtResource("1_balance")
 first_wave_delay = 5.0
 initial_wave_interval = 12.0
-minimum_wave_interval = 4.0
+minimum_wave_interval = 5.5
 initial_wave_size = 6
 maximum_wave_size = 30
 initial_travel_duration = 8.0
@@ -17,6 +17,8 @@ impact_interval = 0.35
 damage_per_enemy = 1.0
 max_active_groups = 15
 maximum_lane_offset = 0.35
+overtime_wave_size_per_tier = 3
+maximum_overtime_wave_size = 48
 mutation_check_interval = 1.0
 merge_angle_tolerance = 0.16
 merge_distance_tolerance = 0.08

@@ -58,9 +58,16 @@ func _test_turret_posts(
 		&"common_turret_post"
 	)
 	for expected_count: int in range(1, 4):
+		print(
+			"turret unlock before=%d max=%d can_apply=%s" % [
+				inventory.get_unlocked_count(BuildableType.Id.TURRET),
+				inventory.balance.turret_max_count,
+				str(applier.can_apply(definition)),
+			]
+		)
 		assert(applier.apply_effect(definition))
 		assert(inventory.get_unlocked_count(BuildableType.Id.TURRET) == expected_count)
-	assert(inventory.balance.turret_damage == 1)
+	assert(inventory.balance.turret_damage == 2)
 
 
 func _test_speed_effects(

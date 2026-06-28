@@ -88,8 +88,15 @@ func spawn_now(side: int = 0) -> BoardingEnemy:
 	return enemy
 
 
+func get_current_spawn_interval() -> float:
+	return profile.get_spawn_interval(
+		_wave_director.get_current_difficulty(),
+		_wave_director.get_current_overtime_tier()
+	)
+
+
 func reset_spawn_timer() -> void:
-	_spawn_remaining = profile.spawn_interval
+	_spawn_remaining = get_current_spawn_interval()
 
 
 func get_spawn_remaining() -> float:
