@@ -40,7 +40,8 @@ func _run_scenario() -> void:
 	await _wait_for_role(roles, 0, turret_id, 300)
 
 	var enemy: BoardingEnemy = spawn.spawn_debug_on_platform(80.0)
-	enemy.health.configure(2)
+	var shot_damage: int = turrets.balance.turret_damage
+	enemy.health.configure(shot_damage * 2)
 	var enemy_id: int = enemy.enemy_id
 	await _wait_for_firing(turrets, turret_id, 120)
 
@@ -51,9 +52,9 @@ func _run_scenario() -> void:
 		turrets.get_shot_remaining(turret_id),
 		shot_before_pause
 	))
-	assert(enemy.health.current_health == 2)
+	assert(enemy.health.current_health == shot_damage * 2)
 	game_flow.finish_card_selection()
-	await _wait_for_health(enemy, 1, 180)
+	await _wait_for_health(enemy, shot_damage, 180)
 
 	var cooldown_before_pause: float = turrets.get_cooldown_remaining(turret_id)
 	assert(cooldown_before_pause > 0.0)
