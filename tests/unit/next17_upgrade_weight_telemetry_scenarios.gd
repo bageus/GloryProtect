@@ -22,21 +22,25 @@ func _run() -> void:
 
 func _test_relationship_map_is_symmetric() -> void:
 	assert(DRAW_BALANCE.is_valid())
-	for rule: UpgradeBranchWeightRule in DRAW_BALANCE.branch_rules:
+	for raw_rule: Variant in DRAW_BALANCE.branch_rules:
+		var rule: UpgradeBranchWeightRule = raw_rule as UpgradeBranchWeightRule
+		assert(rule != null)
 		assert(rule.related_branch_ids.size() == 2)
 		assert(rule.opposing_branch_ids.size() == 2)
 		for related_id: StringName in rule.related_branch_ids:
-			var related_rule := DRAW_BALANCE.get_rule(related_id)
+			var related_rule: UpgradeBranchWeightRule = DRAW_BALANCE.get_rule(related_id)
 			assert(related_rule != null)
 			assert(related_rule.related_branch_ids.has(rule.branch_id))
 		for opposing_id: StringName in rule.opposing_branch_ids:
-			var opposing_rule := DRAW_BALANCE.get_rule(opposing_id)
+			var opposing_rule: UpgradeBranchWeightRule = DRAW_BALANCE.get_rule(opposing_id)
 			assert(opposing_rule != null)
 			assert(opposing_rule.opposing_branch_ids.has(rule.branch_id))
 
 
 func _test_every_branch_selection_has_equal_total_delta() -> void:
-	for rule: UpgradeBranchWeightRule in DRAW_BALANCE.branch_rules:
+	for raw_rule: Variant in DRAW_BALANCE.branch_rules:
+		var rule: UpgradeBranchWeightRule = raw_rule as UpgradeBranchWeightRule
+		assert(rule != null)
 		var generator := UpgradeDrawGenerator.new()
 		generator.configure(DRAW_BALANCE, CATALOG, UpgradeRuntime.new(), 101)
 		var before: int = _total_branch_weight(generator)
@@ -79,7 +83,9 @@ func _test_telemetry_snapshot() -> void:
 
 func _total_branch_weight(generator: UpgradeDrawGenerator) -> int:
 	var result: int = 0
-	for rule: UpgradeBranchWeightRule in DRAW_BALANCE.branch_rules:
+	for raw_rule: Variant in DRAW_BALANCE.branch_rules:
+		var rule: UpgradeBranchWeightRule = raw_rule as UpgradeBranchWeightRule
+		assert(rule != null)
 		result += generator.get_branch_weight(rule.branch_id)
 	return result
 
