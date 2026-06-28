@@ -1,7 +1,7 @@
 class_name TurretVisualControllerPolished
 extends TurretVisualController
 
-@export_range(0.05, 0.5, 0.01) var polished_asset_scale: float = 0.19
+const TARGET_ASSET_SCALE: float = 0.19
 
 
 func _ready() -> void:
@@ -20,8 +20,8 @@ func _draw() -> void:
 
 
 func get_effective_asset_scale() -> float:
-	return polished_asset_scale
+	return TARGET_ASSET_SCALE
 
 
 func _apply_polished_scale() -> void:
-	turret_asset_scale = polished_asset_scale
+	turret_asset_scale = TARGET_ASSET_SCALE
