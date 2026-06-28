@@ -19,6 +19,8 @@ var _active_policy: ShooterTargetPolicy
 var _completed_bolts := 0
 var _completed_volleys := 0
 var _current_volley_hit_count := 0
+var _reservation_key: StringName = &""
+var _reserved_enemy_id: int = -1
 
 
 func configure(
@@ -40,6 +42,7 @@ func configure(
 	_enemies = enemies
 	_crew = crew
 	_ranged = ranged
+	_reservation_key = StringName("shooter_%d" % _defender.defender_id)
 	_ranged.configure(
 		base_profile.duplicate(true) as RangedAttackProfile,
 		_defender,
@@ -100,10 +103,20 @@ func _physics_process(_delta: float) -> void:
 	var shot_count: int = 1
 	if upgrades.air_triple_shot or upgrades.anchor_triple_shot:
 		shot_count = 3
+	var reserved_damage: int = profile.damage * shot_count
+	if not _enemies.reserve_pending_damage(
+		target.enemy_id,
+		_reservation_key,
+		reserved_damage
+	):
+		return
+	_reserved_enemy_id = target.enemy_id
 	if _ranged.try_start_sequence(target.health, shot_count):
 		_locked_enemy = target
 		_current_volley_hit_count = 0
 		_defender.movement.pause()
+	else:
+		_release_pending_damage()
 
 
 func is_action_active() -> bool:
@@ -116,6 +129,7 @@ func is_action_active() -> bool:
 
 
 func cancel() -> void:
+	_release_pending_damage()
 	_locked_enemy = null
 	_active_policy = null
 	_current_volley_hit_count = 0
@@ -159,6 +173,12 @@ func _on_attack_landed(
 	_target_health: HealthComponent,
 	damage: int
 ) -> void:
+	if _reserved_enemy_id >= 0:
+		_enemies.consume_pending_damage(
+			_reserved_enemy_id,
+			_reservation_key,
+			damage
+		)
 	if _locked_enemy == null or not is_instance_valid(_locked_enemy):
 		return
 	_current_volley_hit_count += 1
@@ -176,6 +196,7 @@ func _on_attack_landed(
 
 
 func _on_attack_finished() -> void:
+	_release_pending_damage()
 	if _current_volley_hit_count > 0:
 		_completed_volleys += 1
 		_resolver.resolve_volley_finished(
@@ -186,3 +207,9 @@ func _on_attack_finished() -> void:
 	_locked_enemy = null
 	_active_policy = null
 	_current_volley_hit_count = 0
+
+
+func _release_pending_damage() -> void:
+	if _enemies != null and _reserved_enemy_id >= 0 and _reservation_key != &"":
+		_enemies.release_pending_damage(_reserved_enemy_id, _reservation_key)
+	_reserved_enemy_id = -1

@@ -16,6 +16,8 @@ func select_target(
 	for enemy: BoardingEnemy in enemies.get_all_enemies():
 		if not policy.is_valid_target(enemy):
 			continue
+		if enemies.get_unreserved_health(enemy.enemy_id) <= 0:
+			continue
 		if origin.distance_squared_to(enemy.global_position) > range_squared:
 			continue
 		var score: float = policy.get_priority_score(enemy, origin)
