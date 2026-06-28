@@ -124,6 +124,16 @@ func _build_pools() -> Dictionary[StringName, Array]:
 
 func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 	var ids: Array[StringName] = []
+	var available_branch_weight: int = 0
+	for raw_id: Variant in pools.keys():
+		var pool_id: StringName = raw_id
+		var pool: Array = pools[pool_id]
+		if pool.is_empty() or pool_id == GENERAL_POOL_ID:
+			continue
+		available_branch_weight += maxi(0, get_branch_weight(pool_id))
+	var general_weight: int = _balance.get_general_pool_weight(
+		available_branch_weight
+	)
 	var total_weight: int = 0
 	for raw_id: Variant in pools.keys():
 		var pool_id: StringName = raw_id
@@ -131,7 +141,7 @@ func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 		if pool.is_empty():
 			continue
 		var weight: int = (
-			_balance.general_pool_weight
+			general_weight
 			if pool_id == GENERAL_POOL_ID
 			else get_branch_weight(pool_id)
 		)
@@ -145,7 +155,7 @@ func _choose_pool_id(pools: Dictionary[StringName, Array]) -> StringName:
 	var cursor: int = 0
 	for pool_id: StringName in ids:
 		cursor += (
-			_balance.general_pool_weight
+			general_weight
 			if pool_id == GENERAL_POOL_ID
 			else get_branch_weight(pool_id)
 		)
