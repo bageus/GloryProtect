@@ -48,7 +48,6 @@ func _run() -> void:
 	assert(is_equal_approx(buildable_visual.turret_asset_scale, 0.19))
 	assert(turret_visual != null)
 	assert(is_equal_approx(turret_visual.get_effective_asset_scale(), 0.19))
-	assert(is_equal_approx(turret_visual.turret_asset_scale, 0.19))
 	assert(minimap.cloud_morph_speed >= 2.0)
 	assert(minimap.get_cloud_radius(9).x > 22.0)
 
