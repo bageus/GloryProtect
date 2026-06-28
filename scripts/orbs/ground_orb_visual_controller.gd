@@ -15,6 +15,7 @@ const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_nor
 @export var ground_tile_size: Vector2 = Vector2(128.0, 128.0)
 @export_range(0.0, 24.0, 0.25) var ground_tile_overlap: float = 8.0
 @export var ground_tile_vertical_offset: float = 0.0
+@export_range(0.0, 2000.0, 10.0) var ground_spawn_route_margin: float = 760.0
 @export var ground_grass_count_range: Vector2i = Vector2i(2, 4)
 @export var ground_grass_max_size: Vector2 = Vector2(30.0, 30.0)
 @export var ground_grass_vertical_range: Vector2 = Vector2(0.35, 0.82)
@@ -86,10 +87,11 @@ func _draw() -> void:
 
 
 func _draw_ground() -> void:
+	var platform_width: float = _platform.get_platform_width()
 	_surface_visual.draw(
 		self,
-		platform_balance.world_min_x,
-		platform_balance.world_max_x,
+		get_ground_draw_min_x(platform_width),
+		get_ground_draw_max_x(platform_width),
 		_registry.catalog.ground_y,
 		_registry.catalog.ground_depth,
 		ground_tile_size,
@@ -99,6 +101,24 @@ func _draw_ground() -> void:
 		ground_grass_max_size,
 		ground_grass_vertical_range,
 		ground_grass_horizontal_margin_ratio
+	)
+
+
+func get_ground_draw_min_x(platform_width: float) -> float:
+	assert(platform_balance != null)
+	return (
+		platform_balance.world_min_x
+		- maxf(0.0, platform_width) * 0.5
+		- maxf(0.0, ground_spawn_route_margin)
+	)
+
+
+func get_ground_draw_max_x(platform_width: float) -> float:
+	assert(platform_balance != null)
+	return (
+		platform_balance.world_max_x
+		+ maxf(0.0, platform_width) * 0.5
+		+ maxf(0.0, ground_spawn_route_margin)
 	)
 
 
