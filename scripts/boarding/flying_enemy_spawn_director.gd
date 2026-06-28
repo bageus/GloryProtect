@@ -90,8 +90,8 @@ func spawn_now(side: int = 0) -> BoardingEnemy:
 
 func get_current_spawn_interval() -> float:
 	return profile.get_spawn_interval(
-		_wave_director._difficulty.get_normalized(),
-		_wave_director._difficulty.get_overtime_tier()
+		_wave_director.get_current_difficulty(),
+		_wave_director.get_current_overtime_tier()
 	)
 
 
