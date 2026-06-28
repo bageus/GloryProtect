@@ -45,16 +45,17 @@ func is_valid() -> bool:
 	return true
 
 
-func get_general_pool_weight(available_branch_weight: int) -> int:
-	var base_weight: int = maxi(1, general_pool_weight)
+func get_branch_draw_weight_scale(available_branch_weight: int) -> float:
 	if minimum_general_pool_share <= 0.0 or available_branch_weight <= 0:
-		return base_weight
-	var required_weight: int = ceili(
-		float(available_branch_weight)
-		* minimum_general_pool_share
-		/ (1.0 - minimum_general_pool_share)
+		return 1.0
+	var maximum_branch_draw_weight: float = (
+		float(general_pool_weight)
+		* (1.0 - minimum_general_pool_share)
+		/ minimum_general_pool_share
 	)
-	return maxi(base_weight, required_weight)
+	if float(available_branch_weight) <= maximum_branch_draw_weight:
+		return 1.0
+	return maximum_branch_draw_weight / float(available_branch_weight)
 
 
 func get_rule(branch_id: StringName) -> UpgradeBranchWeightRule:
