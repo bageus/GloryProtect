@@ -57,9 +57,11 @@ func _run() -> void:
 	await _check_work_role(roles, 0, CrewRole.Id.MEDIC)
 
 	assert(inventory.unlock(BuildableType.Id.TURRET, 1) == 1)
+	var turret_cell: int = _find_free_turret_cell(grid)
+	assert(turret_cell >= 0)
 	var turret_id: int = grid.place(
 		BuildableType.Id.TURRET,
-		grid.balance.turret_cell_indices[0]
+		turret_cell
 	)
 	assert(turret_id >= 0)
 	await process_frame
@@ -85,6 +87,18 @@ func _run() -> void:
 
 	print("Stage 6.1 post assignment scenarios passed")
 	quit()
+
+
+func _find_free_turret_cell(grid: BuildableGrid) -> int:
+	for cell_index: int in grid.balance.turret_cell_indices:
+		if grid.get_buildable_id_at_cell(cell_index) >= 0:
+			continue
+		if grid.get_place_unavailability_reason(
+			BuildableType.Id.TURRET,
+			cell_index
+		) == &"":
+			return cell_index
+	return -1
 
 
 func _check_work_role(
