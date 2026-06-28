@@ -37,14 +37,15 @@ func _run_scenario() -> void:
 	assert(not panel.visible)
 	assert(not controller.is_grid_preview_visible())
 
-	var medical_cell: int = grid.balance.get_medical_cell_indices()[0]
+	var medical_cell: int = 3
+	assert(grid.balance.is_medical_cell(medical_cell))
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
 	assert(panel.visible)
 	assert(panel.get_medical_button().visible)
-	assert(not panel.get_turret_button().visible)
+	assert(panel.get_turret_button().visible)
 	panel.get_medical_button().pressed.emit()
 	await process_frame
 
@@ -53,18 +54,30 @@ func _run_scenario() -> void:
 	)
 	assert(medical_id >= 0)
 	assert(medical.has_station())
+	assert(grid.get_buildable_id_at_cell(medical_cell) == medical_id)
+	assert(grid.get_buildable_id_at_cell(medical_cell + 1) == -1)
 	assert(not panel.visible)
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(7)
+		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == medical_id)
 	assert(panel.get_demolish_button().visible)
-	assert(not panel.get_move_button().visible)
-	assert(not controller.begin_move_selected())
-	controller.clear_selection()
+	assert(panel.get_move_button().visible)
+	panel.get_move_button().pressed.emit()
+	assert(controller.is_grid_preview_visible())
+	var moved_medical_cell: int = 12
+	assert(controller.handle_primary_click(
+		platform.get_cell_canvas_center(moved_medical_cell)
+	))
+	await process_frame
+	assert(grid.get_snapshot(medical_id).cell_index == moved_medical_cell)
+	assert(grid.get_buildable_id_at_cell(medical_cell) == -1)
+	assert(grid.get_buildable_id_at_cell(moved_medical_cell) == medical_id)
+	assert(not controller.is_grid_preview_visible())
+	assert(not panel.visible)
 
-	var turret_cell: int = 3
+	var turret_cell: int = 4
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(turret_cell)
 	))
@@ -90,15 +103,15 @@ func _run_scenario() -> void:
 	panel.get_move_button().pressed.emit()
 	assert(controller.is_grid_preview_visible())
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(4)
+		platform.get_cell_canvas_center(5)
 	))
 	await process_frame
-	assert(grid.get_snapshot(turret_id).cell_index == 4)
+	assert(grid.get_snapshot(turret_id).cell_index == 5)
 	assert(not controller.is_grid_preview_visible())
 	assert(not panel.visible)
 
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(4)
+		platform.get_cell_canvas_center(5)
 	))
 	await process_frame
 	panel.get_demolish_button().pressed.emit()

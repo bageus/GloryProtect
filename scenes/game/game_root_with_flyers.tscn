@@ -89,8 +89,8 @@ platform_core_frame_rate = 4.0
 [node name="BuildableGridVisual" parent="World/Platform"]
 script = ExtResource("27_buildable_visual")
 placement_controller_path = NodePath("../../../BuildablePlacementController")
-medical_post_scale = 0.3
-turret_asset_scale = 0.19
+medical_post_scale = 0.18
+turret_asset_scale = 0.095
 
 [node name="CrewRoleManager" parent="World/Platform"]
 script = ExtResource("14_shooter_roles")
