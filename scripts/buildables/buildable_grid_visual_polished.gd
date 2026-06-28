@@ -6,12 +6,13 @@ extends BuildableGridVisual
 
 func _ready() -> void:
 	super._ready()
-	var turret_visual := get_node_or_null(
-		"TurretVisualController"
-	) as TurretVisualController
-	if turret_visual != null:
-		turret_visual.turret_asset_scale = turret_asset_scale
-		turret_visual.queue_redraw()
+	_apply_turret_scale()
+	call_deferred("_apply_turret_scale")
+
+
+func _process(delta: float) -> void:
+	_apply_turret_scale()
+	super._process(delta)
 
 
 func _create_turret_visual() -> void:
@@ -27,3 +28,15 @@ func _create_turret_visual() -> void:
 		balance
 	)
 	add_child(turret_visual)
+
+
+func _apply_turret_scale() -> void:
+	var turret_visual := get_node_or_null(
+		"TurretVisualController"
+	) as TurretVisualController
+	if turret_visual == null:
+		return
+	if is_equal_approx(turret_visual.turret_asset_scale, turret_asset_scale):
+		return
+	turret_visual.turret_asset_scale = turret_asset_scale
+	turret_visual.queue_redraw()
