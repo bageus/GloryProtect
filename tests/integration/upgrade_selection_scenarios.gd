@@ -17,6 +17,7 @@ func _run_scenarios() -> void:
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var upgrades: UpgradeSystem = game.get_node("UpgradeSystem")
 	var platform: PlatformController = game.get_node("World/Platform")
+	upgrades.set_draw_seed(12345)
 
 	game_flow.state = GameFlowController.RunState.RUNNING
 	assert(not paused)

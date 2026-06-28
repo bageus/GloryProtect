@@ -9,6 +9,7 @@ enum State {
 }
 
 var defender_id: int
+var combat_role: int = CrewRole.Id.FREE_FIGHTER
 var current_role: int = CrewRole.Id.FREE_FIGHTER
 var current_station_id: int = -1
 var target_role: int = CrewRole.Id.FREE_FIGHTER
