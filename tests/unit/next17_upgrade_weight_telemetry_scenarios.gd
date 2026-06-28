@@ -6,6 +6,10 @@ const DRAW_BALANCE: UpgradeDrawBalance = preload(
 const CATALOG: UpgradeCatalog = preload(
 	"res://resources/upgrades/technical_upgrade_catalog.tres"
 )
+const GENERAL_POOL_ID: StringName = &"general"
+const SELECTED_BRANCH_ID: StringName = &"turret"
+const SIMULATION_OFFER_COUNT: int = 10000
+const CARDS_PER_SIMULATION_POOL: int = 8
 
 
 func _init() -> void:
@@ -15,6 +19,8 @@ func _init() -> void:
 func _run() -> void:
 	_test_relationship_map_is_symmetric()
 	_test_every_branch_selection_has_equal_total_delta()
+	_test_general_pool_weight_floor()
+	_test_long_run_pool_distribution()
 	_test_telemetry_snapshot()
 	print("NEXT-17 upgrade weight and telemetry scenarios passed")
 	quit()
@@ -49,6 +55,63 @@ func _test_every_branch_selection_has_equal_total_delta() -> void:
 		assert(after - before == 3)
 
 
+func _test_general_pool_weight_floor() -> void:
+	var branch_weight_samples: Array[int] = [0, 70, 100, 1000, 10000]
+	for branch_weight: int in branch_weight_samples:
+		var general_weight: int = DRAW_BALANCE.get_general_pool_weight(branch_weight)
+		assert(general_weight >= DRAW_BALANCE.general_pool_weight)
+		if branch_weight <= 0:
+			continue
+		var relative_share: float = (
+			float(general_weight)
+			/ float(general_weight + branch_weight)
+		)
+		assert(
+			relative_share + 0.000001
+			>= DRAW_BALANCE.minimum_general_pool_share
+		)
+
+
+func _test_long_run_pool_distribution() -> void:
+	var catalog: UpgradeCatalog = _simulation_catalog()
+	var generator := UpgradeDrawGenerator.new()
+	generator.configure(DRAW_BALANCE, catalog, UpgradeRuntime.new(), 20260628)
+	var slot_counts: Dictionary[StringName, int] = {}
+	var selected_card: UpgradeDefinition = _branch_card(SELECTED_BRANCH_ID)
+	var total_slots: int = 0
+	for _offer_index: int in range(SIMULATION_OFFER_COUNT):
+		var offer: Array[UpgradeDefinition] = generator.generate_offer()
+		assert(offer.size() == DRAW_BALANCE.cards_per_offer)
+		for definition: UpgradeDefinition in offer:
+			var pool_id: StringName = (
+				GENERAL_POOL_ID
+				if definition.card_type == UpgradeDefinition.CardType.GENERAL
+				else definition.branch_id
+			)
+			slot_counts[pool_id] = int(slot_counts.get(pool_id, 0)) + 1
+			total_slots += 1
+		generator.apply_selected_card(selected_card)
+	assert(total_slots == SIMULATION_OFFER_COUNT * DRAW_BALANCE.cards_per_offer)
+	var general_share: float = (
+		float(slot_counts.get(GENERAL_POOL_ID, 0))
+		/ float(total_slots)
+	)
+	assert(
+		general_share
+		>= DRAW_BALANCE.minimum_general_pool_share - 0.01
+	)
+	for raw_rule: Variant in DRAW_BALANCE.branch_rules:
+		var rule: UpgradeBranchWeightRule = raw_rule as UpgradeBranchWeightRule
+		assert(rule != null)
+		if rule.branch_id == SELECTED_BRANCH_ID:
+			continue
+		var branch_share: float = (
+			float(slot_counts.get(rule.branch_id, 0))
+			/ float(total_slots)
+		)
+		assert(branch_share <= 0.40)
+
+
 func _test_telemetry_snapshot() -> void:
 	var timeline: Array = [{
 		"time_seconds": 120.0,
@@ -79,6 +142,37 @@ func _test_telemetry_snapshot() -> void:
 	assert(snapshot.purchase_timeline.size() == 1)
 	assert(snapshot.offer_slot_counts[&"general"] == 4)
 	assert(snapshot.specialization_purchase_numbers == [5, 12])
+
+
+func _simulation_catalog() -> UpgradeCatalog:
+	var catalog := UpgradeCatalog.new()
+	var definitions: Array[UpgradeDefinition] = []
+	for card_index: int in range(CARDS_PER_SIMULATION_POOL):
+		var general := UpgradeDefinition.new()
+		general.card_id = StringName("simulation_general_%d" % card_index)
+		general.title = "Simulation General %d" % card_index
+		general.card_type = UpgradeDefinition.CardType.GENERAL
+		general.repeat_limit = 99
+		definitions.append(general)
+	for raw_rule: Variant in DRAW_BALANCE.branch_rules:
+		var rule: UpgradeBranchWeightRule = raw_rule as UpgradeBranchWeightRule
+		assert(rule != null)
+		for card_index: int in range(CARDS_PER_SIMULATION_POOL):
+			var branch_card := UpgradeDefinition.new()
+			branch_card.card_id = StringName(
+				"simulation_%s_%d" % [String(rule.branch_id), card_index]
+			)
+			branch_card.branch_id = rule.branch_id
+			branch_card.title = "Simulation %s %d" % [
+				String(rule.branch_id),
+				card_index,
+			]
+			branch_card.card_type = UpgradeDefinition.CardType.BASIC
+			branch_card.repeat_limit = 99
+			definitions.append(branch_card)
+	catalog.definitions = definitions
+	assert(catalog.is_valid())
+	return catalog
 
 
 func _total_branch_weight(generator: UpgradeDrawGenerator) -> int:
