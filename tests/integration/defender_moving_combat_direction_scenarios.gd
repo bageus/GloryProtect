@@ -22,6 +22,7 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_disable_spawners(game)
 
+	var platform: PlatformController = game.get_node("World/Platform")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
@@ -39,10 +40,11 @@ func _run() -> void:
 	mover.teleport_to(0.0)
 	mover.move_to(160.0)
 	runtime.state = CrewAssignmentRuntime.State.MOVING
-	var rear_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-24.0, &"basic")
+	var rear_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-60.0, &"basic")
 	assert(rear_enemy != null)
 	rear_enemy.controller.set_physics_process(false)
-	engaged_defender.teleport_to(-24.0)
+	rear_enemy.global_position.x = platform.global_position.x - 28.0
+	engaged_defender.teleport_to(-28.0)
 	assert(rear_enemy.melee.try_start(engaged_defender.health))
 	await _wait_physics_frames(8)
 	assert(not mover.movement.is_paused())
@@ -55,9 +57,10 @@ func _run() -> void:
 	mover.move_to(160.0)
 	runtime.state = CrewAssignmentRuntime.State.MOVING
 	engaged_defender.teleport_to(-120.0)
-	var forward_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(24.0, &"basic")
+	var forward_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(60.0, &"basic")
 	assert(forward_enemy != null)
 	forward_enemy.controller.set_physics_process(false)
+	forward_enemy.global_position.x = platform.global_position.x + 28.0
 	await _wait_physics_frames(3)
 	assert(mover.movement.is_paused())
 	assert(mover.melee.is_attacking())
