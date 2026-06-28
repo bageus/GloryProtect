@@ -61,16 +61,16 @@ func _run_scenario() -> void:
 	await process_frame
 	assert(not panel.visible)
 
-	var medical_cell: int = grid.balance.get_medical_cell_indices()[0]
+	var medical_cell: int = 2
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
 	assert(panel.visible)
-	assert(panel.get_selection_text() == "Ячейка %d" % (medical_cell + 1))
+	assert(panel.get_selection_text() == "Ячейка 3")
 	assert(panel.get_cell_feedback_text() == "Пустая")
 	assert(panel.get_medical_button().visible)
-	assert(not panel.get_turret_button().visible)
+	assert(panel.get_turret_button().visible)
 	panel.get_medical_button().pressed.emit()
 	await process_frame
 
@@ -79,12 +79,12 @@ func _run_scenario() -> void:
 	)
 	assert(medical_id >= 0)
 	assert(medical.has_station())
-	assert(grid.get_buildable_id_at_cell(6) == medical_id)
-	assert(grid.get_buildable_id_at_cell(7) == medical_id)
+	assert(grid.get_buildable_id_at_cell(medical_cell) == medical_id)
+	assert(grid.get_buildable_id_at_cell(medical_cell + 1) == -1)
 	assert(not panel.visible)
 
 	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(7)
+		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == medical_id)
@@ -92,9 +92,21 @@ func _run_scenario() -> void:
 	assert(not panel.get_medical_button().visible)
 	assert(not panel.get_turret_button().visible)
 	assert(panel.get_demolish_button().visible)
-	assert(not panel.get_move_button().visible)
-	assert(not controller.begin_move_selected())
-	controller.clear_selection()
+	assert(panel.get_move_button().visible)
+	panel.get_move_button().pressed.emit()
+	assert(controller.get_mode() == BuildablePlacementController.Mode.MOVE)
+	assert(controller.is_grid_preview_visible())
+	var moved_medical_cell: int = 12
+	assert(controller.handle_primary_click(
+		platform.get_cell_canvas_center(moved_medical_cell)
+	))
+	await process_frame
+	assert(grid.get_snapshot(medical_id).cell_index == moved_medical_cell)
+	assert(grid.get_buildable_id_at_cell(medical_cell) == -1)
+	assert(grid.get_buildable_id_at_cell(moved_medical_cell) == medical_id)
+	assert(not controller.is_grid_preview_visible())
+	assert(not panel.visible)
+	medical_cell = moved_medical_cell
 
 	var turret_cell: int = 3
 	assert(controller.handle_primary_click(
