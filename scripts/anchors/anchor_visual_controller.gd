@@ -25,6 +25,7 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 @export var clamp_ground_offset := Vector2(0.0, 2.0)
 @export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
 @export var stowed_chain_length := 20.0
+@export var winch_vertical_offset := 0.0
 @export_range(0.0, 30.0, 1.0) var winch_embed_depth := 5.0
 @export var winch_chain_exit_offset := Vector2.ZERO
 
