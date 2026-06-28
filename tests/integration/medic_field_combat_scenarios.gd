@@ -64,9 +64,9 @@ func _run_scenario() -> void:
 	await process_frame
 	assert(medic.can_medic_role_use_melee())
 	assert(medic.melee.get_damage() == 2)
-	medic.combat.call("_physics_process", 0.0)
+	assert(bool(medic.combat.call("_try_start_attack", target)))
 	assert(medic.melee.is_attacking())
-	medic.melee.tick(0.4)
+	medic.melee.tick(0.5)
 	assert(target.health.current_health == 1)
 	medic.melee.tick(medic.melee.get_cooldown_duration())
 
@@ -78,7 +78,7 @@ func _run_scenario() -> void:
 
 	medical.healing_stopped.emit(medic.defender_id, medic.defender_id)
 	assert(medic.can_medic_role_use_melee())
-	medic.combat.call("_physics_process", 0.0)
+	assert(bool(medic.combat.call("_try_start_attack", target)))
 	assert(medic.melee.is_attacking())
 	roles.request_assignment(medic.defender_id, CrewRole.Id.FREE_FIGHTER)
 	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
@@ -87,7 +87,7 @@ func _run_scenario() -> void:
 	assert(role_modifiers.get_active_medic_id() == medic.defender_id)
 	assert(medic.can_medic_role_use_melee())
 	assert(medic.melee.get_damage() == 2)
-	medic.melee.tick(0.4)
+	medic.melee.tick(0.5)
 	assert(not target.health.is_alive())
 	medic.melee.tick(medic.melee.get_cooldown_duration())
 
