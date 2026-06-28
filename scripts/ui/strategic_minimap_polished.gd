@@ -1,7 +1,7 @@
 class_name StrategicMinimapPolished
 extends StrategicMinimap
 
-@export_range(1.0, 3.0, 0.1) var cloud_size_multiplier: float = 1.35
+@export_range(1.0, 3.0, 0.1) var cloud_size_multiplier: float = 1.6
 @export_range(0.1, 0.35, 0.01) var cloud_wobble_amount: float = 0.2
 
 
