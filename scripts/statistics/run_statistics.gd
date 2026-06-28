@@ -138,6 +138,8 @@ func _on_offer_opened(
 	_cost: int,
 	card_count: int
 ) -> void:
+	if _upgrades.is_specialization_offer():
+		return
 	for index: int in range(card_count):
 		var definition: UpgradeDefinition = _upgrades.get_card_definition(index)
 		if definition == null:
@@ -187,6 +189,7 @@ func _on_run_ended(reason: StringName) -> void:
 		_offer_slot_counts,
 		_specialization_purchase_numbers
 	)
+	print(_final_snapshot.get_balance_summary_text())
 	SessionRecordsStore.register_result(_final_snapshot)
 	run_finalized.emit(_final_snapshot)
 
