@@ -49,7 +49,8 @@ func _run() -> void:
 		assert(console_size.x <= two_cell_width + 0.01)
 		assert(console_size.x <= platform_visual.get_occupied_console_max_width() + 0.01)
 	assert(is_equal_approx(anchors.get_winch_vertical_offset(), 0.0))
-	assert(is_equal_approx(buildable_visual.medical_post_scale, 0.3))
+	assert(is_equal_approx(buildable_visual.medical_post_scale, 0.18))
+	assert(is_equal_approx(buildable_visual.turret_asset_scale, 0.095))
 	assert(minimap.cloud_morph_speed >= 2.0)
 	assert(minimap.get_cloud_radius(9).x > 22.0)
 
