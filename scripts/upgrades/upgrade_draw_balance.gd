@@ -3,6 +3,7 @@ extends Resource
 
 @export_range(1, 8, 1) var cards_per_offer: int = 3
 @export_range(1, 100, 1) var general_pool_weight: int = 10
+@export_range(0.0, 0.5, 0.01) var minimum_general_pool_share: float = 0.10
 @export_range(0, 20, 1) var selected_branch_bonus: int = 3
 @export_range(0, 20, 1) var related_branch_bonus: int = 1
 @export_range(0, 20, 1) var opposing_branch_penalty: int = 1
@@ -12,6 +13,8 @@ extends Resource
 
 func is_valid() -> bool:
 	if cards_per_offer <= 0 or general_pool_weight <= 0:
+		return false
+	if minimum_general_pool_share < 0.0 or minimum_general_pool_share >= 1.0:
 		return false
 	if branch_rules.is_empty():
 		return false
@@ -40,6 +43,19 @@ func is_valid() -> bool:
 			if opposing_rule == null or not opposing_rule.opposing_branch_ids.has(rule.branch_id):
 				return false
 	return true
+
+
+func get_branch_draw_weight_scale(available_branch_weight: int) -> float:
+	if minimum_general_pool_share <= 0.0 or available_branch_weight <= 0:
+		return 1.0
+	var maximum_branch_draw_weight: float = (
+		float(general_pool_weight)
+		* (1.0 - minimum_general_pool_share)
+		/ minimum_general_pool_share
+	)
+	if float(available_branch_weight) <= maximum_branch_draw_weight:
+		return 1.0
+	return maximum_branch_draw_weight / float(available_branch_weight)
 
 
 func get_rule(branch_id: StringName) -> UpgradeBranchWeightRule:

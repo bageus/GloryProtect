@@ -56,6 +56,7 @@ opposing_branch_ids = Array[StringName]([&"healer", &"anchors"])
 script = ExtResource("1_balance")
 cards_per_offer = 3
 general_pool_weight = 10
+minimum_general_pool_share = 0.1
 selected_branch_bonus = 3
 related_branch_bonus = 1
 opposing_branch_penalty = 1
