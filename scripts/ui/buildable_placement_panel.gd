@@ -11,8 +11,8 @@ var _turret_button: Button
 var _move_button: Button
 var _demolish_button: Button
 var _cancel_button: Button
-var _selection_label: Label
-var _cell_label: Label
+var _title_label: Label
+var _status_label: Label
 var _feedback_label: Label
 
 
@@ -67,11 +67,11 @@ func get_cancel_button() -> Button:
 
 
 func get_selection_text() -> String:
-	return _selection_label.text
+	return _title_label.text
 
 
 func get_cell_feedback_text() -> String:
-	return _cell_label.text
+	return _status_label.text
 
 
 func _build_view() -> void:
@@ -84,20 +84,16 @@ func _build_view() -> void:
 	var root_box := VBoxContainer.new()
 	root_box.add_theme_constant_override("separation", 8)
 	margin.add_child(root_box)
-	var title := Label.new()
-	title.text = "ОБЪЕКТЫ КЛЕТКИ"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 16)
-	root_box.add_child(title)
-	_selection_label = Label.new()
-	_selection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_selection_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	root_box.add_child(_selection_label)
-	_cell_label = Label.new()
-	_cell_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_cell_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_cell_label.add_theme_color_override("font_color", Color(0.72, 0.88, 1.0))
-	root_box.add_child(_cell_label)
+	_title_label = Label.new()
+	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_title_label.add_theme_font_size_override("font_size", 16)
+	root_box.add_child(_title_label)
+	_status_label = Label.new()
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_status_label.add_theme_color_override("font_color", Color(0.72, 0.88, 1.0))
+	root_box.add_child(_status_label)
 	_medical_button = _create_action_button("MedicalButton", _on_medical_pressed)
 	root_box.add_child(_medical_button)
 	_turret_button = _create_action_button("TurretButton", _on_turret_pressed)
@@ -143,30 +139,50 @@ func _refresh() -> void:
 	visible = _controller.has_cell_context() or _controller.get_mode() != BuildablePlacementController.Mode.IDLE
 	if not visible:
 		return
-	var commands_enabled := _controller.are_commands_enabled()
-	var selected_id := _controller.get_selected_buildable_id()
-	var selected_cell := _controller.get_selected_cell_index()
-	var has_object := selected_id >= 0
-	var has_empty_cell := selected_cell >= 0 and not has_object
+	var commands_enabled: bool = _controller.are_commands_enabled()
+	var selected_id: int = _controller.get_selected_buildable_id()
+	var selected_cell: int = _controller.get_selected_cell_index()
+	var mode: int = _controller.get_mode()
+	var has_object: bool = selected_id >= 0
+	var has_empty_cell: bool = selected_cell >= 0 and not has_object
 	var snapshot: BuildableSnapshot = _grid.get_snapshot(selected_id)
-	_medical_button.visible = has_empty_cell and _grid.balance.is_medical_cell(selected_cell)
-	_turret_button.visible = has_empty_cell and _grid.balance.is_turret_cell(selected_cell)
-	_move_button.visible = has_object and snapshot != null and snapshot.type_id != BuildableType.Id.MEDICAL_STATION
+	var medical_placeable: bool = (
+		mode == BuildablePlacementController.Mode.IDLE
+		and has_empty_cell
+		and commands_enabled
+		and _controller.can_place_type_in_selected_cell(
+			BuildableType.Id.MEDICAL_STATION
+		)
+	)
+	var turret_placeable: bool = (
+		mode == BuildablePlacementController.Mode.IDLE
+		and has_empty_cell
+		and commands_enabled
+		and _controller.can_place_type_in_selected_cell(BuildableType.Id.TURRET)
+	)
+	_medical_button.visible = medical_placeable
+	_turret_button.visible = turret_placeable
+	_move_button.visible = (
+		has_object
+		and snapshot != null
+		and snapshot.type_id != BuildableType.Id.MEDICAL_STATION
+	)
 	_demolish_button.visible = has_object
 	_cancel_button.visible = true
-	var medical_deployed := _grid.get_count_by_type(BuildableType.Id.MEDICAL_STATION)
-	var medical_unlocked := _inventory.get_unlocked_count(BuildableType.Id.MEDICAL_STATION)
-	var turret_deployed := _grid.get_count_by_type(BuildableType.Id.TURRET)
-	var turret_unlocked := _inventory.get_unlocked_count(BuildableType.Id.TURRET)
+	var medical_deployed: int = _grid.get_count_by_type(BuildableType.Id.MEDICAL_STATION)
+	var medical_unlocked: int = _inventory.get_unlocked_count(BuildableType.Id.MEDICAL_STATION)
+	var turret_deployed: int = _grid.get_count_by_type(BuildableType.Id.TURRET)
+	var turret_unlocked: int = _inventory.get_unlocked_count(BuildableType.Id.TURRET)
 	_medical_button.text = "Медпост %d/%d" % [medical_deployed, medical_unlocked]
 	_turret_button.text = "Турель %d/%d" % [turret_deployed, turret_unlocked]
-	_medical_button.disabled = not commands_enabled or not _controller.can_place_type_in_selected_cell(BuildableType.Id.MEDICAL_STATION)
-	_turret_button.disabled = not commands_enabled or not _controller.can_place_type_in_selected_cell(BuildableType.Id.TURRET)
+	_medical_button.disabled = false
+	_turret_button.disabled = false
 	_move_button.disabled = not commands_enabled or not _move_button.visible
 	_demolish_button.disabled = not commands_enabled or not has_object
 	_cancel_button.disabled = false
-	_selection_label.text = _get_selection_text()
-	_cell_label.text = _get_cell_text()
+	var context_cell: int = _get_context_cell_index()
+	_title_label.text = _get_cell_title(context_cell)
+	_status_label.text = _get_cell_status(context_cell)
 	_feedback_label.text = _controller.get_feedback_message()
 	var feedback_color := Color(0.66, 0.95, 0.78)
 	if _controller.is_feedback_error():
@@ -174,40 +190,37 @@ func _refresh() -> void:
 	_feedback_label.add_theme_color_override("font_color", feedback_color)
 
 
-func _get_selection_text() -> String:
-	var selected_id := _controller.get_selected_buildable_id()
-	if selected_id >= 0:
-		var snapshot: BuildableSnapshot = _grid.get_snapshot(selected_id)
-		if snapshot != null:
-			return "Установлен: %s" % _get_type_title(snapshot.type_id)
-	var cell_index := _controller.get_selected_cell_index()
-	if cell_index >= 0:
-		return "Пустая клетка %d" % (cell_index + 1)
-	var type_id := _controller.get_selected_type_id()
-	if type_id >= 0:
-		return "Размещение: %s" % _get_type_title(type_id)
-	return "Клетка не выбрана"
-
-
-func _get_cell_text() -> String:
-	var cell_index := _controller.get_selected_cell_index()
+func _get_context_cell_index() -> int:
 	if _controller.get_mode() != BuildablePlacementController.Mode.IDLE:
-		cell_index = _controller.get_hovered_cell_index()
+		var hovered_cell: int = _controller.get_hovered_cell_index()
+		if hovered_cell >= 0:
+			return hovered_cell
+	return _controller.get_selected_cell_index()
+
+
+func _get_cell_title(cell_index: int) -> String:
 	if cell_index < 0:
-		return "Выберите клетку на платформе"
-	var occupant_id := _grid.get_buildable_id_at_cell(cell_index)
-	if occupant_id >= 0:
-		var snapshot: BuildableSnapshot = _grid.get_snapshot(occupant_id)
-		if snapshot != null:
-			return "Клетка %d — %s" % [cell_index + 1, _get_type_title(snapshot.type_id)]
-	return "Клетка %d" % (cell_index + 1)
+		return "Ячейка не выбрана"
+	return "Ячейка %d" % (cell_index + 1)
+
+
+func _get_cell_status(cell_index: int) -> String:
+	if cell_index < 0:
+		return ""
+	var occupant_id: int = _grid.get_buildable_id_at_cell(cell_index)
+	if occupant_id < 0:
+		return "Пустая"
+	var snapshot: BuildableSnapshot = _grid.get_snapshot(occupant_id)
+	if snapshot == null:
+		return "Пустая"
+	return _get_type_title(snapshot.type_id)
 
 
 func _get_type_title(type_id: int) -> String:
 	if type_id == BuildableType.Id.MEDICAL_STATION:
-		return "медицинский пост"
+		return "Медицинский пост"
 	if type_id == BuildableType.Id.TURRET:
-		return "турель"
+		return "Турель"
 	return BuildableType.get_display_name(type_id)
 
 
