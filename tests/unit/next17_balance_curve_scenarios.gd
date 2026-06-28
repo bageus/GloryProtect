@@ -10,7 +10,7 @@ func _run() -> void:
 	_test_boarding_pressure_curve()
 	_test_strategic_pressure_curve()
 	_test_flying_pressure_curve()
-	print("NEXT-17 balance curve scenarios passed")
+	print("NEXT-18 balance curve scenarios passed")
 	quit()
 
 
@@ -30,22 +30,22 @@ func _test_run_difficulty_curve() -> void:
 
 func _test_boarding_pressure_curve() -> void:
 	var balance := BoardingBalance.new()
-	balance.spawn_interval = 3.0
-	balance.minimum_spawn_interval = 0.8
-	balance.max_ground_enemies = 8
-	balance.maximum_ground_enemies = 28
-	balance.overtime_ground_limit_per_tier = 2
-	balance.maximum_overtime_ground_enemies = 36
+	balance.spawn_interval = 1.0
+	balance.minimum_spawn_interval = 0.27
+	balance.max_ground_enemies = 24
+	balance.maximum_ground_enemies = 84
+	balance.overtime_ground_limit_per_tier = 6
+	balance.maximum_overtime_ground_enemies = 108
 	balance.overtime_spawn_interval_multiplier = 0.95
-	balance.minimum_overtime_spawn_interval = 0.55
-	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(0.0), 3.0))
-	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(1.0), 0.8))
-	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(1.0, 1), 0.76))
-	assert(balance.get_spawn_interval_for_difficulty(1.0, 6) >= 0.55)
-	assert(balance.get_ground_limit_for_difficulty(0.0) == 8)
-	assert(balance.get_ground_limit_for_difficulty(1.0) == 28)
-	assert(balance.get_ground_limit_for_difficulty(1.0, 1) == 30)
-	assert(balance.get_ground_limit_for_difficulty(1.0, 6) == 36)
+	balance.minimum_overtime_spawn_interval = 0.2
+	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(0.0), 1.0))
+	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(1.0), 0.27))
+	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(1.0, 1), 0.2565))
+	assert(is_equal_approx(balance.get_spawn_interval_for_difficulty(1.0, 6), 0.2))
+	assert(balance.get_ground_limit_for_difficulty(0.0) == 24)
+	assert(balance.get_ground_limit_for_difficulty(1.0) == 84)
+	assert(balance.get_ground_limit_for_difficulty(1.0, 1) == 90)
+	assert(balance.get_ground_limit_for_difficulty(1.0, 6) == 108)
 
 
 func _test_strategic_pressure_curve() -> void:
@@ -66,11 +66,11 @@ func _test_strategic_pressure_curve() -> void:
 
 func _test_flying_pressure_curve() -> void:
 	var profile := FlyingEnemyProfile.new()
-	profile.spawn_interval = 18.0
-	profile.minimum_spawn_interval = 8.0
+	profile.spawn_interval = 6.0
+	profile.minimum_spawn_interval = 2.7
 	profile.overtime_spawn_interval_multiplier = 0.95
-	profile.minimum_overtime_spawn_interval = 6.0
-	assert(is_equal_approx(profile.get_spawn_interval(0.0), 18.0))
-	assert(is_equal_approx(profile.get_spawn_interval(1.0), 8.0))
-	assert(is_equal_approx(profile.get_spawn_interval(1.0, 1), 7.6))
-	assert(is_equal_approx(profile.get_spawn_interval(1.0, 6), 6.0))
+	profile.minimum_overtime_spawn_interval = 2.0
+	assert(is_equal_approx(profile.get_spawn_interval(0.0), 6.0))
+	assert(is_equal_approx(profile.get_spawn_interval(1.0), 2.7))
+	assert(is_equal_approx(profile.get_spawn_interval(1.0, 1), 2.565))
+	assert(is_equal_approx(profile.get_spawn_interval(1.0, 6), 2.0))
