@@ -18,14 +18,15 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
 @export_group("Anchor Assets")
 @export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.12
+@export_range(1.0, 2.0, 0.05) var clamp_scale_multiplier := 1.30
 @export_range(8.0, 128.0, 1.0) var chain_tile_height := 23.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
 @export var clamp_ground_offset := Vector2(0.0, 2.0)
 @export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
 @export var stowed_chain_length := 20.0
-@export var winch_vertical_offset := -28.0
-@export var winch_chain_exit_offset := Vector2(0.0, 12.0)
+@export_range(0.0, 30.0, 1.0) var winch_embed_depth := 5.0
+@export var winch_chain_exit_offset := Vector2.ZERO
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -87,6 +88,14 @@ func _draw() -> void:
 	_draw_winch_posts()
 
 
+func get_winch_visual_bottom(anchor_id: int) -> Vector2:
+	return _get_winch_bottom(anchor_id)
+
+
+func get_clamp_visual_scale() -> float:
+	return object_asset_scale * clamp_scale_multiplier
+
+
 func _draw_winch_posts() -> void:
 	for anchor_id: int in range(4):
 		var side := (
@@ -96,14 +105,14 @@ func _draw_winch_posts() -> void:
 		)
 		var mirrored := anchor_id == 1 or anchor_id == 3
 		_draw_winch(
-			_get_winch_center(anchor_id),
+			_get_winch_bottom(anchor_id),
 			mirrored,
 			bool(_is_operator_available.call(side))
 		)
 
 
 func _draw_winch(
-	center: Vector2,
+	bottom: Vector2,
 	mirrored: bool,
 	operator_available: bool
 ) -> void:
@@ -113,9 +122,9 @@ func _draw_winch(
 		else Color(0.52, 0.55, 0.58, 1.0)
 	)
 	var size := _winch_source_rect.size * object_asset_scale
-	var rect := Rect2(-size * 0.5, size)
+	var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
 	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
-	draw_set_transform(center, 0.0, scale)
+	draw_set_transform(bottom, 0.0, scale)
 	draw_texture_rect_region(WINCH_TEXTURE, rect, _winch_source_rect, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -276,21 +285,24 @@ func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
 
 
 func _draw_clamp(ground: Vector2, tint: Color) -> void:
-	var size := _clamp_source_rect.size * object_asset_scale
+	var size := _clamp_source_rect.size * get_clamp_visual_scale()
 	var bottom := ground + clamp_ground_offset
 	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
 	draw_texture_rect_region(CLAMP_TEXTURE, rect, _clamp_source_rect, tint)
 
 
-func _get_winch_center(anchor_id: int) -> Vector2:
-	return (
-		_geometry.get_platform_attachment_world(anchor_id)
-		+ Vector2(0.0, winch_vertical_offset)
+func _get_winch_bottom(anchor_id: int) -> Vector2:
+	return Vector2(
+		_geometry.get_platform_attachment_world(anchor_id).x,
+		_geometry.get_platform_surface_world_y() + winch_embed_depth
 	)
 
 
 func _get_anchor_chain_start(anchor_id: int) -> Vector2:
-	return _get_winch_center(anchor_id) + winch_chain_exit_offset
+	return (
+		_geometry.get_platform_attachment_world(anchor_id)
+		+ winch_chain_exit_offset
+	)
 
 
 func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
