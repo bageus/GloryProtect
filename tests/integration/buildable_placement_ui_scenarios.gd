@@ -27,6 +27,9 @@ func _run_scenario() -> void:
 	var panel: BuildablePlacementPanel = game.get_node(
 		"CanvasLayer/BuildablePlacementPanel"
 	)
+	var upgrade_panel: UpgradeSelectionPanel = game.get_node(
+		"CanvasLayer/UpgradeSelectionPanel"
+	)
 	var medical: MedicalStationSystem = game.get_node(
 		"World/MedicalStationSystem"
 	)
@@ -34,6 +37,9 @@ func _run_scenario() -> void:
 	var roles: CrewRoleManager = game.get_node(
 		"World/Platform/CrewRoleManager"
 	)
+
+	assert(not upgrade_panel.z_as_relative)
+	assert(upgrade_panel.z_index > panel.z_index)
 
 	inventory.unlock(BuildableType.Id.MEDICAL_STATION)
 	inventory.unlock(BuildableType.Id.TURRET, 2)
