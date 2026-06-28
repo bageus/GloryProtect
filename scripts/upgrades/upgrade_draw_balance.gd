@@ -13,12 +13,33 @@ extends Resource
 func is_valid() -> bool:
 	if cards_per_offer <= 0 or general_pool_weight <= 0:
 		return false
-	var seen: Dictionary[StringName, bool] = {}
+	if branch_rules.is_empty():
+		return false
+	var rules_by_id: Dictionary[StringName, UpgradeBranchWeightRule] = {}
+	var related_count: int = -1
+	var opposing_count: int = -1
 	for rule: UpgradeBranchWeightRule in branch_rules:
-		if rule == null or not rule.is_valid() or seen.has(rule.branch_id):
+		if rule == null or not rule.is_valid() or rules_by_id.has(rule.branch_id):
 			return false
-		seen[rule.branch_id] = true
-	return not branch_rules.is_empty()
+		if related_count < 0:
+			related_count = rule.related_branch_ids.size()
+		if opposing_count < 0:
+			opposing_count = rule.opposing_branch_ids.size()
+		if rule.related_branch_ids.size() != related_count:
+			return false
+		if rule.opposing_branch_ids.size() != opposing_count:
+			return false
+		rules_by_id[rule.branch_id] = rule
+	for rule: UpgradeBranchWeightRule in branch_rules:
+		for related_id: StringName in rule.related_branch_ids:
+			var related_rule: UpgradeBranchWeightRule = rules_by_id.get(related_id)
+			if related_rule == null or not related_rule.related_branch_ids.has(rule.branch_id):
+				return false
+		for opposing_id: StringName in rule.opposing_branch_ids:
+			var opposing_rule: UpgradeBranchWeightRule = rules_by_id.get(opposing_id)
+			if opposing_rule == null or not opposing_rule.opposing_branch_ids.has(rule.branch_id):
+				return false
+	return true
 
 
 func get_rule(branch_id: StringName) -> UpgradeBranchWeightRule:
