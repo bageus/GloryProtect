@@ -35,6 +35,7 @@ func _run_scenarios() -> void:
 	turrets.balance.turret_range = 150.0
 	turrets.balance.turret_shot_windup = 0.12
 	turrets.balance.turret_shot_cooldown = 0.0
+	var shot_damage: int = turrets.balance.turret_damage
 
 	assert(grid.place(BuildableType.Id.TURRET, 3) == -1)
 	assert(inventory.unlock(BuildableType.Id.TURRET) == 1)
@@ -74,7 +75,7 @@ func _run_scenarios() -> void:
 	assert(statistics.get_physical_kills() == 2)
 
 	var reassignment_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-340.0)
-	reassignment_enemy.health.configure(2)
+	reassignment_enemy.health.configure(shot_damage * 2)
 	var reassignment_enemy_id: int = reassignment_enemy.enemy_id
 	await _wait_for_firing(
 		turrets,
@@ -87,7 +88,7 @@ func _run_scenarios() -> void:
 	assert(waiting.current_role == CrewRole.Id.TURRET)
 	assert(waiting.current_station_id == left_turret)
 	assert(waiting.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
-	await _wait_for_health(reassignment_enemy, 1, 120)
+	await _wait_for_health(reassignment_enemy, shot_damage, 120)
 	await _wait_for_role(roles, 0, CrewRole.Id.FREE_FIGHTER, -1, 180)
 	assert(enemies.get_enemy(reassignment_enemy_id) != null)
 	reassignment_enemy.kill(&"test_cleanup")
@@ -97,14 +98,14 @@ func _run_scenarios() -> void:
 	await _wait_for_role(roles, 0, CrewRole.Id.TURRET, left_turret, 300)
 	turrets.balance.turret_shot_cooldown = 10.0
 	var relocation_enemy: BoardingEnemy = spawn.spawn_debug_on_platform(-180.0)
-	relocation_enemy.health.configure(2)
+	relocation_enemy.health.configure(shot_damage * 2)
 	var relocation_enemy_id: int = relocation_enemy.enemy_id
 	await _wait_for_firing(turrets, left_turret, relocation_enemy_id, 120)
 	assert(grid.move(left_turret, 4))
 	await process_frame
 	var relocation_wait: CrewAssignmentRuntime = roles.get_assignment(0)
 	assert(relocation_wait.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
-	await _wait_for_health(relocation_enemy, 1, 120)
+	await _wait_for_health(relocation_enemy, shot_damage, 120)
 	await _wait_for_role(roles, 0, CrewRole.Id.TURRET, left_turret, 300)
 	assert(not turrets.is_firing(left_turret))
 	assert(is_equal_approx(
