@@ -8,25 +8,28 @@ script = ExtResource("2_rule")
 branch_id = &"turret"
 starting_weight = 10
 related_branch_ids = Array[StringName]([&"anchors", &"healer"])
-opposing_branch_ids = Array[StringName]([&"steering"])
+opposing_branch_ids = Array[StringName]([&"steering", &"melee"])
 
 [sub_resource type="Resource" id="MeleeRule"]
 script = ExtResource("2_rule")
 branch_id = &"melee"
 starting_weight = 10
 related_branch_ids = Array[StringName]([&"healer", &"anchors"])
+opposing_branch_ids = Array[StringName]([&"turret", &"ranged"])
 
 [sub_resource type="Resource" id="RangedRule"]
 script = ExtResource("2_rule")
 branch_id = &"ranged"
 starting_weight = 10
-related_branch_ids = Array[StringName]([&"steering"])
+related_branch_ids = Array[StringName]([&"steering", &"shield_core"])
+opposing_branch_ids = Array[StringName]([&"melee", &"healer"])
 
 [sub_resource type="Resource" id="HealerRule"]
 script = ExtResource("2_rule")
 branch_id = &"healer"
 starting_weight = 10
 related_branch_ids = Array[StringName]([&"melee", &"turret"])
+opposing_branch_ids = Array[StringName]([&"ranged", &"shield_core"])
 
 [sub_resource type="Resource" id="SteeringRule"]
 script = ExtResource("2_rule")
@@ -40,13 +43,14 @@ script = ExtResource("2_rule")
 branch_id = &"anchors"
 starting_weight = 10
 related_branch_ids = Array[StringName]([&"turret", &"melee"])
-opposing_branch_ids = Array[StringName]([&"steering"])
+opposing_branch_ids = Array[StringName]([&"steering", &"shield_core"])
 
 [sub_resource type="Resource" id="ShieldRule"]
 script = ExtResource("2_rule")
 branch_id = &"shield_core"
 starting_weight = 10
-related_branch_ids = Array[StringName]([&"steering"])
+related_branch_ids = Array[StringName]([&"steering", &"ranged"])
+opposing_branch_ids = Array[StringName]([&"healer", &"anchors"])
 
 [resource]
 script = ExtResource("1_balance")
