@@ -5,7 +5,7 @@ extends RefCounted
 ## Runtime-источниками остаются typed Resources; этот файл фиксирует те же значения
 ## для аудита, расчётов и тестовой документации.
 
-const VERSION := 3
+const VERSION := 4
 const MIN_INTERVAL := 0.05
 const CREW_BASE_HEALTH := 3
 const CREW_SURFACE_SPEED := 180.0
@@ -288,14 +288,14 @@ const SHIELD := {
 }
 
 const BOARDING := {
-	"spawn_interval": 3.0,
-	"minimum_spawn_interval": 0.80,
-	"ground_limit": 8,
-	"maximum_ground_limit": 28,
-	"overtime_ground_limit_per_tier": 2,
-	"maximum_overtime_ground_limit": 36,
+	"spawn_interval": 1.0,
+	"minimum_spawn_interval": 0.27,
+	"ground_limit": 24,
+	"maximum_ground_limit": 84,
+	"overtime_ground_limit_per_tier": 6,
+	"maximum_overtime_ground_limit": 108,
 	"overtime_spawn_interval_multiplier": 0.95,
-	"minimum_overtime_spawn_interval": 0.55,
+	"minimum_overtime_spawn_interval": 0.20,
 	"spawn_distance": 720.0,
 	"jump_time": 0.45,
 	"jump_height": 44.0,
@@ -360,9 +360,9 @@ const ENEMIES := {
 	"flyer": {
 		"health": 2,
 		"flight_speed": 135.0,
-		"spawn_interval": 18.0,
-		"minimum_spawn_interval": 8.0,
-		"minimum_overtime_spawn_interval": 6.0,
+		"spawn_interval": 6.0,
+		"minimum_spawn_interval": 2.7,
+		"minimum_overtime_spawn_interval": 2.0,
 		"damage": 1,
 		"windup": 0.65,
 		"cooldown": 1.0,
