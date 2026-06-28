@@ -60,7 +60,10 @@ func get_current_wave_interval() -> float:
 
 
 func get_current_wave_size() -> int:
-	return balance.get_wave_size(_difficulty.get_normalized())
+	return balance.get_wave_size(
+		_difficulty.get_normalized(),
+		_difficulty.get_overtime_tier()
+	)
 
 
 func get_current_travel_duration() -> float:
