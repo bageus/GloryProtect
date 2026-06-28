@@ -187,6 +187,7 @@ func _on_run_ended(reason: StringName) -> void:
 		_offer_slot_counts,
 		_specialization_purchase_numbers
 	)
+	print(_final_snapshot.get_balance_summary_text())
 	SessionRecordsStore.register_result(_final_snapshot)
 	run_finalized.emit(_final_snapshot)
 
