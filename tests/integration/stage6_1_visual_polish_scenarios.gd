@@ -46,7 +46,12 @@ func _run() -> void:
 	assert(anchors.get_winch_vertical_offset() <= -40.0)
 	assert(is_equal_approx(buildable_visual.medical_post_scale, 0.3))
 	assert(is_equal_approx(buildable_visual.turret_asset_scale, 0.19))
-	assert(is_equal_approx(turret_visual.turret_asset_scale, 0.19))
+	var expected_turret_scale: float = (
+		buildable_visual.get_turret_visual_scale_multiplier()
+	)
+	assert(expected_turret_scale < 0.85)
+	assert(is_equal_approx(turret_visual.scale.x, expected_turret_scale))
+	assert(is_equal_approx(turret_visual.scale.y, expected_turret_scale))
 	assert(minimap.cloud_morph_speed >= 2.0)
 	assert(minimap.get_cloud_radius(9).x > 22.0)
 
