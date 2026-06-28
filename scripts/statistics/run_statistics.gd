@@ -138,6 +138,8 @@ func _on_offer_opened(
 	_cost: int,
 	card_count: int
 ) -> void:
+	if _upgrades.is_specialization_offer():
+		return
 	for index: int in range(card_count):
 		var definition: UpgradeDefinition = _upgrades.get_card_definition(index)
 		if definition == null:
