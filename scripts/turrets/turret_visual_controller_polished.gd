@@ -1,7 +1,7 @@
 class_name TurretVisualControllerPolished
 extends TurretVisualController
 
-const TARGET_ASSET_SCALE: float = 0.19
+const TARGET_ASSET_SCALE: float = 0.095
 
 
 func _ready() -> void:
