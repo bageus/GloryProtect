@@ -5,6 +5,7 @@ signal enemy_registered(enemy_id: int, enemy: BoardingEnemy)
 signal enemy_removed(enemy_id: int, reason: StringName)
 
 var _enemies: Dictionary[int, BoardingEnemy] = {}
+var _pending_damage_by_enemy: Dictionary[int, Dictionary] = {}
 var _next_enemy_id: int = 0
 
 
@@ -63,6 +64,63 @@ func get_boarded_enemies() -> Array[BoardingEnemy]:
 		if enemy.is_counted_as_boarded() and enemy.health.is_alive():
 			result.append(enemy)
 	return result
+
+
+func reserve_pending_damage(
+	enemy_id: int,
+	source_id: StringName,
+	amount: int
+) -> bool:
+	var enemy: BoardingEnemy = get_enemy(enemy_id)
+	if enemy == null or not enemy.health.is_alive():
+		return false
+	if source_id == &"" or amount <= 0:
+		return false
+	var reservations: Dictionary = _pending_damage_by_enemy.get(enemy_id, {})
+	reservations[source_id] = int(reservations.get(source_id, 0)) + amount
+	_pending_damage_by_enemy[enemy_id] = reservations
+	return true
+
+
+func consume_pending_damage(
+	enemy_id: int,
+	source_id: StringName,
+	amount: int
+) -> void:
+	if amount <= 0 or not _pending_damage_by_enemy.has(enemy_id):
+		return
+	var reservations: Dictionary = _pending_damage_by_enemy[enemy_id]
+	var remaining: int = maxi(0, int(reservations.get(source_id, 0)) - amount)
+	if remaining > 0:
+		reservations[source_id] = remaining
+	else:
+		reservations.erase(source_id)
+	_store_reservations(enemy_id, reservations)
+
+
+func release_pending_damage(enemy_id: int, source_id: StringName) -> void:
+	if not _pending_damage_by_enemy.has(enemy_id):
+		return
+	var reservations: Dictionary = _pending_damage_by_enemy[enemy_id]
+	reservations.erase(source_id)
+	_store_reservations(enemy_id, reservations)
+
+
+func get_pending_damage(enemy_id: int) -> int:
+	if not _pending_damage_by_enemy.has(enemy_id):
+		return 0
+	var result: int = 0
+	var reservations: Dictionary = _pending_damage_by_enemy[enemy_id]
+	for amount: Variant in reservations.values():
+		result += maxi(0, int(amount))
+	return result
+
+
+func get_unreserved_health(enemy_id: int) -> int:
+	var enemy: BoardingEnemy = get_enemy(enemy_id)
+	if enemy == null or not enemy.health.is_alive():
+		return 0
+	return maxi(0, enemy.health.current_health - get_pending_damage(enemy_id))
 
 
 func kill_climbing_on_anchor(
@@ -144,8 +202,16 @@ func get_state_summary() -> String:
 	]
 
 
+func _store_reservations(enemy_id: int, reservations: Dictionary) -> void:
+	if reservations.is_empty():
+		_pending_damage_by_enemy.erase(enemy_id)
+	else:
+		_pending_damage_by_enemy[enemy_id] = reservations
+
+
 func _on_enemy_died(enemy_id: int, reason: StringName) -> void:
 	if not _enemies.has(enemy_id):
 		return
+	_pending_damage_by_enemy.erase(enemy_id)
 	_enemies.erase(enemy_id)
 	enemy_removed.emit(enemy_id, reason)
