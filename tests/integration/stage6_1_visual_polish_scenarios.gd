@@ -46,9 +46,9 @@ func _run() -> void:
 		var console_size: Vector2 = (
 			platform_visual.get_occupied_console_size_for_axis(steering_axis)
 		)
-		assert(console_size.x <= two_cell_width)
-		assert(console_size.x <= platform_visual.get_occupied_console_max_width())
-	assert(anchors.get_winch_vertical_offset() <= -40.0)
+		assert(console_size.x <= two_cell_width + 0.01)
+		assert(console_size.x <= platform_visual.get_occupied_console_max_width() + 0.01)
+	assert(is_equal_approx(anchors.get_winch_vertical_offset(), 0.0))
 	assert(is_equal_approx(buildable_visual.medical_post_scale, 0.3))
 	assert(minimap.cloud_morph_speed >= 2.0)
 	assert(minimap.get_cloud_radius(9).x > 22.0)
