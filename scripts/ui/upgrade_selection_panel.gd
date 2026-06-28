@@ -1,6 +1,8 @@
 class_name UpgradeSelectionPanel
 extends Control
 
+const MODAL_Z_INDEX: int = 100
+
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
 var _selection_pending: bool = false
@@ -16,6 +18,8 @@ var _diagnostics_visible: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	z_as_relative = false
+	z_index = MODAL_Z_INDEX
 	visible = false
 	_upgrades.offer_opened.connect(_on_offer_opened)
 	_upgrades.offer_closed.connect(_on_offer_closed)
@@ -79,6 +83,7 @@ func _on_progress_reset() -> void:
 
 
 func _show_current_offer() -> void:
+	z_index = MODAL_Z_INDEX
 	visible = true
 	_offer_label.text = "ВЫБЕРИТЕ КАРТОЧКУ — ВЫДАЧА %d" % (
 		_upgrades.get_current_offer_number()
