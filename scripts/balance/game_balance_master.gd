@@ -1,23 +1,21 @@
 class_name GameBalanceMaster
 extends RefCounted
 
-## Единый источник числового баланса.
-## Секунды — время, px/s — скорость, 0.15 — 15%.
-## Линейные бонусы суммируются от базы; специализации умножают результат;
-## временная скорость атаки делит итоговый кулдаун.
-## surface_speed — каноническая скорость перемещения по ровной поверхности.
-## ground_speed/platform_speed сохранены только как совместимые runtime-поля и
-## всегда должны быть равны surface_speed.
+## Единый справочник числового баланса.
+## Runtime-источниками остаются typed Resources; этот файл фиксирует те же значения
+## для аудита, расчётов и тестовой документации.
 
-const VERSION := 2
+const VERSION := 3
 const MIN_INTERVAL := 0.05
 const CREW_BASE_HEALTH := 3
 const CREW_SURFACE_SPEED := 180.0
 
 const RUN := {
 	"start_safe_delay": 3.0,
-	"seconds_to_max_difficulty": 600.0,
+	"seconds_to_max_difficulty": 720.0,
 	"difficulty_growth_exponent": 1.0,
+	"overtime_step_seconds": 120.0,
+	"maximum_overtime_tier": 6,
 }
 
 const CREW := {
@@ -25,7 +23,7 @@ const CREW := {
 	"maximum_count": 8,
 	"health": CREW_BASE_HEALTH,
 	"surface_speed": CREW_SURFACE_SPEED,
-	"move_speed": CREW_SURFACE_SPEED, # Совместимый псевдоним.
+	"move_speed": CREW_SURFACE_SPEED,
 	"replacement_delay": 12.0,
 }
 
@@ -40,8 +38,8 @@ const MELEE := {
 		"health": CREW_BASE_HEALTH,
 		"surface_speed": CREW_SURFACE_SPEED,
 		"range": 34.0,
-		"windup": 0.38,
-		"cooldown": 0.62,
+		"windup": 0.45,
+		"cooldown": 0.55,
 	},
 	"lines": {
 		"damage_flat": [1, 1],
@@ -78,7 +76,7 @@ const SHOOTER := {
 		"health": CREW_BASE_HEALTH,
 		"surface_speed": CREW_SURFACE_SPEED,
 		"damage": 1,
-		"windup": 0.60,
+		"windup": 0.45,
 		"cooldown": 1.0,
 		"attack_mode": "projectile",
 		"projectile_speed": 520.0,
@@ -147,10 +145,10 @@ const MEDIC := {
 const TURRET := {
 	"base": {
 		"maximum_count": 4,
-		"damage": 1,
-		"range": 360.0,
-		"windup": 0.45,
-		"cooldown": 0.80,
+		"damage": 2,
+		"range": 520.0,
+		"windup": 0.60,
+		"cooldown": 1.20,
 		"attack_mode": "hitscan",
 		"tracer_duration": 0.14,
 	},
@@ -293,7 +291,11 @@ const BOARDING := {
 	"spawn_interval": 3.0,
 	"minimum_spawn_interval": 0.80,
 	"ground_limit": 8,
-	"maximum_ground_limit": 20,
+	"maximum_ground_limit": 28,
+	"overtime_ground_limit_per_tier": 2,
+	"maximum_overtime_ground_limit": 36,
+	"overtime_spawn_interval_multiplier": 0.95,
+	"minimum_overtime_spawn_interval": 0.55,
 	"spawn_distance": 720.0,
 	"jump_time": 0.45,
 	"jump_height": 44.0,
@@ -312,6 +314,7 @@ const ENEMIES := {
 		"cooldown": 0.85,
 		"range": 30.0,
 		"unlock": 0.0,
+		"weight_at_max": 1.25,
 	},
 	"runner": {
 		"health": 1,
@@ -324,6 +327,7 @@ const ENEMIES := {
 		"cooldown": 0.65,
 		"range": 26.0,
 		"unlock": 0.15,
+		"weight_at_max": 2.0,
 	},
 	"brute": {
 		"health": 3,
@@ -336,6 +340,7 @@ const ENEMIES := {
 		"cooldown": 1.10,
 		"range": 34.0,
 		"unlock": 0.45,
+		"weight_at_max": 1.0,
 	},
 	"rope_saboteur": {
 		"health": 1,
@@ -350,24 +355,29 @@ const ENEMIES := {
 		"rope_damage": 35.0,
 		"arming_time": 1.60,
 		"unlock": 0.25,
+		"weight_at_max": 0.75,
 	},
 	"flyer": {
 		"health": 2,
 		"flight_speed": 135.0,
-		"spawn_interval": 14.0,
+		"spawn_interval": 18.0,
+		"minimum_spawn_interval": 8.0,
+		"minimum_overtime_spawn_interval": 6.0,
 		"damage": 1,
 		"windup": 0.65,
 		"cooldown": 1.0,
-		"range": 34.0,
+		"range": 36.0,
 	},
 }
 
 const STRATEGIC := {
 	"first_wave_delay": 5.0,
 	"wave_interval": 12.0,
-	"minimum_wave_interval": 4.0,
+	"minimum_wave_interval": 5.5,
 	"wave_size": 6,
 	"maximum_wave_size": 30,
+	"overtime_wave_size_per_tier": 3,
+	"maximum_overtime_wave_size": 48,
 	"travel_time": 8.0,
 	"minimum_travel_time": 4.0,
 	"target_sections": 1,
