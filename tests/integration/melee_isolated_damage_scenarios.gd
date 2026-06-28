@@ -26,10 +26,11 @@ func _run_scenario() -> void:
 	defender.teleport_to(0.0)
 	for crew_member: Defender in crew.get_all_defenders():
 		crew_member.combat.set_physics_process(false)
+	defender.melee.cancel()
 
 	var primary: BoardingEnemy = _spawn_enemy(director, 30.0)
 	assert(bool(defender.combat.call("_try_start_attack", primary)))
-	defender.melee.tick(0.4)
+	defender.melee.tick(0.5)
 	assert(primary.health.current_health == 1)
 	defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
@@ -39,8 +40,9 @@ func _run_scenario() -> void:
 		primary.global_position.distance_to(neighbor.global_position)
 		<= director.balance.defender_attack_range
 	)
+	defender.melee.cancel()
 	assert(bool(defender.combat.call("_try_start_attack", primary)))
-	defender.melee.tick(0.4)
+	defender.melee.tick(0.5)
 	assert(primary.health.current_health == 2)
 	assert(neighbor.health.current_health == 3)
 
