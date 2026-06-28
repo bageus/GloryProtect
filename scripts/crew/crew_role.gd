@@ -40,3 +40,7 @@ static func is_fixed_station(role_id: int) -> bool:
 		or role_id == Id.MEDIC
 		or role_id == Id.TURRET
 	)
+
+
+static func is_combat_role(role_id: int) -> bool:
+	return role_id == Id.FREE_FIGHTER or role_id == Id.SHOOTER

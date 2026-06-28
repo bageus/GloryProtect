@@ -40,13 +40,15 @@ func _run_scenario() -> void:
 	assert(flow.state == GameFlowController.RunState.RUNNING)
 	assert(revival.is_revival_scheduled(ordinary_id))
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
-	await process_frame
+	await _wait_for_replacement(replacements, crew, ordinary_id)
 	var ordinary_replacement: Defender = crew.get_defender(ordinary_id)
 	assert(ordinary_replacement != null and ordinary_replacement.health.is_alive())
-	assert(not replacements.is_replacement_pending(ordinary_id))
 	var ordinary_assignment: CrewAssignmentRuntime = roles.get_assignment(ordinary_id)
-	assert(ordinary_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(ordinary_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(ordinary_assignment.target_role == CrewRole.Id.DRIVER)
+	assert(ordinary_assignment.state in [
+		CrewAssignmentRuntime.State.MOVING,
+		CrewAssignmentRuntime.State.ACTIVE,
+	])
 	assert(crew.get_living_count() == 3)
 
 	flow.toggle_manual_pause()
@@ -71,15 +73,17 @@ func _run_scenario() -> void:
 	assert(flow.state == GameFlowController.RunState.RUNNING)
 	assert(revival.is_revival_scheduled(last_id))
 	assert(is_equal_approx(revival.get_cooldown_remaining(), 60.0))
-	await process_frame
+	await _wait_for_replacement(replacements, crew, last_id)
 
 	var last_replacement: Defender = crew.get_defender(last_id)
 	assert(last_replacement != null and last_replacement.health.is_alive())
 	assert(crew.get_living_count() == 1)
-	assert(not replacements.is_replacement_pending(last_id))
 	var last_assignment: CrewAssignmentRuntime = roles.get_assignment(last_id)
-	assert(last_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
-	assert(last_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
+	assert(last_assignment.target_role == CrewRole.Id.RIGHT_ANCHOR)
+	assert(last_assignment.state in [
+		CrewAssignmentRuntime.State.MOVING,
+		CrewAssignmentRuntime.State.ACTIVE,
+	])
 	assert(flow.state == GameFlowController.RunState.RUNNING)
 
 	last_replacement.health.set_health(0)
@@ -88,6 +92,25 @@ func _run_scenario() -> void:
 
 	print("Medic revival scenarios passed")
 	quit()
+
+
+func _wait_for_replacement(
+	replacements: CrewReplacementController,
+	crew: CrewManager,
+	defender_id: int
+) -> void:
+	var previous: Defender = crew.get_defender(defender_id)
+	for _frame: int in range(30):
+		var current: Defender = crew.get_defender(defender_id)
+		if (
+			current != null
+			and current != previous
+			and current.health.is_alive()
+			and not replacements.is_replacement_pending(defender_id)
+		):
+			return
+		await process_frame
+	assert(false, "Revival replacement did not complete")
 
 
 func _flag_effect(target_id: StringName) -> UpgradeEffectDefinition:
