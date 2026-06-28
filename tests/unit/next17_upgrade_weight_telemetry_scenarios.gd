@@ -21,6 +21,7 @@ func _run() -> void:
 	_test_every_branch_selection_has_equal_total_delta()
 	_test_general_pool_weight_floor()
 	_test_long_run_pool_distribution()
+	_test_economy_cost_targets()
 	_test_telemetry_snapshot()
 	print("NEXT-17 upgrade weight and telemetry scenarios passed")
 	quit()
@@ -110,6 +111,28 @@ func _test_long_run_pool_distribution() -> void:
 			/ float(total_slots)
 		)
 		assert(branch_share <= 0.40)
+
+
+func _test_economy_cost_targets() -> void:
+	var balance := UpgradeBalance.new()
+	var first_twenty_total: int = 0
+	for completed_count: int in range(20):
+		first_twenty_total += balance.get_cost_for_completed_count(completed_count)
+	assert(first_twenty_total == 1050)
+	assert(balance.get_cost_for_completed_count(0) == 5)
+	assert(balance.get_cost_for_completed_count(19) == 100)
+	assert(balance.get_cost_for_completed_count(20) == 200)
+	assert(balance.get_cost_for_completed_count(21) == 400)
+	assert(balance.get_cost_for_completed_count(22) == 800)
+	var target_minutes: float = 20.0
+	var required_coins_per_minute: float = (
+		float(first_twenty_total) / target_minutes
+	)
+	assert(is_equal_approx(required_coins_per_minute, 52.5))
+	var fastest_target_rate: float = float(first_twenty_total) / 18.0
+	var slowest_target_rate: float = float(first_twenty_total) / 22.0
+	assert(fastest_target_rate > required_coins_per_minute)
+	assert(slowest_target_rate < required_coins_per_minute)
 
 
 func _test_telemetry_snapshot() -> void:
