@@ -63,7 +63,7 @@ func get_purchase_time_seconds(purchase_number: int) -> float:
 	if purchase_number <= 0:
 		return -1.0
 	for raw_entry: Variant in purchase_timeline:
-		if not raw_entry is Dictionary:
+		if not (raw_entry is Dictionary):
 			continue
 		var entry: Dictionary = raw_entry
 		if int(entry.get("purchase_number", 0)) != purchase_number:
