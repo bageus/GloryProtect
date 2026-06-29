@@ -36,6 +36,32 @@ func _run() -> void:
 	assert(reloaded.get_best_score() == 1370)
 	assert(not reloaded.is_latest_score_record())
 
+	var version_one_file := FileAccess.open(TEST_PATH, FileAccess.WRITE)
+	assert(version_one_file != null)
+	version_one_file.store_string(JSON.stringify({
+		"format_version": 1,
+		"completed_runs": 9,
+		"best_survival_seconds": 250.0,
+		"best_physical_kills": 25,
+	}))
+	version_one_file = null
+	var migrated := PersistentRecordsService.new()
+	migrated.set_records_path_for_tests(TEST_PATH)
+	root.add_child(migrated)
+	await process_frame
+	assert(migrated.get_format_version() == 2)
+	assert(migrated.get_score_formula_version() == 1)
+	assert(migrated.get_completed_runs() == 9)
+	assert(is_equal_approx(migrated.get_best_survival_seconds(), 250.0))
+	assert(migrated.get_best_physical_kills() == 25)
+	assert(migrated.get_best_score() == 0)
+	var migrated_file := FileAccess.open(TEST_PATH, FileAccess.READ)
+	assert(migrated_file != null)
+	var migrated_data: Variant = JSON.parse_string(migrated_file.get_as_text())
+	assert(migrated_data is Dictionary)
+	assert(int((migrated_data as Dictionary)["format_version"]) == 2)
+	assert(int((migrated_data as Dictionary)["score_formula_version"]) == 1)
+
 	var corrupt_file := FileAccess.open(TEST_PATH, FileAccess.WRITE)
 	assert(corrupt_file != null)
 	corrupt_file.store_string("{broken json")
@@ -64,6 +90,7 @@ func _run() -> void:
 
 	service.queue_free()
 	reloaded.queue_free()
+	migrated.queue_free()
 	corrupted.queue_free()
 	recovered.queue_free()
 	_remove_test_file()
