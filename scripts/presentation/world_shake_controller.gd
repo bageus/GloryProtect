@@ -38,7 +38,8 @@ func _process(delta: float) -> void:
 
 
 func trigger_tension_break() -> void:
-	_base_transform = get_viewport().canvas_transform
+	if _remaining <= 0.0:
+		_base_transform = get_viewport().canvas_transform
 	_remaining = duration
 	_elapsed = 0.0
 	_trigger_count += 1
