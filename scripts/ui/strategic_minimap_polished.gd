@@ -20,7 +20,7 @@ func get_cloud_radius(enemy_count: int) -> Vector2:
 
 func _draw_enemy_cloud(
 	snapshot: StrategicGroupSnapshot,
-	position: Vector2,
+	cloud_position: Vector2,
 	color: Color
 ) -> void:
 	var radius: Vector2 = get_cloud_radius(snapshot.enemy_count)
@@ -47,14 +47,14 @@ func _draw_enemy_cloud(
 			+ secondary
 		)
 		points.append(
-			position + Vector2(
+			cloud_position + Vector2(
 				cos(angle) * radius.x * wobble * breathing,
 				sin(angle) * radius.y * (2.0 - wobble) * breathing
 			)
 		)
 
 	draw_circle(
-		position,
+		cloud_position,
 		maxf(radius.x, radius.y) * 1.08,
 		Color(color.r, color.g, color.b, 0.12)
 	)
@@ -70,16 +70,16 @@ func _draw_enemy_cloud(
 
 	var visible_specks: int = mini(snapshot.enemy_count, 8)
 	for index: int in range(visible_specks):
-		var seed: float = float(snapshot.group_id * 17 + index * 11)
+		var speck_seed: float = float(snapshot.group_id * 17 + index * 11)
 		var orbit: float = (
-			time * (0.42 + float(index % 3) * 0.09) + seed
+			time * (0.42 + float(index % 3) * 0.09) + speck_seed
 		)
 		var offset := Vector2(
 			sin(orbit * 1.7) * radius.x * 0.55,
 			cos(orbit * 2.3) * radius.y * 0.46
 		)
 		draw_circle(
-			position + offset,
+			cloud_position + offset,
 			1.7 + sin(orbit) * 0.35,
 			Color(0.18, 0.01, 0.025, 0.95)
 		)
