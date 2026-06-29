@@ -89,6 +89,10 @@ func get_max_armor_segments() -> int:
 	return _durability.get_max_armor() if _durability != null else 0
 
 
+func has_visible_armor_segments() -> bool:
+	return _durability != null and _durability.get_current_armor() > 0
+
+
 func _draw() -> void:
 	var bob_offset: float = 0.0
 	if _presentation_state_id == &"heal":
@@ -108,23 +112,20 @@ func _draw_health_segments(asset_rect: Rect2) -> void:
 
 
 func _draw_armor_segments(asset_rect: Rect2) -> void:
-	if _durability == null:
-		return
-	var max_armor: int = _durability.get_max_armor()
-	if max_armor <= 0:
+	if not has_visible_armor_segments():
 		return
 	var current_armor: int = _durability.get_current_armor()
 	var segment_width: float = 8.0
 	var segment_height: float = 4.0
 	var gap: float = 2.0
 	var total_width: float = (
-		float(max_armor) * segment_width
-		+ float(max_armor - 1) * gap
+		float(current_armor) * segment_width
+		+ float(current_armor - 1) * gap
 	)
 	var start_x: float = asset_rect.get_center().x - total_width * 0.5
 	var health_y: float = asset_rect.position.y - 8.0
 	var armor_y: float = health_y - segment_height - 3.0
-	for index: int in range(max_armor):
+	for index: int in range(current_armor):
 		var rect := Rect2(
 			Vector2(
 				start_x + float(index) * (segment_width + gap),
@@ -132,10 +133,7 @@ func _draw_armor_segments(asset_rect: Rect2) -> void:
 			),
 			Vector2(segment_width, segment_height)
 		)
-		var fill := Color(0.12, 0.19, 0.28)
-		if index < current_armor:
-			fill = Color(0.28, 0.7, 1.0)
-		draw_rect(rect, fill, true)
+		draw_rect(rect, Color(0.28, 0.7, 1.0), true)
 		draw_rect(rect, Color(0.72, 0.88, 1.0), false, 1.0)
 
 
