@@ -47,9 +47,7 @@ func _run() -> void:
 	var click := InputEventMouseButton.new()
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
-	click.position = (
-		game.get_viewport().get_canvas_transform() * defender.global_position
-	)
+	click.position = defender.get_global_transform_with_canvas().origin
 	selection.call("_handle_world_click", click)
 	await process_frame
 	assert(crew_panel._view.is_context_visible())
