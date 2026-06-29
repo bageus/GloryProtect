@@ -40,22 +40,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-
-	match key_event.keycode:
-		KEY_T:
-			_unlock_turret()
-		KEY_G:
-			_place_new_turret()
-		KEY_K:
-			_cycle_selected_turret()
-		KEY_V:
-			_move_selected_turret()
-		KEY_J:
-			_assign_selected_defender()
-		KEY_BACKSPACE:
-			_demolish_selected_turret()
-		_:
-			return
+	if key_event.is_action_pressed(&"gp_unlock_turret"):
+		_unlock_turret()
+	elif key_event.is_action_pressed(&"gp_place_turret"):
+		_place_new_turret()
+	elif key_event.is_action_pressed(&"gp_cycle_turret"):
+		_cycle_selected_turret()
+	elif key_event.is_action_pressed(&"gp_move_turret"):
+		_move_selected_turret()
+	elif key_event.is_action_pressed(&"gp_assign_turret"):
+		_assign_selected_defender()
+	elif key_event.is_action_pressed(&"gp_demolish_turret"):
+		_demolish_selected_turret()
+	else:
+		return
 	get_viewport().set_input_as_handled()
 
 

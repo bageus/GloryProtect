@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3]
+[gd_scene load_steps=33 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -30,6 +30,7 @@
 [ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver_polished.gd" id="28_movement"]
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud_polished.gd" id="29_hud"]
 [ext_resource type="Script" path="res://scripts/audio/game_audio_controller.gd" id="30_audio"]
+[ext_resource type="Script" path="res://scripts/presentation/world_shake_controller.gd" id="31_shake"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -80,6 +81,10 @@ platform_path = NodePath("../World/Platform")
 contact_system_path = NodePath("../World/OrbContactSystem")
 shield_system_path = NodePath("../ShieldSystem")
 shield_core_system_path = NodePath("../World/ShieldCoreSystem")
+
+[node name="WorldShakeController" type="Node" parent="."]
+script = ExtResource("31_shake")
+anchor_system_path = NodePath("../World/AnchorSystem")
 
 [node name="GroundOrbRegistry" parent="World"]
 script = ExtResource("19_orb_registry")
