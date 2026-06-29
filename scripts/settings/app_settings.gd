@@ -81,7 +81,7 @@ var _settings_path: String = SETTINGS_PATH
 var _effects_volume: float = DEFAULT_EFFECTS_VOLUME
 var _music_volume: float = DEFAULT_MUSIC_VOLUME
 var _sound_volumes: Dictionary[StringName, float] = {}
-var _binding_keys: Dictionary[StringName, Key] = {}
+var _binding_keys: Dictionary[StringName, int] = {}
 
 
 func _ready() -> void:
@@ -139,16 +139,16 @@ func set_sound_volume(sound_id: StringName, value: float, save: bool = true) -> 
 		save_settings()
 
 
-func get_binding_key(action_id: StringName) -> Key:
-	return _binding_keys.get(action_id, KEY_NONE) as Key
+func get_binding_key(action_id: StringName) -> int:
+	return int(_binding_keys.get(action_id, KEY_NONE))
 
 
 func get_binding_text(action_id: StringName) -> String:
-	var keycode: Key = get_binding_key(action_id)
+	var keycode: int = get_binding_key(action_id)
 	return "Не назначено" if keycode == KEY_NONE else OS.get_keycode_string(keycode)
 
 
-func rebind_action(action_id: StringName, keycode: Key, save: bool = true) -> bool:
+func rebind_action(action_id: StringName, keycode: int, save: bool = true) -> bool:
 	if not _has_action_spec(action_id) or keycode == KEY_NONE:
 		return false
 	_binding_keys[action_id] = keycode
@@ -173,7 +173,7 @@ func reset_audio_defaults(save: bool = true) -> void:
 func reset_input_defaults(save: bool = true) -> void:
 	for spec: Dictionary in ACTION_SPECS:
 		var action_id: StringName = spec["id"]
-		var keycode: Key = spec["key"]
+		var keycode: int = int(spec["key"])
 		_binding_keys[action_id] = keycode
 		_apply_action_binding(action_id, keycode)
 	input_bindings_changed.emit()
@@ -189,7 +189,7 @@ func save_settings() -> void:
 		config.set_value("sound", String(sound_id), get_sound_volume(sound_id))
 	for spec: Dictionary in ACTION_SPECS:
 		var action_id: StringName = spec["id"]
-		config.set_value("input", String(action_id), int(get_binding_key(action_id)))
+		config.set_value("input", String(action_id), get_binding_key(action_id))
 	config.save(_settings_path)
 
 
@@ -197,14 +197,28 @@ func load_settings() -> void:
 	_initialize_defaults()
 	var config := ConfigFile.new()
 	if config.load(_settings_path) == OK:
-		_effects_volume = clampf(float(config.get_value("audio", "effects", _effects_volume)), 0.0, 1.0)
-		_music_volume = clampf(float(config.get_value("audio", "music", _music_volume)), 0.0, 1.0)
+		_effects_volume = clampf(
+			float(config.get_value("audio", "effects", _effects_volume)),
+			0.0,
+			1.0
+		)
+		_music_volume = clampf(
+			float(config.get_value("audio", "music", _music_volume)),
+			0.0,
+			1.0
+		)
 		for sound_id: StringName in SOUND_IDS:
-			_sound_volumes[sound_id] = clampf(float(config.get_value("sound", String(sound_id), 1.0)), 0.0, 1.0)
+			_sound_volumes[sound_id] = clampf(
+				float(config.get_value("sound", String(sound_id), 1.0)),
+				0.0,
+				1.0
+			)
 		for spec: Dictionary in ACTION_SPECS:
 			var action_id: StringName = spec["id"]
-			var default_key: Key = spec["key"]
-			_binding_keys[action_id] = int(config.get_value("input", String(action_id), int(default_key))) as Key
+			var default_key: int = int(spec["key"])
+			_binding_keys[action_id] = int(
+				config.get_value("input", String(action_id), default_key)
+			)
 	_apply_all()
 
 
@@ -220,7 +234,7 @@ func _initialize_defaults() -> void:
 	for sound_id: StringName in SOUND_IDS:
 		_sound_volumes[sound_id] = 1.0
 	for spec: Dictionary in ACTION_SPECS:
-		_binding_keys[spec["id"]] = spec["key"]
+		_binding_keys[spec["id"]] = int(spec["key"])
 
 
 func _apply_all() -> void:
@@ -252,11 +266,14 @@ func _set_bus_linear_volume(bus_name: StringName, value: float) -> void:
 	var bus_index: int = AudioServer.get_bus_index(bus_name)
 	if bus_index < 0:
 		return
-	AudioServer.set_bus_volume_db(bus_index, linear_to_db(maxf(value, 0.0001)))
+	AudioServer.set_bus_volume_db(
+		bus_index,
+		linear_to_db(maxf(value, 0.0001))
+	)
 	AudioServer.set_bus_mute(bus_index, value <= 0.0001)
 
 
-func _apply_action_binding(action_id: StringName, keycode: Key) -> void:
+func _apply_action_binding(action_id: StringName, keycode: int) -> void:
 	if not InputMap.has_action(action_id):
 		InputMap.add_action(action_id)
 	InputMap.action_erase_events(action_id)
