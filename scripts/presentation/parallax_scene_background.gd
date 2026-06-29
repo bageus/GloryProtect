@@ -35,15 +35,15 @@ func _update_layout() -> void:
 	_update_layer_positions()
 
 
-func _fit_layer_to_viewport(layer: Sprite2D, viewport_size: Vector2) -> void:
-	var texture_size: Vector2 = layer.texture.get_size()
+func _fit_layer_to_viewport(layer_sprite: Sprite2D, viewport_size: Vector2) -> void:
+	var texture_size: Vector2 = layer_sprite.texture.get_size()
 	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
 		return
 	var cover_scale: float = maxf(
 		viewport_size.x / texture_size.x,
 		viewport_size.y / texture_size.y
 	)
-	layer.scale = Vector2.ONE * cover_scale * overscan_ratio
+	layer_sprite.scale = Vector2.ONE * cover_scale * overscan_ratio
 
 
 func _update_layer_positions() -> void:
