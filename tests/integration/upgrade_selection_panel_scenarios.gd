@@ -121,14 +121,16 @@ func _test_specialization_offer() -> void:
 	var mode_label: Label = panel.get_node(
 		"Center/Panel/Margin/VBox/ModeLabel"
 	)
-	assert(mode_label.text.contains("СОБЫТИЕ СПЕЦИАЛИЗАЦИИ"))
+	assert(mode_label.text.contains("СПЕЦИАЛИЗАЦИЯ"))
+	assert(not mode_label.text.contains("СОБЫТИЕ"))
 	var cards: HBoxContainer = panel.get_node(
 		"Center/Panel/Margin/VBox/CardsContainer"
 	)
 	for child: Node in cards.get_children():
 		var button: Button = child as Button
 		assert(button != null)
-		assert(button.text.contains("Заблокирует альтернативы"))
+		assert(not button.text.contains("Заблокирует альтернативы"))
+		assert(not button.text.contains("ТРЕБОВАНИЯ"))
 	await _remove_game(game)
 
 
