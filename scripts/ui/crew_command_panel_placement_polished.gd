@@ -2,12 +2,20 @@ class_name CrewCommandPanelPlacementPolished
 extends CrewCommandPanelPlacementAware
 
 
+func configure(
+	game_flow: GameFlowController,
+	selection: CrewSelectionController,
+	roles: CrewRoleManager,
+	replacements: CrewReplacementController,
+	grid: BuildableGrid
+) -> void:
+	super.configure(game_flow, selection, roles, replacements, grid)
+	_connect_world_click_signal()
+
+
 func _ready() -> void:
 	super._ready()
-	if not _selection.defender_world_clicked.is_connected(
-		_on_defender_world_clicked
-	):
-		_selection.defender_world_clicked.connect(_on_defender_world_clicked)
+	_connect_world_click_signal()
 
 
 func request_defender_type(defender_id: int, role_id: int) -> bool:
@@ -111,6 +119,15 @@ func _get_combat_role(defender_id: int) -> int:
 	if assignment != null and CrewRole.is_combat_role(assignment.combat_role):
 		return assignment.combat_role
 	return CrewRole.Id.FREE_FIGHTER
+
+
+func _connect_world_click_signal() -> void:
+	if _selection == null:
+		return
+	if not _selection.defender_world_clicked.is_connected(
+		_on_defender_world_clicked
+	):
+		_selection.defender_world_clicked.connect(_on_defender_world_clicked)
 
 
 func _on_defender_world_clicked(defender_id: int) -> void:
