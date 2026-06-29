@@ -44,11 +44,9 @@ func _run() -> void:
 	assert(visual.get_current_armor_segments() == 2)
 
 	assert(crew.apply_shooter_flag(&"shooter_role_unlocked"))
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.pressed = true
-	click.position = defender.get_global_transform_with_canvas().origin
-	selection.call("_handle_world_click", click)
+	assert(selection.select_defender_at_screen_position(
+		defender.get_global_transform_with_canvas().origin
+	))
 	await process_frame
 	assert(crew_panel._view.is_context_visible())
 	var buttons: PackedStringArray = crew_panel._view.get_context_button_texts()
@@ -85,7 +83,7 @@ func _run() -> void:
 		var text: String = upgrade_panel.get_rendered_card_text(card_index)
 		var lines: PackedStringArray = text.split("\n")
 		assert(not lines.is_empty())
-		assert(lines[0] not in ["1", "2", "3"])
+		assert(not ["1", "2", "3"].has(lines[0]))
 		assert(not text.contains("ЭФФЕКТ"))
 		assert(not text.contains("ТРЕБОВАНИЯ"))
 		assert(not text.contains("Заблокирует альтернативы"))
