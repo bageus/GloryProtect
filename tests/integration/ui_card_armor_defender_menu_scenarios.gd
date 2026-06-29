@@ -48,7 +48,7 @@ func _run() -> void:
 	click.button_index = MOUSE_BUTTON_LEFT
 	click.pressed = true
 	click.position = (
-		get_viewport().get_canvas_transform() * defender.global_position
+		game.get_viewport().get_canvas_transform() * defender.global_position
 	)
 	selection.call("_handle_world_click", click)
 	await process_frame
