@@ -1,6 +1,8 @@
 class_name BoardingEnemyController
 extends Node
 
+const GROUND_PATH_DISTANCE_EPSILON := 0.001
+
 enum State {
 	WAITING_WITHOUT_PATH,
 	RUNNING_TO_ANCHOR,
@@ -133,9 +135,7 @@ func force_board_at(local_x: float) -> void:
 
 
 func _update_waiting(delta: float) -> void:
-	var path: AnchorPathSnapshot = _paths.choose_nearest_path(
-		_enemy.global_position.x
-	)
+	var path: AnchorPathSnapshot = _choose_ground_path()
 	if path != null:
 		selected_anchor_id = path.anchor_id
 		state = State.RUNNING_TO_ANCHOR
@@ -155,16 +155,15 @@ func _update_waiting(delta: float) -> void:
 
 
 func _update_running_to_anchor(delta: float) -> void:
-	if not _paths.is_path_available(selected_anchor_id):
-		selected_anchor_id = -1
-		state = State.WAITING_WITHOUT_PATH
-		return
-
-	var path: AnchorPathSnapshot = _paths.get_anchor_path(selected_anchor_id)
+	# Re-evaluate the nearest ground endpoint while running. Anchor removal and
+	# reattachment can otherwise leave enemies committed to crossed routes, so
+	# two ground queues approach each other and block forever.
+	var path: AnchorPathSnapshot = _choose_ground_path()
 	if path == null:
 		selected_anchor_id = -1
 		state = State.WAITING_WITHOUT_PATH
 		return
+	selected_anchor_id = path.anchor_id
 
 	var desired_x: float = move_toward(
 		_enemy.global_position.x,
@@ -198,6 +197,33 @@ func _update_running_to_anchor(delta: float) -> void:
 	_enemy.global_position = path.ground_point
 	_climb_progress = 0.0
 	state = State.CLIMBING
+
+
+func _choose_ground_path() -> AnchorPathSnapshot:
+	var best_path: AnchorPathSnapshot = null
+	var best_distance: float = INF
+	for path: AnchorPathSnapshot in _paths.get_available_paths():
+		var distance: float = absf(
+			path.ground_point.x - _enemy.global_position.x
+		)
+		if distance + GROUND_PATH_DISTANCE_EPSILON < best_distance:
+			best_path = path
+			best_distance = distance
+			continue
+		if absf(distance - best_distance) > GROUND_PATH_DISTANCE_EPSILON:
+			continue
+		if best_path == null:
+			best_path = path
+			best_distance = distance
+			continue
+		if path.ground_point.x < best_path.ground_point.x:
+			best_path = path
+		elif (
+			is_equal_approx(path.ground_point.x, best_path.ground_point.x)
+			and path.anchor_id < best_path.anchor_id
+		):
+			best_path = path
+	return best_path
 
 
 func _update_climbing(delta: float) -> void:
