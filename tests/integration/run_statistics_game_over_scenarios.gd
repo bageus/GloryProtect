@@ -67,6 +67,10 @@ func _run_scenarios() -> void:
 	)
 
 	game_flow.state = GameFlowController.RunState.RUNNING
+	statistics.reset_for_run()
+	assert(statistics.get_physical_kills() == 0)
+	assert(statistics.get_strategic_kills() == 0)
+	assert(statistics.get_defender_losses() == 0)
 	difficulty.set_debug_elapsed_seconds(125.7)
 	economy.add_coins(3, &"test_statistics")
 	rewards.reward_granted.emit(1, 1, &"combat")
@@ -76,7 +80,10 @@ func _run_scenarios() -> void:
 	strategic.emit_signal(&"strategic_rows_destroyed", 0, 2)
 	crew.defender_died.emit(0)
 	crew.defender_died.emit(0)
-	assert(statistics.get_physical_kills() == 2)
+	assert(
+		statistics.get_physical_kills() == 2,
+		"Expected 2 physical kills, got %d" % statistics.get_physical_kills()
+	)
 	assert(statistics.get_strategic_kills() == 4)
 	assert(statistics.get_total_kills() == 6)
 	assert(statistics.get_defender_losses() == 2)
