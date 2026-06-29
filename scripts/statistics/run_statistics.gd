@@ -10,8 +10,12 @@ const GENERAL_POOL_ID: StringName = &"general"
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("BoardingRewardController") var reward_controller_path: NodePath
-@export_node_path("StrategicWaveSystem") var strategic_wave_system_path: NodePath
-@export_node_path("CrewManager") var crew_manager_path: NodePath
+@export_node_path("StrategicWaveSystem") var strategic_wave_system_path: NodePath = NodePath(
+	"../World/StrategicWaveSystem"
+)
+@export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath(
+	"../World/Platform/CrewManager"
+)
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
