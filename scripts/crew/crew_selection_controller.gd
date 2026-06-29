@@ -53,35 +53,31 @@ func get_crew_manager() -> CrewManager:
 func _handle_keyboard(key_event: InputEventKey) -> void:
 	if not key_event.pressed or key_event.echo:
 		return
-	match key_event.keycode:
-		KEY_5:
-			select_defender(0)
-		KEY_6:
-			select_defender(1)
-		KEY_7:
-			select_defender(2)
-		KEY_D:
-			_roles.request_assignment(
-				selected_defender_id,
-				CrewRole.Id.DRIVER
-			)
-		KEY_Z:
-			_roles.request_assignment(
-				selected_defender_id,
-				CrewRole.Id.LEFT_ANCHOR
-			)
-		KEY_X:
-			_roles.request_assignment(
-				selected_defender_id,
-				CrewRole.Id.RIGHT_ANCHOR
-			)
-		KEY_C:
-			_roles.request_assignment(
-				selected_defender_id,
-				CrewRole.Id.FREE_FIGHTER
-			)
-		_:
-			return
+	if key_event.is_action_pressed(&"gp_select_defender_1"):
+		select_defender(0)
+	elif key_event.is_action_pressed(&"gp_select_defender_2"):
+		select_defender(1)
+	elif key_event.is_action_pressed(&"gp_select_defender_3"):
+		select_defender(2)
+	elif key_event.is_action_pressed(&"gp_assign_driver"):
+		_roles.request_assignment(selected_defender_id, CrewRole.Id.DRIVER)
+	elif key_event.is_action_pressed(&"gp_assign_left_anchor"):
+		_roles.request_assignment(
+			selected_defender_id,
+			CrewRole.Id.LEFT_ANCHOR
+		)
+	elif key_event.is_action_pressed(&"gp_assign_right_anchor"):
+		_roles.request_assignment(
+			selected_defender_id,
+			CrewRole.Id.RIGHT_ANCHOR
+		)
+	elif key_event.is_action_pressed(&"gp_assign_free"):
+		_roles.request_assignment(
+			selected_defender_id,
+			CrewRole.Id.FREE_FIGHTER
+		)
+	else:
+		return
 	get_viewport().set_input_as_handled()
 
 
