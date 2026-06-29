@@ -2,22 +2,6 @@ class_name CrewCommandPanelPlacementPolished
 extends CrewCommandPanelPlacementAware
 
 
-func configure(
-	game_flow: GameFlowController,
-	selection: CrewSelectionController,
-	roles: CrewRoleManager,
-	replacements: CrewReplacementController,
-	grid: BuildableGrid
-) -> void:
-	super.configure(game_flow, selection, roles, replacements, grid)
-	_connect_world_click_signal()
-
-
-func _ready() -> void:
-	super._ready()
-	_connect_world_click_signal()
-
-
 func request_defender_type(defender_id: int, role_id: int) -> bool:
 	if not are_commands_enabled():
 		_set_feedback("Команды сейчас недоступны", true)
@@ -46,6 +30,23 @@ func request_defender_type(defender_id: int, role_id: int) -> bool:
 		false
 	)
 	return true
+
+
+func open_defender_command_context(defender_id: int) -> void:
+	var defender: Defender = _crew.get_defender(defender_id)
+	if defender == null or not defender.health.is_alive():
+		_close_context()
+		return
+	_view.rebuild_defender_command_context(
+		defender_id,
+		_get_combat_role(defender_id),
+		_crew.is_shooter_role_unlocked(),
+		_build_defender_post_options(defender_id),
+		_on_defender_command_type_pressed,
+		_on_defender_command_post_pressed,
+		_on_defender_command_free_pressed,
+		_close_context
+	)
 
 
 func _get_available_free_defenders(excluded_id: int) -> Array[int]:
@@ -121,36 +122,6 @@ func _get_combat_role(defender_id: int) -> int:
 	return CrewRole.Id.FREE_FIGHTER
 
 
-func _connect_world_click_signal() -> void:
-	if _selection == null:
-		return
-	if not _selection.defender_world_clicked.is_connected(
-		_on_defender_world_clicked
-	):
-		_selection.defender_world_clicked.connect(_on_defender_world_clicked)
-
-
-func _on_defender_world_clicked(defender_id: int) -> void:
-	_show_defender_command_context(defender_id)
-
-
-func _show_defender_command_context(defender_id: int) -> void:
-	var defender: Defender = _crew.get_defender(defender_id)
-	if defender == null or not defender.health.is_alive():
-		_close_context()
-		return
-	_view.rebuild_defender_command_context(
-		defender_id,
-		_get_combat_role(defender_id),
-		_crew.is_shooter_role_unlocked(),
-		_build_defender_post_options(defender_id),
-		_on_defender_command_type_pressed,
-		_on_defender_command_post_pressed,
-		_on_defender_command_free_pressed,
-		_close_context
-	)
-
-
 func _build_defender_post_options(defender_id: int) -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
 	for slot_index: int in range(_slot_specs.size()):
@@ -180,7 +151,7 @@ func _on_defender_command_type_pressed(
 	role_id: int
 ) -> void:
 	if request_defender_type(defender_id, role_id):
-		_show_defender_command_context(defender_id)
+		open_defender_command_context(defender_id)
 
 
 func _on_defender_command_post_pressed(
