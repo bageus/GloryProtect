@@ -54,6 +54,22 @@ func _run() -> void:
 		GameFlowController.RunState.RUNNING,
 	])
 
+	flow.state = GameFlowController.RunState.RUNNING
+	flow.begin_card_selection()
+	assert(flow.state == GameFlowController.RunState.CARD_SELECTION)
+	assert(paused)
+	shell._unhandled_input(escape)
+	assert(shell.get_current_screen() == AppShell.Screen.PAUSE)
+	assert(flow.state == GameFlowController.RunState.MANUAL_PAUSE)
+	assert(paused)
+	shell._unhandled_input(escape)
+	assert(shell.get_current_screen() == AppShell.Screen.NONE)
+	assert(flow.state == GameFlowController.RunState.CARD_SELECTION)
+	assert(paused)
+	flow.finish_card_selection()
+	assert(flow.state == GameFlowController.RunState.RUNNING)
+	assert(not paused)
+
 	shell.restart_active_run()
 	await process_frame
 	await process_frame
