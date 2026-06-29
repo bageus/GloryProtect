@@ -8,14 +8,17 @@ NEXT-22 keeps three scopes of statistics separate:
 
 ## Finalization flow
 
-`RunStatistics` updates neither record store while a run is active. When `GameFlowController.run_ended` is received, it creates one immutable snapshot and then:
+`RunStatistics` updates neither record store while a run is active. When `GameFlowController.run_ended` is received, it schedules finalization at the end of the current signal cycle. This allows a terminal shield impact or the last defender death to be counted even when that domain event is emitted immediately after `end_run` by the system that caused the defeat.
 
-1. registers the snapshot in `SessionRecordsStore`;
-2. registers the same snapshot in `PersistentRecordsService` through the typed `PersistentRecords` proxy;
-3. reads whether the final score replaced the all-time record;
-4. emits `run_finalized` for the game-over UI.
+The deferred finalization then:
 
-This ordering guarantees that the result screen reads already-updated session and persistent values. Starting or restarting a run resets only `RunStatistics`.
+1. creates one immutable final snapshot;
+2. registers the snapshot in `SessionRecordsStore`;
+3. registers the same snapshot in `PersistentRecordsService` through the typed `PersistentRecords` proxy;
+4. reads whether the final score replaced the all-time record;
+5. emits `run_finalized` for the game-over UI.
+
+This ordering guarantees that the result screen reads already-updated session and persistent values. Starting or restarting a run resets only `RunStatistics` and cancels any obsolete pending finalization.
 
 ## Score formula
 
@@ -75,6 +78,7 @@ A result replaces the score record when its score is greater than or equal to th
 - A later completed run replaces a damaged file with valid versioned data.
 - Unversioned legacy dictionaries are migrated from either the current key names or the aliases `best_time_seconds` and `best_kills`.
 - Format version `1` preserves completed runs, best time, and best physical kills while initializing `best_score` to `0`.
+- Supported storage and score-formula migrations are immediately written back in the current format.
 - A changed score-formula version preserves non-score records and resets only `best_score`.
 - Unsupported future storage versions are safely reset instead of being interpreted as the current format.
 
