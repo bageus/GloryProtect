@@ -3,19 +3,45 @@ extends Node
 
 signal sound_triggered(sound_id: StringName)
 
-const SHIELD_CHARGE_STREAM: AudioStream = preload("res://audio/Energy_charge.ogg")
-const SHIELD_ALERT_STREAM: AudioStream = preload("res://audio/allert shield.ogg")
-const SHIELD_WAVE_STREAM: AudioStream = preload("res://audio/core_wave.ogg")
-const DEFENDER_ATTACK_STREAM: AudioStream = preload("res://audio/defender_acctack.ogg")
-const DEFENDER_DIE_STREAM: AudioStream = preload("res://audio/defender_die.ogg")
-const HEALER_HEAL_STREAM: AudioStream = preload("res://audio/healer_heall.ogg")
-const MONSTER_DIE_STREAM: AudioStream = preload("res://audio/monster_die.ogg")
-const PLATFORM_MOVE_STREAM: AudioStream = preload("res://audio/moove platform.ogg")
-const SHOOTER_ATTACK_STREAM: AudioStream = preload("res://audio/shooter_attack.ogg")
-const PORTAL_STREAM: AudioStream = preload("res://audio/teleport_portal.ogg")
-const TURRET_ATTACK_STREAM: AudioStream = preload("res://audio/turret_attack.ogg")
-const WINCH_CONNECT_STREAM: AudioStream = preload("res://audio/winck_connect.ogg")
-const WINCH_DISCONNECT_STREAM: AudioStream = preload("res://audio/winck_disconnect.ogg")
+const SHIELD_CHARGE_STREAM: AudioStream = preload(
+	"res://audio/Energy_charge.ogg"
+)
+const SHIELD_ALERT_STREAM: AudioStream = preload(
+	"res://audio/allert shield.ogg"
+)
+const SHIELD_WAVE_STREAM: AudioStream = preload(
+	"res://audio/core_wave.ogg"
+)
+const DEFENDER_ATTACK_STREAM: AudioStream = preload(
+	"res://audio/defender_acctack.ogg"
+)
+const DEFENDER_DIE_STREAM: AudioStream = preload(
+	"res://audio/defender_die.ogg"
+)
+const HEALER_HEAL_STREAM: AudioStream = preload(
+	"res://audio/healer_heall.ogg"
+)
+const MONSTER_DIE_STREAM: AudioStream = preload(
+	"res://audio/monster_die.ogg"
+)
+const PLATFORM_MOVE_STREAM: AudioStream = preload(
+	"res://audio/moove platform.ogg"
+)
+const SHOOTER_ATTACK_STREAM: AudioStream = preload(
+	"res://audio/shooter_attack.ogg"
+)
+const PORTAL_STREAM: AudioStream = preload(
+	"res://audio/teleport_portal.ogg"
+)
+const TURRET_ATTACK_STREAM: AudioStream = preload(
+	"res://audio/turret_attack.ogg"
+)
+const WINCH_CONNECT_STREAM: AudioStream = preload(
+	"res://audio/winck_connect.ogg"
+)
+const WINCH_DISCONNECT_STREAM: AudioStream = preload(
+	"res://audio/winck_disconnect.ogg"
+)
 
 const SOUND_SHIELD_CHARGE: StringName = &"shield_charge"
 const SOUND_SHIELD_ALERT: StringName = &"shield_alert"
@@ -30,6 +56,22 @@ const SOUND_PORTAL: StringName = &"portal"
 const SOUND_TURRET_ATTACK: StringName = &"turret_attack"
 const SOUND_WINCH_CONNECT: StringName = &"winch_connect"
 const SOUND_WINCH_DISCONNECT: StringName = &"winch_disconnect"
+
+const SOUND_IDS: Array[StringName] = [
+	SOUND_SHIELD_CHARGE,
+	SOUND_SHIELD_ALERT,
+	SOUND_SHIELD_WAVE,
+	SOUND_DEFENDER_ATTACK,
+	SOUND_DEFENDER_DIE,
+	SOUND_HEALER_HEAL,
+	SOUND_MONSTER_DIE,
+	SOUND_PLATFORM_MOVE,
+	SOUND_SHOOTER_ATTACK,
+	SOUND_PORTAL,
+	SOUND_TURRET_ATTACK,
+	SOUND_WINCH_CONNECT,
+	SOUND_WINCH_DISCONNECT,
+]
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
@@ -55,11 +97,13 @@ var _loop_states: Dictionary[StringName, bool] = {}
 var _loop_players: Dictionary[StringName, AudioStreamPlayer] = {}
 
 @onready var _settings: AppSettingsService = get_node(
-	"/root/AppSettings"
+	"/root/AppSettingsRuntime"
 ) as AppSettingsService
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
-@onready var _replacements: CrewReplacementController = get_node(replacement_controller_path)
+@onready var _replacements: CrewReplacementController = get_node(
+	replacement_controller_path
+)
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 @onready var _medical: MedicalStationSystem = get_node(medical_system_path)
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
@@ -103,25 +147,14 @@ func is_loop_active(sound_id: StringName) -> bool:
 
 
 func get_effective_sound_volume(sound_id: StringName) -> float:
-	return _settings.get_effects_volume() * _settings.get_sound_volume(sound_id)
+	return (
+		_settings.get_effects_volume()
+		* _settings.get_sound_volume(sound_id)
+	)
 
 
 func get_loaded_sound_ids() -> Array[StringName]:
-	return [
-		SOUND_SHIELD_CHARGE,
-		SOUND_SHIELD_ALERT,
-		SOUND_SHIELD_WAVE,
-		SOUND_DEFENDER_ATTACK,
-		SOUND_DEFENDER_DIE,
-		SOUND_HEALER_HEAL,
-		SOUND_MONSTER_DIE,
-		SOUND_PLATFORM_MOVE,
-		SOUND_SHOOTER_ATTACK,
-		SOUND_PORTAL,
-		SOUND_TURRET_ATTACK,
-		SOUND_WINCH_CONNECT,
-		SOUND_WINCH_DISCONNECT,
-	]
+	return SOUND_IDS.duplicate()
 
 
 func refresh_audio_state_for_tests() -> void:
@@ -166,7 +199,9 @@ func _connect_system_signals() -> void:
 	_anchors.anchor_attached.connect(_on_anchor_attached)
 	_anchors.anchor_removed.connect(_on_anchor_removed)
 	_anchors.anchor_broken.connect(_on_anchor_broken)
-	_shield_core.completion_energy_shared.connect(_on_completion_energy_shared)
+	_shield_core.completion_energy_shared.connect(
+		_on_completion_energy_shared
+	)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 
 
