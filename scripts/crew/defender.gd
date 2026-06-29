@@ -153,6 +153,10 @@ func set_medic_healing_action_active(active: bool) -> void:
 	_medic_healing_action_active = _medic_role_active and active
 
 
+func is_medic_healing_action_active() -> bool:
+	return _medic_healing_action_active
+
+
 func set_temporary_action_multipliers(attack_speed_multiplier: float, move_speed_multiplier: float) -> void:
 	_temporary_attack_speed_multiplier = maxf(0.01, attack_speed_multiplier)
 	_temporary_move_speed_multiplier = maxf(0.01, move_speed_multiplier)
