@@ -10,6 +10,10 @@ static func get_format_version() -> int:
 	return _service().get_format_version()
 
 
+static func get_score_formula_version() -> int:
+	return _service().get_score_formula_version()
+
+
 static func get_completed_runs() -> int:
 	return _service().get_completed_runs()
 
@@ -20,6 +24,14 @@ static func get_best_survival_seconds() -> float:
 
 static func get_best_physical_kills() -> int:
 	return _service().get_best_physical_kills()
+
+
+static func get_best_score() -> int:
+	return _service().get_best_score()
+
+
+static func is_latest_score_record() -> bool:
+	return _service().is_latest_score_record()
 
 
 static func _service() -> PersistentRecordsService:
