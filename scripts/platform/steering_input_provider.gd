@@ -3,8 +3,8 @@ extends Node
 
 signal driver_availability_changed(is_available: bool)
 
-@export var left_action: StringName = &"ui_left"
-@export var right_action: StringName = &"ui_right"
+@export var left_action: StringName = &"gp_move_left"
+@export var right_action: StringName = &"gp_move_right"
 @export var driver_available: bool = true
 
 
