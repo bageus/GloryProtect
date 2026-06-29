@@ -5,6 +5,12 @@ const GENERAL_POOL_ID: StringName = &"general"
 
 var survival_seconds: float
 var physical_kills: int
+var strategic_kills: int
+var total_kills: int
+var defender_losses: int
+var score: int
+var score_time_bonus: int
+var score_formula_version: int
 var remaining_coins: int
 var purchased_upgrades: int
 var end_reason: StringName
@@ -26,10 +32,20 @@ func _init(
 	new_spent_coins: int = 0,
 	new_purchase_timeline: Array = [],
 	new_offer_slot_counts: Dictionary = {},
-	new_specialization_purchase_numbers: Array[int] = []
+	new_specialization_purchase_numbers: Array[int] = [],
+	new_strategic_kills: int = 0,
+	new_defender_losses: int = 0
 ) -> void:
 	survival_seconds = maxf(0.0, new_survival_seconds)
 	physical_kills = maxi(0, new_physical_kills)
+	strategic_kills = maxi(0, new_strategic_kills)
+	total_kills = physical_kills + strategic_kills
+	defender_losses = maxi(0, new_defender_losses)
+	score_formula_version = RunScoreCalculator.SCORE_FORMULA_VERSION
+	score_time_bonus = RunScoreCalculator.calculate_time_bonus(
+		RunScoreCalculator.get_full_survival_seconds(survival_seconds)
+	)
+	score = RunScoreCalculator.calculate_score(survival_seconds, total_kills)
 	remaining_coins = maxi(0, new_remaining_coins)
 	purchased_upgrades = maxi(0, new_purchased_upgrades)
 	end_reason = new_end_reason
@@ -94,12 +110,18 @@ func get_balance_summary_text() -> String:
 		else "none"
 	)
 	return (
-		"NEXT-17 RUN | survival %.2f min | kills %d | coins %d earned / %d spent / %d left "
+		"NEXT-17 RUN | score %d | survival %.2f min | kills %d total / %d physical / %d strategic "
+		+ "| losses %d | time bonus %d | coins %d earned / %d spent / %d left "
 		+ "| coins/min %.2f | purchases %d | purchase #20 %s | specializations %s "
 		+ "| general pool %.2f%% | end %s"
 	) % [
+		score,
 		survival_seconds / 60.0,
+		total_kills,
 		physical_kills,
+		strategic_kills,
+		defender_losses,
+		score_time_bonus,
 		earned_coins,
 		spent_coins,
 		remaining_coins,

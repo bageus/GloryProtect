@@ -6,24 +6,40 @@ signal run_finalized(snapshot: RunStatisticsSnapshot)
 signal statistics_reset
 
 const GENERAL_POOL_ID: StringName = &"general"
+const STRATEGIC_SHIELD_REWARD_REASON: StringName = &"strategic_shield_impact"
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("BoardingRewardController") var reward_controller_path: NodePath
+@export_node_path("StrategicWaveSystem") var strategic_wave_system_path: NodePath = NodePath(
+	"../World/StrategicWaveSystem"
+)
+@export_node_path("CrewManager") var crew_manager_path: NodePath = NodePath(
+	"../World/Platform/CrewManager"
+)
 @export_node_path("RunEconomy") var run_economy_path: NodePath
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
 var _physical_kills: int = 0
+var _strategic_kills: int = 0
+var _defender_losses: int = 0
 var _earned_coins: int = 0
 var _spent_coins: int = 0
 var _purchase_timeline: Array = []
 var _offer_slot_counts: Dictionary[StringName, int] = {}
 var _specialization_purchase_numbers: Array[int] = []
 var _final_snapshot: RunStatisticsSnapshot = null
+var _final_score_was_new_record: bool = false
+var _finalization_pending: bool = false
+var _pending_end_reason: StringName = &""
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
 @onready var _rewards: BoardingRewardController = get_node(reward_controller_path)
+@onready var _strategic_waves: StrategicWaveSystem = get_node(
+	strategic_wave_system_path
+)
+@onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _economy: RunEconomy = get_node(run_economy_path)
 @onready var _upgrades: UpgradeSystem = get_node(upgrade_system_path)
 
@@ -32,6 +48,15 @@ func _ready() -> void:
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	_game_flow.run_ended.connect(_on_run_ended)
 	_rewards.reward_granted.connect(_on_reward_granted)
+	_strategic_waves.strategic_enemy_impacted.connect(
+		_on_strategic_enemy_impacted
+	)
+	if _strategic_waves.has_signal(&"strategic_rows_destroyed"):
+		_strategic_waves.connect(
+			&"strategic_rows_destroyed",
+			Callable(self, "_on_strategic_rows_destroyed")
+		)
+	_crew.defender_died.connect(_on_defender_died)
 	_economy.coins_added.connect(_on_coins_added)
 	_economy.coins_spent.connect(_on_coins_spent)
 	_upgrades.offer_opened.connect(_on_offer_opened)
@@ -51,6 +76,25 @@ func get_current_survival_seconds() -> float:
 
 func get_physical_kills() -> int:
 	return _physical_kills
+
+
+func get_strategic_kills() -> int:
+	return _strategic_kills
+
+
+func get_total_kills() -> int:
+	return _physical_kills + _strategic_kills
+
+
+func get_defender_losses() -> int:
+	return _defender_losses
+
+
+func get_current_score() -> int:
+	return RunScoreCalculator.calculate_score(
+		get_current_survival_seconds(),
+		get_total_kills()
+	)
 
 
 func get_earned_coins() -> int:
@@ -88,6 +132,10 @@ func has_final_snapshot() -> bool:
 	return _final_snapshot != null
 
 
+func was_final_score_new_record() -> bool:
+	return _final_score_was_new_record
+
+
 func get_session_completed_runs() -> int:
 	return SessionRecordsStore.get_completed_runs()
 
@@ -98,6 +146,10 @@ func get_session_best_survival_seconds() -> float:
 
 func get_session_best_physical_kills() -> int:
 	return SessionRecordsStore.get_best_physical_kills()
+
+
+func get_session_best_score() -> int:
+	return SessionRecordsStore.get_best_score()
 
 
 func get_persistent_completed_runs() -> int:
@@ -112,14 +164,23 @@ func get_persistent_best_physical_kills() -> int:
 	return PersistentRecords.get_best_physical_kills()
 
 
+func get_persistent_best_score() -> int:
+	return PersistentRecords.get_best_score()
+
+
 func reset_for_run() -> void:
 	_physical_kills = 0
+	_strategic_kills = 0
+	_defender_losses = 0
 	_earned_coins = 0
 	_spent_coins = 0
 	_purchase_timeline.clear()
 	_offer_slot_counts.clear()
 	_specialization_purchase_numbers.clear()
 	_final_snapshot = null
+	_final_score_was_new_record = false
+	_finalization_pending = false
+	_pending_end_reason = &""
 	statistics_reset.emit()
 	statistics_changed.emit(0.0, 0)
 
@@ -127,12 +188,38 @@ func reset_for_run() -> void:
 func _on_reward_granted(
 	_enemy_id: int,
 	_amount: int,
-	_reason: StringName
+	reason: StringName
 ) -> void:
 	if _game_flow.state != GameFlowController.RunState.RUNNING:
 		return
+	if reason == STRATEGIC_SHIELD_REWARD_REASON:
+		return
 	_physical_kills += 1
 	statistics_changed.emit(get_current_survival_seconds(), _physical_kills)
+
+
+func _on_strategic_enemy_impacted(
+	_section_id: int,
+	_damage: float
+) -> void:
+	if _final_snapshot != null:
+		return
+	_strategic_kills += 1
+
+
+func _on_strategic_rows_destroyed(
+	_section_id: int,
+	enemy_count: int
+) -> void:
+	if _final_snapshot != null:
+		return
+	_strategic_kills += maxi(0, enemy_count)
+
+
+func _on_defender_died(_defender_id: int) -> void:
+	if _final_snapshot != null:
+		return
+	_defender_losses += 1
 
 
 func _on_coins_added(amount: int, source: StringName) -> void:
@@ -161,7 +248,9 @@ func _on_offer_opened(
 			if definition.card_type == UpgradeDefinition.CardType.GENERAL
 			else definition.branch_id
 		)
-		_offer_slot_counts[pool_id] = int(_offer_slot_counts.get(pool_id, 0)) + 1
+		_offer_slot_counts[pool_id] = int(
+			_offer_slot_counts.get(pool_id, 0)
+		) + 1
 
 
 func _on_card_selected_by_id(
@@ -189,21 +278,40 @@ func _on_card_selected_by_id(
 
 
 func _on_run_ended(reason: StringName) -> void:
+	if _final_snapshot != null or _finalization_pending:
+		return
+	_finalization_pending = true
+	_pending_end_reason = reason
+	call_deferred("_finalize_run")
+
+
+func _finalize_run() -> void:
+	if not _finalization_pending or _final_snapshot != null:
+		return
+	if _game_flow.state != GameFlowController.RunState.GAME_OVER:
+		_finalization_pending = false
+		_pending_end_reason = &""
+		return
+	_finalization_pending = false
 	_final_snapshot = RunStatisticsSnapshot.new(
 		get_current_survival_seconds(),
 		_physical_kills,
 		_economy.get_coins(),
 		_upgrades.get_completed_purchase_count(),
-		reason,
+		_pending_end_reason,
 		_earned_coins,
 		_spent_coins,
 		_purchase_timeline,
 		_offer_slot_counts,
-		_specialization_purchase_numbers
+		_specialization_purchase_numbers,
+		_strategic_kills,
+		_defender_losses
 	)
+	_pending_end_reason = &""
 	print(_final_snapshot.get_balance_summary_text())
 	SessionRecordsStore.register_result(_final_snapshot)
 	PersistentRecords.register_result(_final_snapshot)
+	_final_score_was_new_record = PersistentRecords.is_latest_score_record()
 	run_finalized.emit(_final_snapshot)
 
 
