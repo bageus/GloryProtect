@@ -1,14 +1,19 @@
 class_name CrewCommandPanelView
 extends RefCounted
 
-const NORMAL_CONTEXT_TOP: float = -330.0
-const DEFENDER_CONTEXT_TOP: float = -640.0
+const NORMAL_CONTEXT_HEIGHT: float = 182.0
+const DEFENDER_CONTEXT_HEIGHT: float = 480.0
+const CONTEXT_BOTTOM_OFFSET: float = -148.0
+const CONTEXT_TOP_MARGIN: float = 12.0
+const CONTEXT_HALF_WIDTH: float = 210.0
 
 var _host: Control
 var _slot_buttons: Array[Button] = []
 var _context_panel: PanelContainer
+var _context_scroll: ScrollContainer
 var _context_box: VBoxContainer
 var _feedback_label: Label
+var _requested_context_height: float = NORMAL_CONTEXT_HEIGHT
 
 
 func build(
@@ -18,8 +23,10 @@ func build(
 	slot_pressed: Callable
 ) -> void:
 	_host = host
-	_host.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	_host.offset_top = -142.0
+	_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not _host.resized.is_connected(_fit_context_panel):
+		_host.resized.connect(_fit_context_panel)
 	_build_side_panel(true, 0, left_slot_count, slot_pressed)
 	_build_side_panel(false, left_slot_count, total_slot_count, slot_pressed)
 	_build_context_panel()
@@ -48,7 +55,7 @@ func rebuild_context(
 	assign_pressed: Callable,
 	close_pressed: Callable
 ) -> void:
-	_prepare_context(NORMAL_CONTEXT_TOP)
+	_prepare_context(NORMAL_CONTEXT_HEIGHT)
 	_add_context_title(String(description["title"]))
 	if not bool(description["available"]):
 		_add_centered_label("Пост появится после получения улучшения")
@@ -74,7 +81,7 @@ func rebuild_defender_type_context(
 	type_pressed: Callable,
 	close_pressed: Callable
 ) -> void:
-	_prepare_context(NORMAL_CONTEXT_TOP)
+	_prepare_context(NORMAL_CONTEXT_HEIGHT)
 	_add_context_title("Защитник %d — тип" % (defender_id + 1))
 	_add_type_buttons(
 		defender_id,
@@ -95,7 +102,7 @@ func rebuild_defender_command_context(
 	free_pressed: Callable,
 	close_pressed: Callable
 ) -> void:
-	_prepare_context(DEFENDER_CONTEXT_TOP)
+	_prepare_context(DEFENDER_CONTEXT_HEIGHT)
 	_add_context_title("Защитник %d" % (defender_id + 1))
 	_add_section_label("ТИП БОЙЦА")
 	_add_type_buttons(
@@ -154,6 +161,10 @@ func get_context_button_texts() -> PackedStringArray:
 	return result
 
 
+func get_context_rect() -> Rect2:
+	return _context_panel.get_rect()
+
+
 func _build_side_panel(
 	is_left: bool,
 	begin: int,
@@ -168,13 +179,13 @@ func _build_side_panel(
 	if is_left:
 		panel.anchor_left = 0.0
 		panel.anchor_right = 0.5
-		panel.offset_left = 8.0
+		panel.offset_left = 0.0
 		panel.offset_right = -96.0
 	else:
 		panel.anchor_left = 0.5
 		panel.anchor_right = 1.0
 		panel.offset_left = 96.0
-		panel.offset_right = -8.0
+		panel.offset_right = 0.0
 	panel.add_theme_stylebox_override("panel", _make_panel_style())
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_host.add_child(panel)
@@ -189,7 +200,7 @@ func _build_side_panel(
 	margin.add_child(row)
 	for slot_index: int in range(begin, end):
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(68.0, 92.0)
+		button.custom_minimum_size = Vector2(56.0, 92.0)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.pressed.connect(slot_pressed.bind(slot_index))
@@ -200,10 +211,7 @@ func _build_side_panel(
 func _build_context_panel() -> void:
 	_context_panel = PanelContainer.new()
 	_context_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	_context_panel.offset_left = -210.0
-	_context_panel.offset_top = NORMAL_CONTEXT_TOP
-	_context_panel.offset_right = 210.0
-	_context_panel.offset_bottom = -148.0
+	_context_panel.offset_bottom = CONTEXT_BOTTOM_OFFSET
 	_context_panel.add_theme_stylebox_override("panel", _make_context_style())
 	_context_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_context_panel.visible = false
@@ -214,9 +222,17 @@ func _build_context_panel() -> void:
 	margin.add_theme_constant_override("margin_right", 12)
 	margin.add_theme_constant_override("margin_bottom", 10)
 	_context_panel.add_child(margin)
+	_context_scroll = ScrollContainer.new()
+	_context_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_context_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	_context_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_context_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(_context_scroll)
 	_context_box = VBoxContainer.new()
+	_context_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_context_box.add_theme_constant_override("separation", 5)
-	margin.add_child(_context_box)
+	_context_scroll.add_child(_context_box)
+	_fit_context_panel()
 
 
 func _build_feedback_label() -> void:
@@ -233,10 +249,32 @@ func _build_feedback_label() -> void:
 	_host.add_child(_feedback_label)
 
 
-func _prepare_context(top_offset: float) -> void:
+func _prepare_context(requested_height: float) -> void:
 	_clear_children(_context_box)
-	_context_panel.offset_top = top_offset
+	_requested_context_height = requested_height
+	_fit_context_panel()
+	_context_scroll.scroll_vertical = 0
 	_context_panel.visible = true
+
+
+func _fit_context_panel() -> void:
+	if _host == null or _context_panel == null:
+		return
+	var host_size: Vector2 = _host.size
+	var available_height: float = _requested_context_height
+	if host_size.y > 0.0:
+		available_height = maxf(
+			160.0,
+			host_size.y + CONTEXT_BOTTOM_OFFSET - CONTEXT_TOP_MARGIN
+		)
+	var panel_height: float = minf(_requested_context_height, available_height)
+	var half_width: float = CONTEXT_HALF_WIDTH
+	if host_size.x > 0.0:
+		half_width = minf(CONTEXT_HALF_WIDTH, maxf(140.0, host_size.x * 0.5 - 12.0))
+	_context_panel.offset_left = -half_width
+	_context_panel.offset_right = half_width
+	_context_panel.offset_bottom = CONTEXT_BOTTOM_OFFSET
+	_context_panel.offset_top = CONTEXT_BOTTOM_OFFSET - panel_height
 
 
 func _add_context_title(text: String) -> void:

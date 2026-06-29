@@ -1,9 +1,13 @@
 class_name StrategicMinimap
 extends Control
 
+const MAP_WIDTH_RATIO: float = 5.0 / 6.0
+
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("StrategicWaveSystem") var wave_system_path: NodePath
 @export_node_path("StrategicWaveDirector") var wave_director_path: NodePath
+@export_node_path("RunEconomy") var run_economy_path: NodePath = NodePath("../../RunEconomy")
+@export_node_path("UpgradeSystem") var upgrade_system_path: NodePath = NodePath("../../UpgradeSystem")
 @export_range(0.1, 4.0, 0.1) var cloud_morph_speed: float = 1.2
 
 var _blink_elapsed: float = 0.0
@@ -12,8 +16,11 @@ var _game_flow: GameFlowController
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 @onready var _waves: StrategicWaveSystem = get_node(wave_system_path)
 @onready var _director: StrategicWaveDirector = get_node(wave_director_path)
+@onready var _economy: RunEconomy = get_node(run_economy_path)
+@onready var _upgrades: UpgradeSystem = get_node(upgrade_system_path)
 @onready var _summary_label: Label = %SummaryLabel
-@onready var _next_wave_label: Label = %NextWaveLabel
+@onready var _coins_label: Label = %CoinsLabel
+@onready var _upgrade_level_label: Label = %UpgradeLevelLabel
 
 
 func _ready() -> void:
@@ -30,33 +37,36 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if _game_flow == null or _game_flow.is_world_simulation_active():
 		_blink_elapsed += maxf(0.0, delta)
-	_summary_label.text = "Волна: %d   |   Группы: %d   |   Враги: %d" % [
-		_director.get_wave_number(),
-		_waves.get_active_group_count(),
-		_waves.get_total_enemy_count(),
-	]
-	_next_wave_label.text = "Следующая: %.1f с   |   размер: %d" % [
-		_director.get_wave_remaining(),
-		_director.get_current_wave_size(),
-	]
+	_summary_label.text = "Волна: %d" % _director.get_wave_number()
+	_coins_label.text = "Монеты: %d" % _economy.get_coins()
+	_upgrade_level_label.text = "Уровень: %d" % (
+		_upgrades.get_current_offer_number()
+	)
 	queue_redraw()
 
 
 func _draw() -> void:
+	var map_width: float = _get_map_width()
 	draw_rect(
-		Rect2(Vector2.ZERO, size),
+		Rect2(Vector2.ZERO, Vector2(map_width, size.y)),
 		Color(0.025, 0.035, 0.055, 0.95),
 		true
 	)
 	draw_line(
 		Vector2(0.0, 27.0),
-		Vector2(size.x, 27.0),
+		Vector2(map_width, 27.0),
 		Color(0.22, 0.32, 0.46, 0.95),
 		1.0
 	)
 	draw_line(
 		Vector2(0.0, size.y - 1.0),
-		Vector2(size.x, size.y - 1.0),
+		Vector2(map_width, size.y - 1.0),
+		Color(0.28, 0.4, 0.56, 0.95),
+		2.0
+	)
+	draw_line(
+		Vector2(map_width, 0.0),
+		Vector2(map_width, size.y),
 		Color(0.28, 0.4, 0.56, 0.95),
 		2.0
 	)
@@ -68,7 +78,9 @@ func _draw() -> void:
 	var lane_bottom: float = size.y - 5.0
 	var shield_bar_height: float = 14.0
 	var shield_bar_y: float = lane_bottom - shield_bar_height
-	var lane_width: float = (size.x - margin_x * 2.0) / float(section_count)
+	var lane_width: float = (
+		map_width - margin_x * 2.0
+	) / float(section_count)
 	_draw_section_lanes(
 		section_count,
 		margin_x,
@@ -91,6 +103,14 @@ func get_visual_kind(enemy_count: int) -> StringName:
 
 func get_visual_elapsed() -> float:
 	return _blink_elapsed
+
+
+func get_map_width() -> float:
+	return _get_map_width()
+
+
+func _get_map_width() -> float:
+	return size.x * MAP_WIDTH_RATIO
 
 
 func _resolve_scene_root() -> Node:

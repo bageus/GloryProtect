@@ -22,6 +22,9 @@ func _run() -> void:
 	var crew_panel := game.get_node(
 		"CanvasLayer/PrototypeHUD/CrewCommandPanel"
 	) as CrewCommandPanelPlacementPolished
+	var minimap := game.get_node(
+		"CanvasLayer/StrategicMinimap"
+	) as StrategicMinimap
 	var economy: RunEconomy = game.get_node("RunEconomy")
 	var upgrade_panel := game.get_node(
 		"CanvasLayer/UpgradeSelectionPanel"
@@ -30,6 +33,9 @@ func _run() -> void:
 	_disable_spawners(game)
 	flow.state = GameFlowController.RunState.RUNNING
 	await process_frame
+
+	_assert_compact_minimap(minimap)
+	_assert_crew_slots_inside_viewport(crew_panel)
 
 	var defender: Defender = crew.get_defender(0)
 	var visual := defender.visual as DefenderVisualPolished
@@ -59,6 +65,7 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(crew_panel._view.is_context_visible())
+	_assert_defender_context_inside_viewport(crew_panel)
 	var buttons: PackedStringArray = _collect_button_texts(
 		crew_panel._view._context_box
 	)
@@ -101,8 +108,55 @@ func _run() -> void:
 		assert(not text.contains("Заблокирует альтернативы"))
 		assert(not text.contains("Нет требований"))
 
-	print("Card, armor, and defender menu scenarios passed")
+	print("Card, armor, defender menu, and compact HUD scenarios passed")
 	quit()
+
+
+func _assert_compact_minimap(minimap: StrategicMinimap) -> void:
+	assert(minimap != null)
+	assert(not minimap.has_node("TitleLabel"))
+	assert(not minimap.has_node("NextWaveLabel"))
+	var summary: Label = minimap.get_node("SummaryLabel") as Label
+	var coins: Label = minimap.get_node(
+		"StatsPanel/Margin/VBox/CoinsLabel"
+	) as Label
+	var level: Label = minimap.get_node(
+		"StatsPanel/Margin/VBox/UpgradeLevelLabel"
+	) as Label
+	assert(summary.text.begins_with("Волна: "))
+	assert(not summary.text.contains("Группы"))
+	assert(not summary.text.contains("Следующая"))
+	assert(not summary.text.contains("размер"))
+	assert(coins.text.begins_with("Монеты: "))
+	assert(level.text.begins_with("Уровень: "))
+	assert(is_equal_approx(
+		minimap.get_map_width(),
+		minimap.size.x * 5.0 / 6.0
+	))
+
+
+func _assert_crew_slots_inside_viewport(
+	crew_panel: CrewCommandPanelPlacementPolished
+) -> void:
+	var host_rect: Rect2 = crew_panel.get_global_rect()
+	for button: Button in crew_panel._view._slot_buttons:
+		_assert_rect_inside(button.get_global_rect(), host_rect)
+
+
+func _assert_defender_context_inside_viewport(
+	crew_panel: CrewCommandPanelPlacementPolished
+) -> void:
+	var host_rect: Rect2 = crew_panel.get_global_rect()
+	var context_rect: Rect2 = crew_panel._view._context_panel.get_global_rect()
+	_assert_rect_inside(context_rect, host_rect)
+
+
+func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
+	const EPSILON := 1.0
+	assert(rect.position.x >= bounds.position.x - EPSILON)
+	assert(rect.position.y >= bounds.position.y - EPSILON)
+	assert(rect.end.x <= bounds.end.x + EPSILON)
+	assert(rect.end.y <= bounds.end.y + EPSILON)
 
 
 func _collect_button_texts(node: Node) -> PackedStringArray:
