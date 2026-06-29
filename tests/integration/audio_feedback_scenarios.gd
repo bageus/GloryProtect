@@ -15,6 +15,7 @@ func _run() -> void:
 
 	var flow: GameFlowController = game.get_node("GameFlowController")
 	var audio := game.get_node("GameAudioController") as GameAudioController
+	var music := game.get_node("GameMusicController") as GameMusicController
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	var replacements: CrewReplacementController = game.get_node(
 		"CrewReplacementController"
@@ -33,6 +34,9 @@ func _run() -> void:
 	var shield_core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
 
 	_disable_spawners(game)
+	music.refresh_music_state_for_tests()
+	assert(music.is_gameplay_music_active())
+	assert(not music.is_game_over_music_active())
 	flow.state = GameFlowController.RunState.RUNNING
 	await process_frame
 
@@ -127,6 +131,16 @@ func _run() -> void:
 	assert(not audio.is_loop_active(GameAudioController.SOUND_PLATFORM_MOVE))
 	assert(not audio.is_loop_active(GameAudioController.SOUND_SHIELD_CHARGE))
 	assert(not audio.is_loop_active(GameAudioController.SOUND_SHIELD_ALERT))
+
+	flow.end_run(&"test")
+	await process_frame
+	assert(not music.is_gameplay_music_active())
+	assert(music.is_game_over_music_active())
+
+	flow.start_run()
+	await process_frame
+	assert(music.is_gameplay_music_active())
+	assert(not music.is_game_over_music_active())
 
 	print("Audio feedback scenarios passed")
 	quit()
