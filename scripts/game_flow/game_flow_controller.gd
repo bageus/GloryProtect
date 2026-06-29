@@ -32,14 +32,12 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if state == RunState.START_DELAY:
-		start_delay_remaining = maxf(0.0, start_delay_remaining - delta)
-		if is_zero_approx(start_delay_remaining):
-			_set_state(RunState.RUNNING)
-			run_started.emit()
-
-	if Input.is_action_just_pressed(&"ui_cancel"):
-		toggle_manual_pause()
+	if state != RunState.START_DELAY:
+		return
+	start_delay_remaining = maxf(0.0, start_delay_remaining - delta)
+	if is_zero_approx(start_delay_remaining):
+		_set_state(RunState.RUNNING)
+		run_started.emit()
 
 
 func start_run() -> void:
@@ -50,11 +48,10 @@ func start_run() -> void:
 
 
 func restart_run() -> void:
-	if state != RunState.GAME_OVER:
-		return
 	restart_requested.emit()
 	get_tree().paused = false
-	get_tree().reload_current_scene()
+	if get_tree().get_first_node_in_group(&"app_shell") == null:
+		get_tree().reload_current_scene()
 
 
 func toggle_manual_pause() -> void:
