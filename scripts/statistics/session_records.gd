@@ -4,6 +4,8 @@ extends RefCounted
 static var _completed_runs: int = 0
 static var _best_survival_seconds: float = 0.0
 static var _best_physical_kills: int = 0
+static var _best_score: int = 0
+static var _latest_score_is_record: bool = false
 
 
 static func register_result(snapshot: RunStatisticsSnapshot) -> void:
@@ -16,6 +18,9 @@ static func register_result(snapshot: RunStatisticsSnapshot) -> void:
 		_best_physical_kills,
 		snapshot.physical_kills
 	)
+	_latest_score_is_record = snapshot.score >= _best_score
+	if _latest_score_is_record:
+		_best_score = snapshot.score
 
 
 static func get_completed_runs() -> int:
@@ -30,7 +35,17 @@ static func get_best_physical_kills() -> int:
 	return _best_physical_kills
 
 
+static func get_best_score() -> int:
+	return _best_score
+
+
+static func is_latest_score_record() -> bool:
+	return _latest_score_is_record
+
+
 static func reset_records() -> void:
 	_completed_runs = 0
 	_best_survival_seconds = 0.0
 	_best_physical_kills = 0
+	_best_score = 0
+	_latest_score_is_record = false
