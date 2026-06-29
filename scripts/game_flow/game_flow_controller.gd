@@ -56,14 +56,15 @@ func restart_run() -> void:
 
 func toggle_manual_pause() -> void:
 	match state:
-		RunState.START_DELAY, RunState.RUNNING:
+		RunState.START_DELAY, RunState.RUNNING, RunState.CARD_SELECTION:
 			_manual_pause_resume_state = state
 			_set_state(RunState.MANUAL_PAUSE)
 			get_tree().paused = true
 			run_paused.emit()
 		RunState.MANUAL_PAUSE:
-			get_tree().paused = false
-			_set_state(_manual_pause_resume_state)
+			var resume_state: RunState = _manual_pause_resume_state
+			get_tree().paused = resume_state == RunState.CARD_SELECTION
+			_set_state(resume_state)
 			run_resumed.emit()
 		_:
 			pass
