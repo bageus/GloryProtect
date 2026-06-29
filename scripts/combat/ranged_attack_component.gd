@@ -69,6 +69,17 @@ func is_busy() -> bool:
 	return phase != Phase.READY
 
 
+func get_phase() -> int:
+	return phase
+
+
+func get_windup_progress() -> float:
+	if phase != Phase.WINDUP or profile == null:
+		return 0.0
+	var duration: float = maxf(0.01, profile.windup_duration)
+	return clampf(1.0 - remaining_time / duration, 0.0, 1.0)
+
+
 func cancel() -> void:
 	phase = Phase.READY
 	remaining_time = 0.0
