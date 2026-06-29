@@ -1,6 +1,9 @@
 class_name CrewCommandPanelView
 extends RefCounted
 
+const NORMAL_CONTEXT_TOP: float = -330.0
+const DEFENDER_CONTEXT_TOP: float = -640.0
+
 var _host: Control
 var _slot_buttons: Array[Button] = []
 var _context_panel: PanelContainer
@@ -45,8 +48,7 @@ func rebuild_context(
 	assign_pressed: Callable,
 	close_pressed: Callable
 ) -> void:
-	_clear_children(_context_box)
-	_context_panel.visible = true
+	_prepare_context(NORMAL_CONTEXT_TOP)
 	_add_context_title(String(description["title"]))
 	if not bool(description["available"]):
 		_add_centered_label("Пост появится после получения улучшения")
@@ -72,22 +74,58 @@ func rebuild_defender_type_context(
 	type_pressed: Callable,
 	close_pressed: Callable
 ) -> void:
-	_clear_children(_context_box)
-	_context_panel.visible = true
+	_prepare_context(NORMAL_CONTEXT_TOP)
 	_add_context_title("Защитник %d — тип" % (defender_id + 1))
-	var melee := Button.new()
-	melee.text = "Ближний бой"
-	melee.disabled = current_role == CrewRole.Id.FREE_FIGHTER
-	melee.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.FREE_FIGHTER))
-	_context_box.add_child(melee)
-	if shooter_unlocked:
-		var shooter := Button.new()
-		shooter.text = "Стрелок"
-		shooter.disabled = current_role == CrewRole.Id.SHOOTER
-		shooter.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.SHOOTER))
-		_context_box.add_child(shooter)
+	_add_type_buttons(
+		defender_id,
+		current_role,
+		shooter_unlocked,
+		type_pressed
+	)
+	_add_close_button(close_pressed)
+
+
+func rebuild_defender_command_context(
+	defender_id: int,
+	current_combat_role: int,
+	shooter_unlocked: bool,
+	post_options: Array[Dictionary],
+	type_pressed: Callable,
+	post_pressed: Callable,
+	free_pressed: Callable,
+	close_pressed: Callable
+) -> void:
+	_prepare_context(DEFENDER_CONTEXT_TOP)
+	_add_context_title("Защитник %d" % (defender_id + 1))
+	_add_section_label("ТИП БОЙЦА")
+	_add_type_buttons(
+		defender_id,
+		current_combat_role,
+		shooter_unlocked,
+		type_pressed
+	)
+	_add_section_label("НАЗНАЧЕНИЕ")
+	var free_button := Button.new()
+	free_button.text = "Свободная боевая ячейка"
+	free_button.pressed.connect(free_pressed.bind(defender_id))
+	_context_box.add_child(free_button)
+	if post_options.is_empty():
+		_add_centered_label("Доступных постов нет")
 	else:
-		_add_centered_label("Тип «Стрелок» ещё не открыт")
+		for option: Dictionary in post_options:
+			var button := Button.new()
+			button.text = String(option["title"])
+			var owner_id: int = int(option.get("owner", -1))
+			var is_current: bool = bool(option.get("current", false))
+			if is_current:
+				button.text += " — текущий"
+			elif owner_id >= 0:
+				button.text += " — занят бойцом %d" % (owner_id + 1)
+			button.disabled = is_current
+			button.pressed.connect(
+				post_pressed.bind(defender_id, int(option["slot"]))
+			)
+			_context_box.add_child(button)
 	_add_close_button(close_pressed)
 
 
@@ -105,6 +143,15 @@ func close_context() -> void:
 
 func is_context_visible() -> bool:
 	return _context_panel.visible
+
+
+func get_context_button_texts() -> PackedStringArray:
+	var result := PackedStringArray()
+	for child: Node in _context_box.get_children():
+		var button: Button = child as Button
+		if button != null:
+			result.append(button.text)
+	return result
 
 
 func _build_side_panel(
@@ -154,7 +201,7 @@ func _build_context_panel() -> void:
 	_context_panel = PanelContainer.new()
 	_context_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_context_panel.offset_left = -210.0
-	_context_panel.offset_top = -330.0
+	_context_panel.offset_top = NORMAL_CONTEXT_TOP
 	_context_panel.offset_right = 210.0
 	_context_panel.offset_bottom = -148.0
 	_context_panel.add_theme_stylebox_override("panel", _make_context_style())
@@ -186,12 +233,60 @@ func _build_feedback_label() -> void:
 	_host.add_child(_feedback_label)
 
 
+func _prepare_context(top_offset: float) -> void:
+	_clear_children(_context_box)
+	_context_panel.offset_top = top_offset
+	_context_panel.visible = true
+
+
 func _add_context_title(text: String) -> void:
 	var title := Label.new()
 	title.text = text
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 17)
 	_context_box.add_child(title)
+
+
+func _add_section_label(text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_color_override("font_color", Color(0.68, 0.82, 1.0))
+	label.add_theme_font_size_override("font_size", 13)
+	_context_box.add_child(label)
+
+
+func _add_type_buttons(
+	defender_id: int,
+	current_role: int,
+	shooter_unlocked: bool,
+	type_pressed: Callable
+) -> void:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	_context_box.add_child(row)
+	var melee := Button.new()
+	melee.text = "Боец"
+	melee.disabled = current_role == CrewRole.Id.FREE_FIGHTER
+	melee.pressed.connect(
+		type_pressed.bind(defender_id, CrewRole.Id.FREE_FIGHTER)
+	)
+	row.add_child(melee)
+	var shooter := Button.new()
+	shooter.text = "Стрелок"
+	shooter.disabled = (
+		not shooter_unlocked or current_role == CrewRole.Id.SHOOTER
+	)
+	shooter.tooltip_text = (
+		""
+		if shooter_unlocked
+		else "Тип «Стрелок» ещё не открыт"
+	)
+	shooter.pressed.connect(
+		type_pressed.bind(defender_id, CrewRole.Id.SHOOTER)
+	)
+	row.add_child(shooter)
 
 
 func _add_centered_label(text: String) -> void:

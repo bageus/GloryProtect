@@ -29,6 +29,25 @@ func request_assignment(
 	super.request_assignment(defender_id, role_id, station_id)
 
 
+func set_combat_role(defender_id: int, role_id: int) -> bool:
+	if not CrewRole.is_combat_role(role_id):
+		return false
+	if role_id == CrewRole.Id.SHOOTER and not _crew.is_shooter_role_unlocked():
+		return false
+	var defender: Defender = _crew.get_defender(defender_id)
+	var runtime: CrewAssignmentRuntime = get_assignment(defender_id)
+	if defender == null or runtime == null or not defender.health.is_alive():
+		return false
+
+	runtime.combat_role = role_id
+	if CrewRole.is_combat_role(runtime.current_role):
+		runtime.current_role = role_id
+	if CrewRole.is_combat_role(runtime.target_role):
+		runtime.target_role = role_id
+	_emit_assignment(runtime)
+	return true
+
+
 func get_combat_role(defender_id: int) -> int:
 	var runtime: CrewAssignmentRuntime = get_assignment(defender_id)
 	if runtime == null or not CrewRole.is_combat_role(runtime.combat_role):

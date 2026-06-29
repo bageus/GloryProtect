@@ -22,19 +22,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if not event is InputEventKey:
 		return
-
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-
-	var section_id := _section_for_key(key_event.keycode)
+	var section_id: int = _section_for_event(key_event)
 	if section_id >= 0:
 		_select_section(section_id)
-	elif key_event.keycode == KEY_SPACE:
+	elif key_event.is_action_pressed(&"gp_shield_damage"):
 		_shield.apply_damage(selected_section_id, balance.debug_damage_amount)
 	else:
 		return
-
 	get_viewport().set_input_as_handled()
 
 
@@ -45,17 +42,11 @@ func _select_section(section_id: int) -> void:
 	selected_section_changed.emit(selected_section_id)
 
 
-func _section_for_key(keycode: Key) -> int:
-	match keycode:
-		KEY_F1:
-			return 0
-		KEY_F2:
-			return 1
-		KEY_F3:
-			return 2
-		KEY_F4:
-			return 3
-		KEY_F5:
-			return 4
-		_:
-			return -1
+func _section_for_event(event: InputEventKey) -> int:
+	for section_id: int in range(5):
+		var action_id := StringName(
+			"gp_shield_section_%d" % (section_id + 1)
+		)
+		if event.is_action_pressed(action_id):
+			return section_id
+	return -1

@@ -203,53 +203,57 @@ func _draw_groups(
 
 func _draw_group_marker(
 	snapshot: StrategicGroupSnapshot,
-	position: Vector2
+	marker_position: Vector2
 ) -> void:
 	var color := Color(0.88, 0.18, 0.18, 0.94)
 	if snapshot.is_impacting:
 		var pulse: float = 0.72 + sin(_blink_elapsed * 8.0) * 0.2
 		color = Color(1.0, 0.32, 0.08, pulse)
-		draw_circle(position, 13.0, Color(1.0, 0.12, 0.04, 0.16))
+		draw_circle(marker_position, 13.0, Color(1.0, 0.12, 0.04, 0.16))
 	match get_visual_kind(snapshot.enemy_count):
 		&"single":
-			_draw_enemy_figure(position, 1.0, color)
+			_draw_enemy_figure(marker_position, 1.0, color)
 		&"pair":
-			_draw_enemy_figure(position + Vector2(-4.0, 1.0), 0.9, color)
 			_draw_enemy_figure(
-				position + Vector2(4.0, -1.0),
+				marker_position + Vector2(-4.0, 1.0),
+				0.9,
+				color
+			)
+			_draw_enemy_figure(
+				marker_position + Vector2(4.0, -1.0),
 				0.9,
 				color.darkened(0.08)
 			)
 		_:
-			_draw_enemy_cloud(snapshot, position, color)
+			_draw_enemy_cloud(snapshot, marker_position, color)
 
 
 func _draw_enemy_figure(
-	position: Vector2,
-	scale: float,
+	figure_position: Vector2,
+	figure_scale: float,
 	color: Color
 ) -> void:
 	draw_circle(
-		position + Vector2(0.0, -2.0) * scale,
-		2.5 * scale,
+		figure_position + Vector2(0.0, -2.0) * figure_scale,
+		2.5 * figure_scale,
 		color
 	)
 	var body := PackedVector2Array([
-		position + Vector2(-3.2, 0.0) * scale,
-		position + Vector2(3.2, 0.0) * scale,
-		position + Vector2(2.0, 4.5) * scale,
-		position + Vector2(-2.0, 4.5) * scale,
+		figure_position + Vector2(-3.2, 0.0) * figure_scale,
+		figure_position + Vector2(3.2, 0.0) * figure_scale,
+		figure_position + Vector2(2.0, 4.5) * figure_scale,
+		figure_position + Vector2(-2.0, 4.5) * figure_scale,
 	])
 	draw_colored_polygon(body, color.darkened(0.08))
 	draw_line(
-		position + Vector2(-1.5, 4.0) * scale,
-		position + Vector2(-2.5, 7.0) * scale,
+		figure_position + Vector2(-1.5, 4.0) * figure_scale,
+		figure_position + Vector2(-2.5, 7.0) * figure_scale,
 		Color(0.16, 0.02, 0.03, 1.0),
 		1.2
 	)
 	draw_line(
-		position + Vector2(1.5, 4.0) * scale,
-		position + Vector2(2.5, 7.0) * scale,
+		figure_position + Vector2(1.5, 4.0) * figure_scale,
+		figure_position + Vector2(2.5, 7.0) * figure_scale,
 		Color(0.16, 0.02, 0.03, 1.0),
 		1.2
 	)
@@ -257,7 +261,7 @@ func _draw_enemy_figure(
 
 func _draw_enemy_cloud(
 	snapshot: StrategicGroupSnapshot,
-	position: Vector2,
+	cloud_position: Vector2,
 	color: Color
 ) -> void:
 	var count_scale: float = sqrt(float(snapshot.enemy_count))
@@ -274,7 +278,7 @@ func _draw_enemy_cloud(
 		)
 		var wobble: float = 1.0 + sin(phase) * 0.12
 		points.append(
-			position + Vector2(
+			cloud_position + Vector2(
 				cos(angle) * radius_x * wobble,
 				sin(angle) * radius_y * (2.0 - wobble)
 			)
@@ -290,13 +294,13 @@ func _draw_enemy_cloud(
 	)
 	var visible_specks: int = mini(snapshot.enemy_count, 6)
 	for index: int in range(visible_specks):
-		var seed: float = float(snapshot.group_id * 17 + index * 11)
+		var speck_seed: float = float(snapshot.group_id * 17 + index * 11)
 		var offset := Vector2(
-			sin(seed * 1.7) * radius_x * 0.55,
-			cos(seed * 2.3) * radius_y * 0.45
+			sin(speck_seed * 1.7) * radius_x * 0.55,
+			cos(speck_seed * 2.3) * radius_y * 0.45
 		)
 		draw_circle(
-			position + offset,
+			cloud_position + offset,
 			1.3,
 			Color(0.2, 0.02, 0.03, 0.9)
 		)
