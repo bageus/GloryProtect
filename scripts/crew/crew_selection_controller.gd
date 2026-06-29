@@ -9,6 +9,7 @@ signal defender_world_clicked(defender_id: int)
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
 
 var selected_defender_id: int = 0
+var _defender_context_handler: Callable
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
@@ -30,6 +31,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_world_click(event as InputEventMouseButton)
 
 
+func set_defender_context_handler(handler: Callable) -> void:
+	_defender_context_handler = handler
+
+
 func select_defender(defender_id: int) -> bool:
 	if _crew.get_defender(defender_id) == null:
 		return false
@@ -46,6 +51,8 @@ func select_defender_at_screen_position(screen_position: Vector2) -> bool:
 	if nearest == null or not select_defender(nearest.defender_id):
 		return false
 	defender_world_clicked.emit(nearest.defender_id)
+	if _defender_context_handler.is_valid():
+		_defender_context_handler.call(nearest.defender_id)
 	return true
 
 
