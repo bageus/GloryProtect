@@ -266,8 +266,8 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	backing.a = 0.4
 	draw_line(start, finish, backing, CHAIN_BACKING_WIDTH, true)
 	for index: int in range(count):
-		var position := start + direction * (step * (float(index) + 0.5))
-		draw_set_transform(position, rotation, Vector2.ONE)
+		var link_position := start + direction * (step * (float(index) + 0.5))
+		draw_set_transform(link_position, rotation, Vector2.ONE)
 		draw_texture_rect_region(
 			CHAIN_TEXTURE,
 			rect,
