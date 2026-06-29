@@ -58,9 +58,11 @@ func _run() -> void:
 	var migrated_file := FileAccess.open(TEST_PATH, FileAccess.READ)
 	assert(migrated_file != null)
 	var migrated_data: Variant = JSON.parse_string(migrated_file.get_as_text())
+	migrated_file = null
 	assert(migrated_data is Dictionary)
-	assert(int((migrated_data as Dictionary)["format_version"]) == 2)
-	assert(int((migrated_data as Dictionary)["score_formula_version"]) == 1)
+	var migrated_dictionary: Dictionary = migrated_data
+	assert(int(migrated_dictionary["format_version"]) == 2)
+	assert(int(migrated_dictionary["score_formula_version"]) == 1)
 
 	var corrupt_file := FileAccess.open(TEST_PATH, FileAccess.WRITE)
 	assert(corrupt_file != null)
