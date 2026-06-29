@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -29,6 +29,7 @@
 [ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual_polished.gd" id="27_buildable_visual"]
 [ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver_polished.gd" id="28_movement"]
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud_polished.gd" id="29_hud"]
+[ext_resource type="Script" path="res://scripts/audio/game_audio_controller.gd" id="30_audio"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -65,6 +66,20 @@ turret_debug_input_path = NodePath("../TurretDebugInput")
 
 [node name="CrewFailureController" parent="."]
 revival_controller_path = NodePath("../World/MedicRevivalController")
+
+[node name="GameAudioController" type="Node" parent="."]
+script = ExtResource("30_audio")
+game_flow_path = NodePath("../GameFlowController")
+crew_manager_path = NodePath("../World/Platform/CrewManager")
+replacement_controller_path = NodePath("../CrewReplacementController")
+enemy_registry_path = NodePath("../World/BoardingEnemyRegistry")
+medical_system_path = NodePath("../World/MedicalStationSystem")
+turret_system_path = NodePath("../World/TurretSystem")
+anchor_system_path = NodePath("../World/AnchorSystem")
+platform_path = NodePath("../World/Platform")
+contact_system_path = NodePath("../World/OrbContactSystem")
+shield_system_path = NodePath("../ShieldSystem")
+shield_core_system_path = NodePath("../World/ShieldCoreSystem")
 
 [node name="GroundOrbRegistry" parent="World"]
 script = ExtResource("19_orb_registry")
