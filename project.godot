@@ -16,7 +16,7 @@ config/features=PackedStringArray("4.6")
 
 [autoload]
 
-AppSettings="*res://scripts/settings/app_settings.gd"
+AppSettingsRuntime="*res://scripts/settings/app_settings.gd"
 PlatformPostLayout="*res://scripts/platform/platform_post_layout.gd"
 
 [display]
