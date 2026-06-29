@@ -40,11 +40,9 @@ func select_defender(defender_id: int) -> bool:
 
 
 func select_defender_at_screen_position(screen_position: Vector2) -> bool:
-	var world_position: Vector2 = (
-		get_viewport().get_canvas_transform().affine_inverse()
-		* screen_position
+	var nearest: Defender = _find_nearest_living_defender_on_screen(
+		screen_position
 	)
-	var nearest: Defender = _find_nearest_living_defender(world_position)
 	if nearest == null or not select_defender(nearest.defender_id):
 		return false
 	defender_world_clicked.emit(nearest.defender_id)
@@ -105,14 +103,18 @@ func _handle_world_click(mouse_event: InputEventMouseButton) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _find_nearest_living_defender(world_position: Vector2) -> Defender:
+func _find_nearest_living_defender_on_screen(
+	screen_position: Vector2
+) -> Defender:
 	var nearest: Defender = null
 	var nearest_distance_squared: float = INF
 	for defender: Defender in _crew.get_living_defenders():
-		var hit_radius: float = defender.visual.body_radius + 12.0
-		var distance_squared: float = defender.global_position.distance_squared_to(
-			world_position
+		var local_position: Vector2 = (
+			defender.get_global_transform_with_canvas().affine_inverse()
+			* screen_position
 		)
+		var hit_radius: float = defender.visual.body_radius + 12.0
+		var distance_squared: float = local_position.length_squared()
 		if distance_squared > hit_radius * hit_radius:
 			continue
 		if distance_squared < nearest_distance_squared:
