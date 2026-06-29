@@ -72,9 +72,26 @@ func load_records() -> Error:
 	if parse_error != OK or not (parser.data is Dictionary):
 		records_changed.emit()
 		return ERR_PARSE_ERROR
-	_records = PersistentRunRecords.from_dictionary(parser.data)
+	var raw_data: Dictionary = parser.data
+	var stored_format_version: int = int(
+		raw_data.get("format_version", raw_data.get("version", 0))
+	)
+	var stored_formula_version: int = int(
+		raw_data.get("score_formula_version", 0)
+	)
+	_records = PersistentRunRecords.from_dictionary(raw_data)
+	var should_persist_migration: bool = (
+		stored_format_version in [0, 1]
+		or (
+			stored_format_version == PersistentRunRecords.CURRENT_FORMAT_VERSION
+			and stored_formula_version != RunScoreCalculator.SCORE_FORMULA_VERSION
+		)
+	)
+	var migration_error: Error = OK
+	if should_persist_migration:
+		migration_error = save_records()
 	records_changed.emit()
-	return OK
+	return migration_error
 
 
 func set_records_path_for_tests(path: String) -> void:
