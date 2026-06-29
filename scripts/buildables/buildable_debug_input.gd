@@ -24,7 +24,11 @@ var selected_cell_index: int = 0
 
 func _ready() -> void:
 	assert(balance != null, "BuildableDebugInput requires BuildableBalance")
-	selected_cell_index = clampi(_get_medical_anchor_cell(), 0, _platform.get_cell_count() - 1)
+	selected_cell_index = clampi(
+		_get_medical_anchor_cell(),
+		0,
+		_platform.get_cell_count() - 1
+	)
 	selected_cell_changed.emit(selected_cell_index)
 
 
@@ -36,21 +40,23 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event := event as InputEventKey
 	if not key_event.pressed or key_event.echo:
 		return
-	match key_event.keycode:
-		KEY_COMMA:
-			_select_cell(selected_cell_index - 1)
-		KEY_PERIOD:
-			_select_cell(selected_cell_index + 1)
-		KEY_B:
-			_unlock_medical_station()
-		KEY_M:
-			_ensure_medical_station()
-		KEY_DELETE:
-			_demolish_medical_station()
-		KEY_H:
-			_roles.request_assignment(_crew_selection.get_selected_defender_id(), CrewRole.Id.MEDIC)
-		_:
-			return
+	if key_event.is_action_pressed(&"gp_cell_previous"):
+		_select_cell(selected_cell_index - 1)
+	elif key_event.is_action_pressed(&"gp_cell_next"):
+		_select_cell(selected_cell_index + 1)
+	elif key_event.is_action_pressed(&"gp_unlock_medical"):
+		_unlock_medical_station()
+	elif key_event.is_action_pressed(&"gp_place_medical"):
+		_ensure_medical_station()
+	elif key_event.is_action_pressed(&"gp_demolish_medical"):
+		_demolish_medical_station()
+	elif key_event.is_action_pressed(&"gp_assign_medic"):
+		_roles.request_assignment(
+			_crew_selection.get_selected_defender_id(),
+			CrewRole.Id.MEDIC
+		)
+	else:
+		return
 	get_viewport().set_input_as_handled()
 
 
@@ -72,7 +78,9 @@ func _select_cell(cell_index: int) -> void:
 
 
 func _unlock_medical_station() -> void:
-	var before: int = _inventory.get_unlocked_count(BuildableType.Id.MEDICAL_STATION)
+	var before: int = _inventory.get_unlocked_count(
+		BuildableType.Id.MEDICAL_STATION
+	)
 	var after: int = _inventory.unlock(BuildableType.Id.MEDICAL_STATION)
 	if after > before:
 		command_feedback.emit(&"medical_station_unlocked")
@@ -88,7 +96,10 @@ func _ensure_medical_station() -> void:
 		return
 	var anchor_cell: int = _get_medical_anchor_cell()
 	_select_cell(anchor_cell)
-	var medical_id: int = _grid.place(BuildableType.Id.MEDICAL_STATION, anchor_cell)
+	var medical_id: int = _grid.place(
+		BuildableType.Id.MEDICAL_STATION,
+		anchor_cell
+	)
 	if medical_id >= 0:
 		command_feedback.emit(&"medical_station_placed")
 	else:
@@ -96,7 +107,9 @@ func _ensure_medical_station() -> void:
 
 
 func _demolish_medical_station() -> void:
-	var medical_id: int = _grid.get_buildable_id_by_type(BuildableType.Id.MEDICAL_STATION)
+	var medical_id: int = _grid.get_buildable_id_by_type(
+		BuildableType.Id.MEDICAL_STATION
+	)
 	if medical_id < 0:
 		command_feedback.emit(&"medical_station_missing")
 		return
