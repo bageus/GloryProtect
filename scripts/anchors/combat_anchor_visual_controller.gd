@@ -84,14 +84,14 @@ func _draw_electric_arcs(
 	var arc := PackedVector2Array()
 	for index: int in range(point_count + 1):
 		var ratio: float = float(index) / float(point_count)
-		var position: Vector2 = start.lerp(finish, ratio)
+		var arc_point: Vector2 = start.lerp(finish, ratio)
 		var envelope: float = sin(ratio * PI)
 		var jitter: float = (
 			sin(phase + float(index) * 2.37)
 			+ sin(phase * 1.73 - float(index) * 1.19) * 0.45
 		)
-		position += normal * jitter * electric_arc_amplitude * envelope
-		arc.append(position)
+		arc_point += normal * jitter * electric_arc_amplitude * envelope
+		arc.append(arc_point)
 	draw_polyline(
 		arc,
 		Color(0.3, 0.82, 1.0, 0.55),
