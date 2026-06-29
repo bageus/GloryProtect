@@ -280,7 +280,7 @@ func _apply_action_binding(action_id: StringName, keycode: int) -> void:
 	if keycode == KEY_NONE:
 		return
 	var input_event := InputEventKey.new()
-	input_event.physical_keycode = keycode
+	input_event.physical_keycode = keycode as Key
 	InputMap.action_add_event(action_id, input_event)
 
 
