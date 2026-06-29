@@ -7,11 +7,15 @@ extends Control
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _statistics: RunStatistics = get_node(run_statistics_path)
 @onready var _reason_label: Label = %ReasonLabel
+@onready var _new_record_label: Label = %NewRecordLabel
+@onready var _score_label: Label = %ScoreLabel
 @onready var _time_label: Label = %TimeLabel
 @onready var _kills_label: Label = %KillsLabel
+@onready var _losses_label: Label = %LossesLabel
 @onready var _coins_label: Label = %CoinsLabel
 @onready var _upgrades_label: Label = %UpgradesLabel
 @onready var _session_label: Label = %SessionLabel
+@onready var _best_score_label: Label = %BestScoreLabel
 @onready var _best_time_label: Label = %BestTimeLabel
 @onready var _best_kills_label: Label = %BestKillsLabel
 @onready var _restart_button: Button = %RestartButton
@@ -37,12 +41,22 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
 	_reason_label.text = _get_reason_text(snapshot.end_reason)
+	_new_record_label.visible = _statistics.was_final_score_new_record()
+	_score_label.text = "Очки: %d  |  бонус за время: +%d" % [
+		snapshot.score,
+		snapshot.score_time_bonus,
+	]
 	_time_label.text = "Время выживания: %s" % _format_duration(
 		snapshot.survival_seconds
 	)
-	_kills_label.text = "Физических врагов уничтожено: %d" % (
-		snapshot.physical_kills
-	)
+	_kills_label.text = (
+		"Уничтожено врагов: %d  |  физических: %d  |  стратегических: %d"
+	) % [
+		snapshot.total_kills,
+		snapshot.physical_kills,
+		snapshot.strategic_kills,
+	]
+	_losses_label.text = "Потери защитников: %d" % snapshot.defender_losses
 	_coins_label.text = "Монет осталось: %d" % snapshot.remaining_coins
 	_upgrades_label.text = "Карточек куплено: %d" % snapshot.purchased_upgrades
 	_session_label.text = (
@@ -51,6 +65,12 @@ func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
 		_statistics.get_session_completed_runs(),
 		_statistics.get_persistent_completed_runs(),
 	]
+	_best_score_label.text = (
+		"Лучшие очки — сессия: %d | за всё время: %d"
+	) % [
+		_statistics.get_session_best_score(),
+		_statistics.get_persistent_best_score(),
+	]
 	_best_time_label.text = (
 		"Лучшее время — сессия: %s | за всё время: %s"
 	) % [
@@ -58,7 +78,7 @@ func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
 		_format_duration(_statistics.get_persistent_best_survival_seconds()),
 	]
 	_best_kills_label.text = (
-		"Лучшие убийства — сессия: %d | за всё время: %d"
+		"Лучшие физические убийства — сессия: %d | за всё время: %d"
 	) % [
 		_statistics.get_session_best_physical_kills(),
 		_statistics.get_persistent_best_physical_kills(),
