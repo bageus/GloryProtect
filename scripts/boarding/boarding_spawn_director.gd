@@ -25,9 +25,7 @@ var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
 @onready var _paths: AnchorPathRegistry = get_node(path_registry_path)
 @onready var _registry: BoardingEnemyRegistry = get_node(enemy_registry_path)
-@onready var _movement_resolver: BoardingMovementResolver = get_node(
-	movement_resolver_path
-)
+@onready var _movement_resolver: BoardingMovementResolver = get_node(movement_resolver_path)
 @onready var _jump_planner: BoardingJumpPlanner = get_node(jump_planner_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _orbs: GroundOrbRegistry = get_node(orb_registry_path)
@@ -68,13 +66,15 @@ func _physics_process(delta: float) -> void:
 
 func get_current_spawn_interval() -> float:
 	return balance.get_spawn_interval_for_difficulty(
-		_difficulty.get_normalized()
+		_difficulty.get_normalized(),
+		_difficulty.get_overtime_tier()
 	)
 
 
 func get_current_ground_limit() -> int:
 	return balance.get_ground_limit_for_difficulty(
-		_difficulty.get_normalized()
+		_difficulty.get_normalized(),
+		_difficulty.get_overtime_tier()
 	)
 
 
@@ -113,9 +113,7 @@ func spawn_debug_archetype(
 	archetype_id: StringName,
 	side: int = 1
 ) -> BoardingEnemy:
-	var archetype: BoardingEnemyArchetype = enemy_catalog.get_archetype(
-		archetype_id
-	)
+	var archetype: BoardingEnemyArchetype = enemy_catalog.get_archetype(archetype_id)
 	if archetype == null:
 		return null
 	return _spawn_enemy(side, archetype)

@@ -124,17 +124,64 @@ func get_completed_hit_count() -> int:
 	return _completed_hits
 
 
+static func is_local_x_on_forward_path(
+	current_x: float,
+	destination_x: float,
+	candidate_x: float,
+	epsilon: float = 0.01
+) -> bool:
+	var travel: float = destination_x - current_x
+	if absf(travel) <= epsilon:
+		return false
+	var offset: float = candidate_x - current_x
+	if absf(offset) <= epsilon:
+		return true
+	if signf(offset) != signf(travel):
+		return false
+	return absf(offset) <= absf(travel) + epsilon
+
+
 func _update_moving_assignment_combat() -> void:
-	var target: BoardingEnemy = _enemies.get_nearest_boarded_enemy(
-		_defender.global_position,
-		_balance.defender_attack_range
-	)
+	var target: BoardingEnemy = _get_moving_assignment_target()
 	if target == null:
 		_defender.movement.resume()
 		return
 
 	_defender.movement.pause()
 	_try_start_attack(target)
+
+
+func _get_moving_assignment_target() -> BoardingEnemy:
+	var current_local_x: float = _defender.position.x
+	var destination_local_x: float = _defender.movement.get_target_x()
+	var selected: BoardingEnemy = null
+	var selected_distance: float = INF
+	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
+		if enemy == null or not enemy.health.is_alive():
+			continue
+		var enemy_local_x: float = (
+			enemy.global_position.x - _platform.global_position.x
+		)
+		if not is_local_x_on_forward_path(
+			current_local_x,
+			destination_local_x,
+			enemy_local_x
+		):
+			continue
+		var distance: float = absf(enemy_local_x - current_local_x)
+		if distance > _balance.defender_attack_range:
+			continue
+		if distance > selected_distance:
+			continue
+		if (
+			is_equal_approx(distance, selected_distance)
+			and selected != null
+			and enemy.enemy_id > selected.enemy_id
+		):
+			continue
+		selected = enemy
+		selected_distance = distance
+	return selected
 
 
 func _try_start_attack(target: BoardingEnemy) -> bool:

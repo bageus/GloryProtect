@@ -14,6 +14,7 @@ var platform: PlatformController
 var crew: CrewManager
 var registry: BoardingEnemyRegistry
 var melee: MeleeAttackComponent
+var _last_platform_x: float = 0.0
 
 
 func setup(
@@ -43,15 +44,19 @@ func _on_configured() -> void:
 	assert(registry != null, "FlyingEnemyBehavior requires registry")
 	assert(melee != null, "FlyingEnemyBehavior requires melee")
 	state = State.FLYING
+	_last_platform_x = platform.global_position.x
 	_set_air_domain()
 	publish_visual_state(&"flying")
 
 
 func _on_stopped() -> void:
 	melee.cancel()
+	if platform != null:
+		_last_platform_x = platform.global_position.x
 
 
 func _tick_behavior(delta: float) -> void:
+	_apply_platform_displacement()
 	melee.tick(delta)
 	var target: Defender = crew.get_nearest_living_defender(enemy.global_position)
 	if target == null:
@@ -153,6 +158,15 @@ func _set_state(new_state: int) -> void:
 			publish_visual_state(&"boarded")
 		State.ATTACKING:
 			publish_visual_state(&"attacking")
+
+
+func _apply_platform_displacement() -> void:
+	var current_platform_x: float = platform.global_position.x
+	var displacement_x: float = current_platform_x - _last_platform_x
+	_last_platform_x = current_platform_x
+	if state not in [State.BOARDED, State.ATTACKING]:
+		return
+	enemy.global_position.x += displacement_x
 
 
 func _get_separation_velocity() -> Vector2:

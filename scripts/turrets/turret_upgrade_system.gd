@@ -35,6 +35,7 @@ func apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
 func reset_upgrade_runtime() -> void:
 	upgrades.reset()
 	for runtime: TurretRuntime in _runtimes.values():
+		_release_reservation(runtime)
 		runtime.reset_combat_state()
 
 
@@ -94,6 +95,16 @@ func _update_runtime(runtime: TurretRuntime, delta: float) -> void:
 	_begin_shot(runtime, target)
 
 
+func _begin_shot(runtime: TurretRuntime, target: BoardingEnemy) -> void:
+	if not _enemies.reserve_pending_damage(
+		target.enemy_id,
+		_reservation_key(runtime),
+		get_current_damage()
+	):
+		return
+	super._begin_shot(runtime, target)
+
+
 func _complete_shot(runtime: TurretRuntime) -> void:
 	var target_enemy_id: int = runtime.target_enemy_id
 	var target: BoardingEnemy = _enemies.get_enemy(target_enemy_id)
@@ -116,6 +127,14 @@ func _complete_shot(runtime: TurretRuntime) -> void:
 				runtime.is_next_shot_fifth(),
 				runtime.is_next_volley_fifth()
 			) > 0
+	if hit:
+		_enemies.consume_pending_damage(
+			target_enemy_id,
+			_reservation_key(runtime),
+			get_current_damage()
+		)
+	else:
+		_release_reservation(runtime)
 	_roles.set_external_role_action_active(
 		runtime.operator_id,
 		CrewRole.Id.TURRET,
@@ -130,6 +149,24 @@ func _cancel_runtime_action(runtime: TurretRuntime) -> void:
 		_cancel_shot(runtime)
 	elif runtime.is_volley_active():
 		runtime.cancel_shot()
+
+
+func _cancel_shot(runtime: TurretRuntime) -> void:
+	_release_reservation(runtime)
+	super._cancel_shot(runtime)
+
+
+func _release_reservation(runtime: TurretRuntime) -> void:
+	if runtime.target_enemy_id < 0:
+		return
+	_enemies.release_pending_damage(
+		runtime.target_enemy_id,
+		_reservation_key(runtime)
+	)
+
+
+func _reservation_key(runtime: TurretRuntime) -> StringName:
+	return StringName("turret_%d" % runtime.buildable_id)
 
 
 func _on_upgrade_run_state_changed(previous_state: int, new_state: int) -> void:

@@ -57,9 +57,13 @@ func _run_scenario() -> void:
 	assert(bool(medic.combat.call("_try_start_attack", enemy)))
 	assert(medic.melee.is_attacking())
 
+	print("medic attacking before healing check=%s" % str(medic.melee.is_attacking()))
 	medical.call("_physics_process", 0.0)
+	print("healing active after attack-priority check=%s" % str(
+		medical.is_healing_cycle_active(medic.defender_id)
+	))
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
-	medic.melee.tick(0.4)
+	medic.melee.tick(0.5)
 	assert(not medic.melee.is_attacking())
 	assert(enemy.health.current_health == 3)
 

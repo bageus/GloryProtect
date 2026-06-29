@@ -4,5 +4,7 @@
 
 [resource]
 script = ExtResource("1_balance")
-seconds_to_max_difficulty = 600.0
+seconds_to_max_difficulty = 720.0
 growth_exponent = 1.0
+overtime_step_seconds = 120.0
+maximum_overtime_tier = 6

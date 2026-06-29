@@ -22,6 +22,7 @@ func _run_scenarios() -> void:
 
 	assert(game_flow.state == GameFlowController.RunState.START_DELAY)
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), 0.0))
+	assert(difficulty.get_overtime_tier() == 0)
 	var start_delay_spawn_remaining: float = spawn.get_spawn_remaining()
 	await _wait_physics_frames(5)
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), 0.0))
@@ -39,9 +40,10 @@ func _run_scenarios() -> void:
 	await _wait_process_frames(5)
 	assert(difficulty.get_elapsed_seconds() > 0.0)
 
-	difficulty.set_debug_elapsed_seconds(300.0)
+	difficulty.set_debug_elapsed_seconds(360.0)
 	var midpoint: float = difficulty.get_normalized()
 	assert(is_equal_approx(midpoint, 0.5))
+	assert(difficulty.get_overtime_tier() == 0)
 	assert(spawn.get_current_ground_limit() == roundi(lerpf(
 		float(spawn.balance.max_ground_enemies),
 		float(spawn.balance.maximum_ground_enemies),
@@ -72,12 +74,20 @@ func _run_scenarios() -> void:
 		paused_spawn_remaining
 	))
 
-	difficulty.set_debug_elapsed_seconds(600.0)
+	difficulty.set_debug_elapsed_seconds(719.0)
+	assert(difficulty.get_overtime_tier() == 0)
+	difficulty.set_debug_elapsed_seconds(720.0)
 	assert(is_equal_approx(difficulty.get_normalized(), 1.0))
-	assert(spawn.get_current_ground_limit() == spawn.balance.maximum_ground_enemies)
+	assert(difficulty.get_overtime_tier() == 1)
+	assert(
+		spawn.get_current_ground_limit()
+		== spawn.balance.maximum_ground_enemies
+		+ spawn.balance.overtime_ground_limit_per_tier
+	)
 	assert(is_equal_approx(
 		spawn.get_current_spawn_interval(),
 		spawn.balance.minimum_spawn_interval
+		* spawn.balance.overtime_spawn_interval_multiplier
 	))
 
 	game_flow.end_run(&"test_restart")
@@ -85,6 +95,7 @@ func _run_scenarios() -> void:
 	await process_frame
 	assert(is_equal_approx(difficulty.get_elapsed_seconds(), 0.0))
 	assert(is_equal_approx(difficulty.get_normalized(), 0.0))
+	assert(difficulty.get_overtime_tier() == 0)
 	assert(spawn.get_current_ground_limit() == spawn.balance.max_ground_enemies)
 	assert(is_equal_approx(
 		spawn.get_current_spawn_interval(),

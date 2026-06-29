@@ -45,6 +45,25 @@ func get_cooldown_duration() -> float:
 	return _cooldown_duration
 
 
+func get_phase() -> int:
+	return _phase
+
+
+func get_windup_duration() -> float:
+	return _locked_windup_duration if _phase == Phase.WINDUP else _windup_duration
+
+
+func get_remaining_time() -> float:
+	return maxf(0.0, _remaining_time)
+
+
+func get_windup_progress() -> float:
+	if _phase != Phase.WINDUP:
+		return 0.0
+	var duration: float = maxf(0.01, _locked_windup_duration)
+	return clampf(1.0 - _remaining_time / duration, 0.0, 1.0)
+
+
 func tick(delta: float) -> void:
 	if _phase == Phase.READY:
 		return

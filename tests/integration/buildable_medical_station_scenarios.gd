@@ -26,36 +26,40 @@ func _run_scenarios() -> void:
 	medical.balance.heal_interval = 0.12
 	medical.balance.heal_range = 1000.0
 
-	var medical_cells: Array[int] = grid.balance.get_medical_footprint_cells()
-	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
-	assert(medical_cells == [6, 7])
-	assert(medical_anchor == 6)
+	var allowed_cells: Array[int] = grid.balance.get_medical_cell_indices()
+	var first_cell: int = 3
+	var second_cell: int = 12
+	assert(allowed_cells.has(first_cell))
+	assert(allowed_cells.has(second_cell))
+	assert(grid.balance.get_medical_footprint_cells(first_cell) == [first_cell])
+	assert(grid.balance.get_medical_footprint_cells(second_cell) == [second_cell])
+	assert(not grid.balance.is_reserved_cell(6))
+	assert(not grid.balance.is_reserved_cell(7))
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, first_cell) == -1)
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION) == 1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_cells[1]) == -1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 12) == -1)
 
 	var medical_id: int = grid.place(
 		BuildableType.Id.MEDICAL_STATION,
-		medical_anchor
+		first_cell
 	)
 	assert(medical_id >= 0)
 	await process_frame
 	assert(medical.has_station())
 	assert(roles.is_role_station_available(CrewRole.Id.MEDIC))
-	assert(grid.get_buildable_id_at_cell(medical_cells[0]) == medical_id)
-	assert(grid.get_buildable_id_at_cell(medical_cells[1]) == medical_id)
-	assert(not grid.move(medical_id, 12))
-	assert(not grid.move(medical_id, 13))
+	assert(grid.get_buildable_id_at_cell(first_cell) == medical_id)
+	assert(grid.get_buildable_id_at_cell(first_cell + 1) == -1)
+	assert(grid.move(medical_id, second_cell))
+	await process_frame
+	assert(grid.get_buildable_id_at_cell(first_cell) == -1)
+	assert(grid.get_buildable_id_at_cell(second_cell) == medical_id)
 
 	var medical_snapshot: BuildableSnapshot = grid.get_snapshot(medical_id)
-	assert(medical_snapshot.cell_index == medical_anchor)
-	var expected_x := (
-		platform.get_cell_local_x(medical_cells[0])
-		+ platform.get_cell_local_x(medical_cells[1])
-	) * 0.5
-	assert(is_equal_approx(medical_snapshot.local_x, expected_x))
+	assert(medical_snapshot.cell_index == second_cell)
+	assert(is_equal_approx(
+		medical_snapshot.local_x,
+		platform.get_cell_local_x(second_cell)
+	))
 
 	roles.request_assignment(0, CrewRole.Id.MEDIC)
 	await _wait_for_role(roles, 0, CrewRole.Id.MEDIC, 240)
@@ -96,12 +100,10 @@ func _run_scenarios() -> void:
 	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
 	assert(first_target.health.current_health == 2)
 	assert(inventory.is_unlocked(BuildableType.Id.MEDICAL_STATION))
-	assert(grid.get_buildable_id_at_cell(medical_cells[0]) == -1)
-	assert(grid.get_buildable_id_at_cell(medical_cells[1]) == -1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 12) == -1)
-	assert(grid.place(BuildableType.Id.MEDICAL_STATION, medical_anchor) >= 0)
+	assert(grid.get_buildable_id_at_cell(second_cell) == -1)
+	assert(grid.place(BuildableType.Id.MEDICAL_STATION, 7) >= 0)
 
-	print("Fixed medical station service-zone scenarios passed")
+	print("Single-cell medical station placement scenarios passed")
 	quit()
 
 

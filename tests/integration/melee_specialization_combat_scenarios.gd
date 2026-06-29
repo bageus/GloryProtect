@@ -27,12 +27,12 @@ func _test_duelist_double_attack_is_sequential() -> void:
 	target.health.configure(5)
 
 	assert(bool(defender.combat.call("_try_start_attack", target)))
-	defender.melee.tick(0.4)
+	defender.melee.tick(0.5)
 	assert(target.health.current_health == 4)
 	assert(defender.melee.is_attacking())
 	assert(defender.combat.get_completed_hit_count() == 1)
 
-	defender.melee.tick(0.4)
+	defender.melee.tick(0.5)
 	assert(target.health.current_health == 3)
 	assert(not defender.melee.is_attacking())
 	assert(defender.combat.get_completed_hit_count() == 2)
@@ -58,7 +58,7 @@ func _test_assault_hits_forward_group_and_rear_enemy() -> void:
 	var rear: BoardingEnemy = _spawn_boarded_enemy(director, -30.0)
 
 	assert(bool(defender.combat.call("_try_start_attack", primary)))
-	defender.melee.tick(0.4)
+	defender.melee.tick(0.5)
 	assert(primary.health.current_health == 1)
 	assert(behind_one.health.current_health == 2)
 	assert(behind_two.health.current_health == 2)
@@ -90,7 +90,7 @@ func _test_heavy_fifth_hit_bashes_two_enemies() -> void:
 
 	for _hit: int in range(5):
 		assert(bool(defender.combat.call("_try_start_attack", primary)))
-		defender.melee.tick(0.4)
+		defender.melee.tick(0.5)
 		defender.melee.tick(defender.melee.get_cooldown_duration() + 0.01)
 
 	assert(defender.combat.get_completed_hit_count() == 5)

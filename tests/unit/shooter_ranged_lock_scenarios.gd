@@ -5,7 +5,7 @@ func _init() -> void:
 
 func _run() -> void:
 	_test_locked_target()
-	_test_invalid_target()
+	_test_dead_target_before_launch_returns_ready()
 	print("Shooter ranged lock scenarios passed")
 	quit()
 
@@ -26,7 +26,7 @@ func _test_locked_target() -> void:
 	second.get_parent().queue_free()
 	ranged.queue_free()
 
-func _test_invalid_target() -> void:
+func _test_dead_target_before_launch_returns_ready() -> void:
 	var owner := Node2D.new()
 	root.add_child(owner)
 	var first := _target(Vector2(100, 0), 1)
@@ -35,10 +35,11 @@ func _test_invalid_target() -> void:
 	assert(ranged.try_start(first))
 	first.apply_damage(1)
 	ranged.tick(0.1)
-	ranged.tick(0.1)
 	assert(first.current_health == 0)
 	assert(second.current_health == 3)
-	assert(ranged.phase == RangedAttackComponent.Phase.COOLDOWN)
+	assert(ranged.phase == RangedAttackComponent.Phase.READY)
+	assert(ranged.remaining_time == 0.0)
+	assert(ranged.try_start(second))
 	owner.queue_free()
 	first.get_parent().queue_free()
 	second.get_parent().queue_free()

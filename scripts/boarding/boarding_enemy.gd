@@ -171,6 +171,7 @@ func kill(reason: StringName) -> void:
 		behavior.stop()
 	controller.stop()
 	melee.cancel()
+	visual.detach_for_death()
 	visible = false
 	died.emit(enemy_id, reason)
 	call_deferred("queue_free")

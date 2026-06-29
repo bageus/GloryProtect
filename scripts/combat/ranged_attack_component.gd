@@ -23,6 +23,7 @@ var locked_target: HealthComponent
 var projectile_position := Vector2.ZERO
 var projectile_target_position := Vector2.ZERO
 var _remaining_follow_up_shots: int = 0
+var _launched_shots_in_sequence: int = 0
 
 
 func configure(
@@ -55,6 +56,7 @@ func try_start_sequence(target: HealthComponent, shot_count: int) -> bool:
 		return false
 	locked_target = target
 	_remaining_follow_up_shots = shot_count - 1
+	_launched_shots_in_sequence = 0
 	_begin_windup()
 	return true
 
@@ -67,6 +69,17 @@ func is_busy() -> bool:
 	return phase != Phase.READY
 
 
+func get_phase() -> int:
+	return phase
+
+
+func get_windup_progress() -> float:
+	if phase != Phase.WINDUP or profile == null:
+		return 0.0
+	var duration: float = maxf(0.01, profile.windup_duration)
+	return clampf(1.0 - remaining_time / duration, 0.0, 1.0)
+
+
 func cancel() -> void:
 	phase = Phase.READY
 	remaining_time = 0.0
@@ -74,6 +87,7 @@ func cancel() -> void:
 	projectile_position = Vector2.ZERO
 	projectile_target_position = Vector2.ZERO
 	_remaining_follow_up_shots = 0
+	_launched_shots_in_sequence = 0
 
 
 func _physics_process(delta: float) -> void:
@@ -105,15 +119,22 @@ func _tick_windup(delta: float) -> void:
 	if remaining_time > 0.0:
 		return
 	if not is_instance_valid(locked_target) or not locked_target.is_alive():
-		_finish_sequence()
+		if _launched_shots_in_sequence == 0:
+			_abort_before_first_projectile()
+		else:
+			_finish_sequence()
 		return
 	var target_node: Node2D = locked_target.get_parent() as Node2D
 	if target_node == null:
-		_finish_sequence()
+		if _launched_shots_in_sequence == 0:
+			_abort_before_first_projectile()
+		else:
+			_finish_sequence()
 		return
 	projectile_position = owner_node.global_position
 	projectile_target_position = target_node.global_position
 	phase = Phase.PROJECTILE
+	_launched_shots_in_sequence += 1
 	projectile_launched.emit(locked_target, projectile_position, projectile_target_position)
 
 
@@ -139,6 +160,18 @@ func _tick_cooldown(delta: float) -> void:
 		return
 	phase = Phase.READY
 	locked_target = null
+	_launched_shots_in_sequence = 0
+
+
+func _abort_before_first_projectile() -> void:
+	phase = Phase.READY
+	remaining_time = 0.0
+	locked_target = null
+	projectile_position = Vector2.ZERO
+	projectile_target_position = Vector2.ZERO
+	_remaining_follow_up_shots = 0
+	_launched_shots_in_sequence = 0
+	attack_finished.emit()
 
 
 func _finish_sequence() -> void:

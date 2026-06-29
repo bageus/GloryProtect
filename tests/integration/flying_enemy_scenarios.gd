@@ -27,6 +27,7 @@ func _run_scenarios() -> void:
 
 	await _test_flight_without_anchors(director, registry, platform)
 	await _test_landing_before_melee(director, registry, platform, crew)
+	await _test_landed_enemy_follows_platform(director, platform, crew)
 	await _test_pause_stops_flight(game_flow, director)
 	await _test_turret_contract(director, registry)
 	await _test_shared_death_flow(director, registry)
@@ -94,6 +95,38 @@ func _test_landing_before_melee(
 			break
 		await physics_frame
 	assert(target.health.current_health < health_before)
+	enemy.kill(&"test_cleanup")
+	await _wait_physics_frames(3)
+
+
+func _test_landed_enemy_follows_platform(
+	director: FlyingEnemySpawnDirector,
+	platform: PlatformController,
+	crew: CrewManager
+) -> void:
+	var target: Defender = crew.get_defender(0)
+	var enemy: BoardingEnemy = director.spawn_now(1)
+	var behavior := enemy.behavior as FlyingEnemyBehavior
+	assert(behavior != null)
+	enemy.global_position = Vector2(
+		target.global_position.x,
+		platform.global_position.y - director.profile.hover_height
+	)
+	for _frame: int in range(180):
+		if behavior.is_landed():
+			break
+		await physics_frame
+	assert(behavior.is_landed())
+	await _wait_physics_frames(2)
+	var relative_x_before: float = (
+		enemy.global_position.x - platform.global_position.x
+	)
+	platform.position.x += 120.0
+	await _wait_physics_frames(2)
+	var relative_x_after: float = (
+		enemy.global_position.x - platform.global_position.x
+	)
+	assert(absf(relative_x_after - relative_x_before) <= 1.0)
 	enemy.kill(&"test_cleanup")
 	await _wait_physics_frames(3)
 

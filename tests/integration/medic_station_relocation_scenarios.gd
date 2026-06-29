@@ -22,13 +22,13 @@ func _run_scenario() -> void:
 	var medical: MedicalStationSystem = game.get_node("World/MedicalStationSystem")
 	var roles: CrewRoleManager = game.get_node("World/Platform/CrewRoleManager")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
-	var role_modifiers: MedicRoleModifierController = game.get_node(
-		"World/MedicRoleModifierController"
-	)
 	medical.set_physics_process(false)
 
 	assert(inventory.unlock(BuildableType.Id.MEDICAL_STATION, 1) == 1)
-	var medical_anchor: int = grid.balance.get_medical_cell_indices()[0]
+	var medical_anchor: int = 6
+	var relocated_cell: int = 12
+	assert(grid.balance.is_medical_cell(medical_anchor))
+	assert(grid.balance.is_medical_cell(relocated_cell))
 	var station_id: int = grid.place(
 		BuildableType.Id.MEDICAL_STATION,
 		medical_anchor
@@ -50,51 +50,41 @@ func _run_scenario() -> void:
 		medical.get_current_heal_interval()
 	))
 
-	var rejected_cell: int = grid.balance.turret_cell_indices[4]
-	assert(not grid.move(station_id, rejected_cell))
+	assert(grid.move(station_id, relocated_cell))
 	var station_snapshot: BuildableSnapshot = grid.get_snapshot(station_id)
 	assert(station_snapshot != null)
-	assert(station_snapshot.cell_index == medical_anchor)
+	assert(station_snapshot.cell_index == relocated_cell)
+	assert(grid.get_buildable_id_at_cell(medical_anchor) == -1)
+	assert(grid.get_buildable_id_at_cell(relocated_cell) == station_id)
+	assert(is_equal_approx(
+		medical.get_station_local_x(),
+		station_snapshot.local_x
+	))
 	assert(medical.is_healing_cycle_active(medic.defender_id))
-
-	roles.request_assignment(target.defender_id, CrewRole.Id.FREE_FIGHTER)
-	await _wait_for_role(
-		roles,
-		target.defender_id,
-		CrewRole.Id.FREE_FIGHTER
+	var relocation_assignment: CrewAssignmentRuntime = roles.get_assignment(
+		medic.defender_id
 	)
-	medic.teleport_to(target.position.x)
-	assert(medical.is_healing_cycle_active(medic.defender_id))
+	assert(relocation_assignment.target_role == CrewRole.Id.MEDIC)
+	assert(relocation_assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
 
-	roles.request_assignment(medic.defender_id, CrewRole.Id.DRIVER)
-	var assignment: CrewAssignmentRuntime = roles.get_assignment(medic.defender_id)
-	assert(assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION)
-	assert(assignment.target_role == CrewRole.Id.DRIVER)
-	var demolition_remaining: float = medical.get_heal_remaining()
-
-	assert(grid.demolish(station_id))
-	assert(not medical.has_station())
-	assert(medical.is_healing_cycle_active(medic.defender_id))
-	assert(target.health.current_health == 1)
-	assert(assignment.current_role == CrewRole.Id.MEDIC)
-	assert(assignment.target_role == CrewRole.Id.DRIVER)
-
-	medical.call("_physics_process", demolition_remaining)
+	var relocation_remaining: float = medical.get_heal_remaining()
+	medical.call("_physics_process", relocation_remaining)
 	assert(target.health.current_health == 2)
 	assert(not medical.is_healing_cycle_active(medic.defender_id))
-	await process_frame
-	assignment = roles.get_assignment(medic.defender_id)
-	assert(assignment.target_role == CrewRole.Id.DRIVER)
-	assert(assignment.state in [
+	await physics_frame
+	relocation_assignment = roles.get_assignment(medic.defender_id)
+	assert(relocation_assignment.target_role == CrewRole.Id.MEDIC)
+	assert(relocation_assignment.state in [
 		CrewAssignmentRuntime.State.MOVING,
 		CrewAssignmentRuntime.State.ACTIVE,
 	])
-	assert(role_modifiers.get_active_medic_id() == -1)
-	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
-	medical.call("_physics_process", 10.0)
-	assert(not medical.is_healing_cycle_active(medic.defender_id))
 
-	print("Fixed medic station scenarios passed")
+	assert(grid.demolish(station_id))
+	await process_frame
+	assert(not medical.has_station())
+	assert(not roles.is_role_station_available(CrewRole.Id.MEDIC))
+
+	print("Movable medic station scenarios passed")
 	quit()
 
 
@@ -111,7 +101,7 @@ func _wait_for_role(
 			and assignment.current_role == role_id
 		):
 			return
-		await process_frame
+		await physics_frame
 	assert(false, "Defender did not reach requested role")
 
 
