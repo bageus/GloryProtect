@@ -2,12 +2,14 @@ class_name CrewSelectionController
 extends Node
 
 signal selected_defender_changed(defender_id: int)
+signal defender_world_clicked(defender_id: int)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
 @export_node_path("CrewRoleManager") var role_manager_path: NodePath
 
 var selected_defender_id: int = 0
+var _defender_context_handler: Callable
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
@@ -29,12 +31,28 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_world_click(event as InputEventMouseButton)
 
 
+func set_defender_context_handler(handler: Callable) -> void:
+	_defender_context_handler = handler
+
+
 func select_defender(defender_id: int) -> bool:
 	if _crew.get_defender(defender_id) == null:
 		return false
 	selected_defender_id = defender_id
 	_apply_selection_visuals()
 	selected_defender_changed.emit(selected_defender_id)
+	return true
+
+
+func select_defender_at_screen_position(screen_position: Vector2) -> bool:
+	var nearest: Defender = _find_nearest_living_defender_on_screen(
+		screen_position
+	)
+	if nearest == null or not select_defender(nearest.defender_id):
+		return false
+	defender_world_clicked.emit(nearest.defender_id)
+	if _defender_context_handler.is_valid():
+		_defender_context_handler.call(nearest.defender_id)
 	return true
 
 
@@ -84,26 +102,28 @@ func _handle_keyboard(key_event: InputEventKey) -> void:
 func _handle_world_click(mouse_event: InputEventMouseButton) -> void:
 	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
 		return
-	var world_position: Vector2 = (
-		get_viewport().get_canvas_transform().affine_inverse()
-		* mouse_event.position
-	)
+	if select_defender_at_screen_position(mouse_event.position):
+		get_viewport().set_input_as_handled()
+
+
+func _find_nearest_living_defender_on_screen(
+	screen_position: Vector2
+) -> Defender:
 	var nearest: Defender = null
 	var nearest_distance_squared: float = INF
 	for defender: Defender in _crew.get_living_defenders():
-		var hit_radius: float = defender.visual.body_radius + 12.0
-		var distance_squared: float = defender.global_position.distance_squared_to(
-			world_position
+		var local_position: Vector2 = (
+			defender.get_global_transform_with_canvas().affine_inverse()
+			* screen_position
 		)
+		var hit_radius: float = defender.visual.body_radius + 12.0
+		var distance_squared: float = local_position.length_squared()
 		if distance_squared > hit_radius * hit_radius:
 			continue
 		if distance_squared < nearest_distance_squared:
 			nearest = defender
 			nearest_distance_squared = distance_squared
-	if nearest == null:
-		return
-	if select_defender(nearest.defender_id):
-		get_viewport().set_input_as_handled()
+	return nearest
 
 
 func _apply_selection_visuals() -> void:
