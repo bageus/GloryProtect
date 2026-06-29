@@ -29,6 +29,8 @@ var _offer_slot_counts: Dictionary[StringName, int] = {}
 var _specialization_purchase_numbers: Array[int] = []
 var _final_snapshot: RunStatisticsSnapshot = null
 var _final_score_was_new_record: bool = false
+var _finalization_pending: bool = false
+var _pending_end_reason: StringName = &""
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _difficulty: RunDifficulty = get_node(run_difficulty_path)
@@ -176,6 +178,8 @@ func reset_for_run() -> void:
 	_specialization_purchase_numbers.clear()
 	_final_snapshot = null
 	_final_score_was_new_record = false
+	_finalization_pending = false
+	_pending_end_reason = &""
 	statistics_reset.emit()
 	statistics_changed.emit(0.0, 0)
 
@@ -195,7 +199,7 @@ func _on_strategic_enemy_impacted(
 	_section_id: int,
 	_damage: float
 ) -> void:
-	if _game_flow.state != GameFlowController.RunState.RUNNING:
+	if _final_snapshot != null:
 		return
 	_strategic_kills += 1
 
@@ -204,7 +208,7 @@ func _on_strategic_rows_destroyed(
 	_section_id: int,
 	enemy_count: int
 ) -> void:
-	if _game_flow.state != GameFlowController.RunState.RUNNING:
+	if _final_snapshot != null:
 		return
 	_strategic_kills += maxi(0, enemy_count)
 
@@ -271,12 +275,27 @@ func _on_card_selected_by_id(
 
 
 func _on_run_ended(reason: StringName) -> void:
+	if _final_snapshot != null or _finalization_pending:
+		return
+	_finalization_pending = true
+	_pending_end_reason = reason
+	call_deferred("_finalize_run")
+
+
+func _finalize_run() -> void:
+	if not _finalization_pending or _final_snapshot != null:
+		return
+	if _game_flow.state != GameFlowController.RunState.GAME_OVER:
+		_finalization_pending = false
+		_pending_end_reason = &""
+		return
+	_finalization_pending = false
 	_final_snapshot = RunStatisticsSnapshot.new(
 		get_current_survival_seconds(),
 		_physical_kills,
 		_economy.get_coins(),
 		_upgrades.get_completed_purchase_count(),
-		reason,
+		_pending_end_reason,
 		_earned_coins,
 		_spent_coins,
 		_purchase_timeline,
@@ -285,6 +304,7 @@ func _on_run_ended(reason: StringName) -> void:
 		_strategic_kills,
 		_defender_losses
 	)
+	_pending_end_reason = &""
 	print(_final_snapshot.get_balance_summary_text())
 	SessionRecordsStore.register_result(_final_snapshot)
 	PersistentRecords.register_result(_final_snapshot)
