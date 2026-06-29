@@ -63,6 +63,25 @@ func get_rendered_card_count() -> int:
 	return _cards_container.get_child_count()
 
 
+func get_offer_text() -> String:
+	return _offer_label.text
+
+
+func get_mode_text() -> String:
+	return _mode_label.text
+
+
+func get_cost_text() -> String:
+	return _cost_label.text
+
+
+func get_rendered_card_text(card_index: int) -> String:
+	if card_index < 0 or card_index >= _cards_container.get_child_count():
+		return ""
+	var button: Button = _cards_container.get_child(card_index) as Button
+	return button.text if button != null else ""
+
+
 func _on_offer_opened(
 	_offer_number: int,
 	_cost: int,
@@ -85,18 +104,16 @@ func _on_progress_reset() -> void:
 func _show_current_offer() -> void:
 	z_index = MODAL_Z_INDEX
 	visible = true
-	_offer_label.text = "ВЫБЕРИТЕ КАРТОЧКУ — ВЫДАЧА %d" % (
-		_upgrades.get_current_offer_number()
-	)
-	_cost_label.text = "Стоимость: %d монет" % _upgrades.get_current_cost()
+	_offer_label.text = "Уровень %d" % _upgrades.get_current_offer_number()
+	_cost_label.text = "%d" % _upgrades.get_current_cost()
 	if _upgrades.is_specialization_offer():
-		_mode_label.text = "СОБЫТИЕ СПЕЦИАЛИЗАЦИИ — %s" % (
+		_mode_label.text = "СПЕЦИАЛИЗАЦИЯ — %s" % (
 			UpgradeCardFormatter.get_branch_name(
 				_upgrades.get_specialization_offer_branch()
 			)
 		)
 	else:
-		_mode_label.text = "ОБЫЧНОЕ ПРЕДЛОЖЕНИЕ"
+		_mode_label.text = "УЛУЧШЕНИЯ"
 	_rebuild_card_buttons()
 	_refresh_diagnostics()
 
@@ -118,7 +135,7 @@ func _rebuild_card_buttons() -> void:
 		button.name = "Card%s" % String(card_id)
 		button.custom_minimum_size = Vector2(300.0, 360.0)
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.text = _build_card_text(card_index, definition)
+		button.text = _build_card_text(definition)
 		button.disabled = _selection_pending
 		button.pressed.connect(
 			_submit_card.bind(card_id, offer_number)
@@ -126,12 +143,8 @@ func _rebuild_card_buttons() -> void:
 		_cards_container.add_child(button)
 
 
-func _build_card_text(
-	card_index: int,
-	definition: UpgradeDefinition
-) -> String:
+func _build_card_text(definition: UpgradeDefinition) -> String:
 	var lines := PackedStringArray([
-		"%d" % (card_index + 1),
 		definition.title,
 		"%s • %s" % [
 			UpgradeCardFormatter.get_branch_name(definition.branch_id),
@@ -139,16 +152,13 @@ func _build_card_text(
 		],
 		"",
 		definition.description,
-		"",
-		"ЭФФЕКТ",
-		UpgradeCardFormatter.get_effect_summary(definition.effect),
-		"",
-		"ТРЕБОВАНИЯ",
-		UpgradeCardFormatter.get_requirements_text(
-			definition,
-			_upgrades.get_runtime()
-		),
 	])
+	var effect_text: String = UpgradeCardFormatter.get_effect_summary(
+		definition.effect
+	)
+	if not effect_text.is_empty():
+		lines.append("")
+		lines.append(effect_text)
 	var repeat_text: String = UpgradeCardFormatter.get_repeat_text(
 		definition,
 		_upgrades.get_runtime()
@@ -156,12 +166,6 @@ func _build_card_text(
 	if not repeat_text.is_empty():
 		lines.append("")
 		lines.append(repeat_text)
-	var lock_text: String = UpgradeCardFormatter.get_specialization_lock_text(
-		definition
-	)
-	if not lock_text.is_empty():
-		lines.append("")
-		lines.append(lock_text)
 	return "\n".join(lines)
 
 
