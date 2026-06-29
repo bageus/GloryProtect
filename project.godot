@@ -4,18 +4,19 @@
 ;
 ; Format:
 ;   [section] ; section goes between []
-;   param=value ; assign values to parameters
+;   param=value
 
 config_version=5
 
 [application]
 
 config/name="GloryProtect"
-run/main_scene="res://scenes/game/game_root_with_flyers.tscn"
+run/main_scene="res://scenes/app/app_shell.tscn"
 config/features=PackedStringArray("4.6")
 
 [autoload]
 
+AppSettings="*res://scripts/settings/app_settings.gd"
 PlatformPostLayout="*res://scripts/platform/platform_post_layout.gd"
 
 [display]
