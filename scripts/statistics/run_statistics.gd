@@ -6,6 +6,7 @@ signal run_finalized(snapshot: RunStatisticsSnapshot)
 signal statistics_reset
 
 const GENERAL_POOL_ID: StringName = &"general"
+const STRATEGIC_SHIELD_REWARD_REASON: StringName = &"strategic_shield_impact"
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
@@ -187,9 +188,11 @@ func reset_for_run() -> void:
 func _on_reward_granted(
 	_enemy_id: int,
 	_amount: int,
-	_reason: StringName
+	reason: StringName
 ) -> void:
 	if _game_flow.state != GameFlowController.RunState.RUNNING:
+		return
+	if reason == STRATEGIC_SHIELD_REWARD_REASON:
 		return
 	_physical_kills += 1
 	statistics_changed.emit(get_current_survival_seconds(), _physical_kills)
