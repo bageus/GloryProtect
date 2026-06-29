@@ -14,11 +14,13 @@ Issue #192 introduces an application shell around the existing gameplay scene.
 
 `GameFlowController` remains the owner of run state. The shell opens the pause menu by requesting `MANUAL_PAUSE` through `toggle_manual_pause()` and resumes through the same API. Gameplay systems continue to read `is_world_simulation_active()`.
 
+If the menu is opened over card selection, `GameFlowController` remembers `CARD_SELECTION`. Closing the menu returns to the still-paused card screen rather than resuming world simulation.
+
 The game-over panel still requests `GameFlowController.restart_run()`. When an application shell exists, its `restart_requested` signal replaces the gameplay node. Standalone test scenes without the shell retain the legacy `reload_current_scene()` fallback.
 
 ## Settings ownership
 
-`AppSettingsService` is an autoload named `AppSettingsRuntime`. It owns the version-independent user values stored in `user://settings.cfg`:
+`AppSettingsService` is an autoload named `AppSettingsRuntime`. It owns the user values stored in `user://settings.cfg`:
 
 - overall Effects volume;
 - overall Music/Soundtrack volume;
@@ -45,7 +47,7 @@ The platform steering provider also accepts the old `ui_left` and `ui_right` act
 
 `WorldShakeController` listens to `AnchorSystem.anchor_recovery_started` and reacts only when the source is `wind_overload`.
 
-The effect changes the viewport canvas transform for a short decaying shake. It does not change world-node positions, velocities, collision state, or anchor geometry. CanvasLayer UI remains fixed. Manual removal and durability destruction by enemies do not trigger this effect.
+The effect changes the viewport canvas transform for a short decaying shake. It does not change world-node positions, velocities, collision state, or anchor geometry. CanvasLayer UI remains fixed. Manual removal and durability destruction by enemies do not trigger this effect. Multiple simultaneous overload breaks extend the shake without replacing its original rest transform.
 
 ## Headless behavior
 
