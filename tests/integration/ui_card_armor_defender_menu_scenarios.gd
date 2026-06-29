@@ -35,13 +35,23 @@ func _run() -> void:
 	var visual := defender.visual as DefenderVisualPolished
 	assert(visual != null)
 	assert(visual.get_max_armor_segments() == 0)
+	assert(not visual.has_visible_armor_segments())
 	defender.durability.set_max_armor(3)
 	await process_frame
 	assert(visual.get_max_armor_segments() == 3)
 	assert(visual.get_current_armor_segments() == 3)
+	assert(visual.has_visible_armor_segments())
 	defender.health.apply_damage(1, &"test_armor_ui")
 	await process_frame
 	assert(visual.get_current_armor_segments() == 2)
+	defender.health.apply_damage(2, &"test_armor_ui_empty")
+	await process_frame
+	assert(visual.get_current_armor_segments() == 0)
+	assert(not visual.has_visible_armor_segments())
+	defender.durability.restore_armor(1)
+	await process_frame
+	assert(visual.get_current_armor_segments() == 1)
+	assert(visual.has_visible_armor_segments())
 
 	assert(crew.apply_shooter_flag(&"shooter_role_unlocked"))
 	assert(selection.select_defender_at_screen_position(
@@ -49,7 +59,9 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(crew_panel._view.is_context_visible())
-	var buttons: PackedStringArray = crew_panel._view.get_context_button_texts()
+	var buttons: PackedStringArray = _collect_button_texts(
+		crew_panel._view._context_box
+	)
 	assert(buttons.has("Боец"))
 	assert(buttons.has("Стрелок"))
 	assert(buttons.has("Свободная боевая ячейка"))
@@ -91,6 +103,16 @@ func _run() -> void:
 
 	print("Card, armor, and defender menu scenarios passed")
 	quit()
+
+
+func _collect_button_texts(node: Node) -> PackedStringArray:
+	var result := PackedStringArray()
+	var button: Button = node as Button
+	if button != null:
+		result.append(button.text)
+	for child: Node in node.get_children():
+		result.append_array(_collect_button_texts(child))
+	return result
 
 
 func _contains_button_prefix(
