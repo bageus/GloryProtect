@@ -30,12 +30,16 @@ func _run() -> void:
 
 	assert(records.register_result(_snapshot(180.0, 8)))
 	assert(records.latest_score_is_record)
-	assert(records.register_result(_snapshot(90.0, 20)))
+	assert(records.best_score == 1880)
+	assert(records.register_result(_snapshot(170.0, 18)))
 	assert(records.latest_score_is_record)
-	assert(records.completed_runs == 5)
+	assert(records.best_score == 1880)
+	assert(records.register_result(_snapshot(90.0, 20)))
+	assert(not records.latest_score_is_record)
+	assert(records.completed_runs == 6)
 	assert(is_equal_approx(records.best_survival_seconds, 180.0))
 	assert(records.best_physical_kills == 20)
-	assert(records.best_score == 1100)
+	assert(records.best_score == 1880)
 
 	var encoded: Dictionary = records.to_dictionary()
 	assert(int(encoded["format_version"]) == 2)
@@ -43,10 +47,10 @@ func _run() -> void:
 	var restored := PersistentRunRecords.from_dictionary(encoded)
 	assert(restored.format_version == PersistentRunRecords.CURRENT_FORMAT_VERSION)
 	assert(restored.score_formula_version == 1)
-	assert(restored.completed_runs == 5)
+	assert(restored.completed_runs == 6)
 	assert(is_equal_approx(restored.best_survival_seconds, 180.0))
 	assert(restored.best_physical_kills == 20)
-	assert(restored.best_score == 1100)
+	assert(restored.best_score == 1880)
 	assert(not restored.latest_score_is_record)
 
 	var migrated_v1 := PersistentRunRecords.from_dictionary({
