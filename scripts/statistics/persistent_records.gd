@@ -26,6 +26,10 @@ func get_format_version() -> int:
 	return _records.format_version
 
 
+func get_score_formula_version() -> int:
+	return _records.score_formula_version
+
+
 func get_completed_runs() -> int:
 	return _records.completed_runs
 
@@ -36,6 +40,14 @@ func get_best_survival_seconds() -> float:
 
 func get_best_physical_kills() -> int:
 	return _records.best_physical_kills
+
+
+func get_best_score() -> int:
+	return _records.best_score
+
+
+func is_latest_score_record() -> bool:
+	return _records.latest_score_is_record
 
 
 func save_records() -> Error:
