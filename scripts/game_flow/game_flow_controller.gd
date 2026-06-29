@@ -48,10 +48,15 @@ func start_run() -> void:
 
 
 func restart_run() -> void:
+	var scene_tree: SceneTree = get_tree()
+	if scene_tree == null:
+		return
 	restart_requested.emit()
-	get_tree().paused = false
-	if get_tree().get_first_node_in_group(&"app_shell") == null:
-		get_tree().reload_current_scene()
+	# The application shell may detach this controller while handling the signal.
+	# Keep using the captured SceneTree instead of calling get_tree() again.
+	scene_tree.paused = false
+	if scene_tree.get_first_node_in_group(&"app_shell") == null:
+		scene_tree.reload_current_scene()
 
 
 func toggle_manual_pause() -> void:
