@@ -10,6 +10,7 @@ const MEDIC_FALLBACK_TEXTURE: Texture2D = preload(
 
 var _animation: CharacterAnimationController = CharacterAnimationController.new()
 var _ranged: RangedAttackComponent
+var _durability: DefenderDurabilityComponent
 var _medic_source_rect: Rect2
 var _presentation_state_id: StringName = &"idle"
 
@@ -17,10 +18,15 @@ var _presentation_state_id: StringName = &"idle"
 func _ready() -> void:
 	super._ready()
 	_ranged = get_node("../RangedAttackComponent") as RangedAttackComponent
+	_durability = get_node(
+		"../DefenderDurabilityComponent"
+	) as DefenderDurabilityComponent
 	_medic_source_rect = _get_cached_alpha_bounds(MEDIC_FALLBACK_TEXTURE)
 	if _ranged != null:
 		_ranged.attack_started.connect(_on_ranged_attack_started)
 		_ranged.attack_finished.connect(_on_ranged_attack_finished)
+	if _durability != null:
+		_durability.armor_changed.connect(_on_armor_changed)
 	_animation.play(&"idle", WARRIOR_IDLE_TEXTURES.size(), idle_frame_rate)
 	_sync_base_animation_fields()
 
@@ -75,6 +81,14 @@ func get_health_bar_raise() -> float:
 	return driver_health_bar_raise if _is_live_driver() else 0.0
 
 
+func get_current_armor_segments() -> int:
+	return _durability.get_current_armor() if _durability != null else 0
+
+
+func get_max_armor_segments() -> int:
+	return _durability.get_max_armor() if _durability != null else 0
+
+
 func _draw() -> void:
 	var bob_offset: float = 0.0
 	if _presentation_state_id == &"heal":
@@ -90,6 +104,39 @@ func _draw_health_segments(asset_rect: Rect2) -> void:
 	var adjusted_rect := asset_rect
 	adjusted_rect.position.y -= get_health_bar_raise()
 	super._draw_health_segments(adjusted_rect)
+	_draw_armor_segments(adjusted_rect)
+
+
+func _draw_armor_segments(asset_rect: Rect2) -> void:
+	if _durability == null:
+		return
+	var max_armor: int = _durability.get_max_armor()
+	if max_armor <= 0:
+		return
+	var current_armor: int = _durability.get_current_armor()
+	var segment_width: float = 8.0
+	var segment_height: float = 4.0
+	var gap: float = 2.0
+	var total_width: float = (
+		float(max_armor) * segment_width
+		+ float(max_armor - 1) * gap
+	)
+	var start_x: float = asset_rect.get_center().x - total_width * 0.5
+	var health_y: float = asset_rect.position.y - 8.0
+	var armor_y: float = health_y - segment_height - 3.0
+	for index: int in range(max_armor):
+		var rect := Rect2(
+			Vector2(
+				start_x + float(index) * (segment_width + gap),
+				armor_y
+			),
+			Vector2(segment_width, segment_height)
+		)
+		var fill := Color(0.12, 0.19, 0.28)
+		if index < current_armor:
+			fill = Color(0.28, 0.7, 1.0)
+		draw_rect(rect, fill, true)
+		draw_rect(rect, Color(0.72, 0.88, 1.0), false, 1.0)
 
 
 func _get_current_texture() -> Texture2D:
@@ -227,6 +274,10 @@ func _on_ranged_attack_started(target: HealthComponent) -> void:
 func _on_ranged_attack_finished() -> void:
 	if _state == AnimationState.ATTACK:
 		_presentation_state_id = &"idle"
+
+
+func _on_armor_changed(_current_armor: int, _max_armor: int) -> void:
+	queue_redraw()
 
 
 func _is_live_driver() -> bool:
