@@ -54,6 +54,9 @@ var _trigger_counts: Dictionary[StringName, int] = {}
 var _loop_states: Dictionary[StringName, bool] = {}
 var _loop_players: Dictionary[StringName, AudioStreamPlayer] = {}
 
+@onready var _settings: AppSettingsService = get_node(
+	"/root/AppSettings"
+) as AppSettingsService
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
 @onready var _replacements: CrewReplacementController = get_node(replacement_controller_path)
@@ -71,8 +74,10 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_create_loop_players()
 	_connect_system_signals()
-	if not AppSettings.audio_settings_changed.is_connected(_on_audio_settings_changed):
-		AppSettings.audio_settings_changed.connect(_on_audio_settings_changed)
+	if not _settings.audio_settings_changed.is_connected(
+		_on_audio_settings_changed
+	):
+		_settings.audio_settings_changed.connect(_on_audio_settings_changed)
 	call_deferred("_connect_existing_defenders")
 	_apply_audio_mix()
 	_sync_loops()
@@ -98,7 +103,7 @@ func is_loop_active(sound_id: StringName) -> bool:
 
 
 func get_effective_sound_volume(sound_id: StringName) -> float:
-	return AppSettings.get_effects_volume() * AppSettings.get_sound_volume(sound_id)
+	return _settings.get_effects_volume() * _settings.get_sound_volume(sound_id)
 
 
 func get_loaded_sound_ids() -> Array[StringName]:
@@ -135,7 +140,7 @@ func _register_loop(sound_id: StringName, source: AudioStream) -> void:
 	var player := AudioStreamPlayer.new()
 	player.name = "Loop%s" % String(sound_id).to_pascal_case()
 	player.stream = _make_loop_stream(source)
-	player.bus = String(AppSettings.EFFECTS_BUS)
+	player.bus = String(AppSettingsService.EFFECTS_BUS)
 	player.volume_db = _get_sound_volume_db(sound_id, loop_volume_db)
 	add_child(player)
 	_loop_players[sound_id] = player
@@ -242,7 +247,7 @@ func _play_one_shot(sound_id: StringName, stream: AudioStream) -> void:
 	var player := AudioStreamPlayer.new()
 	player.name = "OneShot%s" % String(sound_id).to_pascal_case()
 	player.stream = stream
-	player.bus = String(AppSettings.EFFECTS_BUS)
+	player.bus = String(AppSettingsService.EFFECTS_BUS)
 	player.volume_db = _get_sound_volume_db(sound_id, one_shot_volume_db)
 	player.finished.connect(player.queue_free)
 	add_child(player)
@@ -251,7 +256,7 @@ func _play_one_shot(sound_id: StringName, stream: AudioStream) -> void:
 
 
 func _get_sound_volume_db(sound_id: StringName, base_db: float) -> float:
-	var value: float = AppSettings.get_sound_volume(sound_id)
+	var value: float = _settings.get_sound_volume(sound_id)
 	if value <= 0.0001:
 		return -80.0
 	return base_db + linear_to_db(value)
@@ -260,7 +265,7 @@ func _get_sound_volume_db(sound_id: StringName, base_db: float) -> float:
 func _apply_audio_mix() -> void:
 	for sound_id: StringName in _loop_players:
 		var player: AudioStreamPlayer = _loop_players[sound_id]
-		player.bus = String(AppSettings.EFFECTS_BUS)
+		player.bus = String(AppSettingsService.EFFECTS_BUS)
 		player.volume_db = _get_sound_volume_db(sound_id, loop_volume_db)
 
 
