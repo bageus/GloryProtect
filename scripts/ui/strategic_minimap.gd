@@ -6,8 +6,8 @@ const MAP_WIDTH_RATIO: float = 5.0 / 6.0
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("StrategicWaveSystem") var wave_system_path: NodePath
 @export_node_path("StrategicWaveDirector") var wave_director_path: NodePath
-@export_node_path("RunEconomy") var run_economy_path: NodePath
-@export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
+@export_node_path("RunEconomy") var run_economy_path: NodePath = NodePath("../../RunEconomy")
+@export_node_path("UpgradeSystem") var upgrade_system_path: NodePath = NodePath("../../UpgradeSystem")
 @export_range(0.1, 4.0, 0.1) var cloud_morph_speed: float = 1.2
 
 var _blink_elapsed: float = 0.0
