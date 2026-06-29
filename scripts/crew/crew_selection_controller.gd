@@ -2,6 +2,7 @@ class_name CrewSelectionController
 extends Node
 
 signal selected_defender_changed(defender_id: int)
+signal defender_world_clicked(defender_id: int)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
@@ -107,6 +108,7 @@ func _handle_world_click(mouse_event: InputEventMouseButton) -> void:
 	if nearest == null:
 		return
 	if select_defender(nearest.defender_id):
+		defender_world_clicked.emit(nearest.defender_id)
 		get_viewport().set_input_as_handled()
 
 
