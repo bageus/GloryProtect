@@ -17,6 +17,7 @@ config/features=PackedStringArray("4.6")
 [autoload]
 
 AppSettingsRuntime="*res://scripts/settings/app_settings.gd"
+PersistentRecordsRuntime="*res://scripts/statistics/persistent_records.gd"
 PlatformPostLayout="*res://scripts/platform/platform_post_layout.gd"
 
 [display]

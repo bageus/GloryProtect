@@ -100,6 +100,18 @@ func get_session_best_physical_kills() -> int:
 	return SessionRecordsStore.get_best_physical_kills()
 
 
+func get_persistent_completed_runs() -> int:
+	return PersistentRecords.get_completed_runs()
+
+
+func get_persistent_best_survival_seconds() -> float:
+	return PersistentRecords.get_best_survival_seconds()
+
+
+func get_persistent_best_physical_kills() -> int:
+	return PersistentRecords.get_best_physical_kills()
+
+
 func reset_for_run() -> void:
 	_physical_kills = 0
 	_earned_coins = 0
@@ -191,6 +203,7 @@ func _on_run_ended(reason: StringName) -> void:
 	)
 	print(_final_snapshot.get_balance_summary_text())
 	SessionRecordsStore.register_result(_final_snapshot)
+	PersistentRecords.register_result(_final_snapshot)
 	run_finalized.emit(_final_snapshot)
 
 

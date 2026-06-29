@@ -45,15 +45,24 @@ func _on_run_finalized(snapshot: RunStatisticsSnapshot) -> void:
 	)
 	_coins_label.text = "Монет осталось: %d" % snapshot.remaining_coins
 	_upgrades_label.text = "Карточек куплено: %d" % snapshot.purchased_upgrades
-	_session_label.text = "Забегов в текущем запуске: %d" % (
-		_statistics.get_session_completed_runs()
-	)
-	_best_time_label.text = "Лучшее время: %s" % _format_duration(
-		_statistics.get_session_best_survival_seconds()
-	)
-	_best_kills_label.text = "Лучший результат по убийствам: %d" % (
-		_statistics.get_session_best_physical_kills()
-	)
+	_session_label.text = (
+		"Завершённые забеги — сессия: %d | всего: %d"
+	) % [
+		_statistics.get_session_completed_runs(),
+		_statistics.get_persistent_completed_runs(),
+	]
+	_best_time_label.text = (
+		"Лучшее время — сессия: %s | за всё время: %s"
+	) % [
+		_format_duration(_statistics.get_session_best_survival_seconds()),
+		_format_duration(_statistics.get_persistent_best_survival_seconds()),
+	]
+	_best_kills_label.text = (
+		"Лучшие убийства — сессия: %d | за всё время: %d"
+	) % [
+		_statistics.get_session_best_physical_kills(),
+		_statistics.get_persistent_best_physical_kills(),
+	]
 	visible = true
 	_restart_button.grab_focus()
 
