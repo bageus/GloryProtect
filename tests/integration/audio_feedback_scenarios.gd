@@ -40,15 +40,16 @@ func _run() -> void:
 	assert(audio.get_loaded_sound_ids().size() == 13)
 
 	var defender: Defender = crew.get_defender(0)
-	defender.melee.attack_started.emit(null)
+	var target: Defender = crew.get_defender(1)
+	defender.melee.attack_started.emit(target.health)
 	assert(audio.get_trigger_count(
 		GameAudioController.SOUND_DEFENDER_ATTACK
 	) == 1)
 
 	defender.ranged.projectile_launched.emit(
-		null,
-		Vector2.ZERO,
-		Vector2.ONE
+		target.health,
+		defender.global_position,
+		target.global_position
 	)
 	assert(audio.get_trigger_count(
 		GameAudioController.SOUND_SHOOTER_ATTACK
