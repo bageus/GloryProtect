@@ -78,8 +78,8 @@ func _fit_occupied_console_size(source_rect: Rect2) -> Vector2:
 func _draw_empty_driver_console() -> void:
 	var source_rect: Rect2 = _empty_captain_post_source_rect
 	var target_height: float = empty_console_size.y
-	var scale: float = target_height / maxf(1.0, source_rect.size.y)
-	var target_size := source_rect.size * scale
+	var height_scale: float = target_height / maxf(1.0, source_rect.size.y)
+	var target_size := source_rect.size * height_scale
 	if target_size.x > empty_console_size.x:
 		target_size *= empty_console_size.x / target_size.x
 	var bottom: Vector2 = _get_driver_console_bottom()
