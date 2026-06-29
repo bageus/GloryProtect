@@ -1,6 +1,26 @@
 class_name BoardingEnemyVisual
 extends Node2D
 
+const ENEMY1_IDLE_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy1_idle.png"
+)
+const ENEMY1_RUN_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy1_run.png"
+)
+const ENEMY1_ATTACK_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy1_attack.png"
+)
+const ENEMY1_JUMP_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy1_jump.png"
+)
+const ENEMY1_DIE_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy1_die.png"
+)
+const ENEMY1_CLIMB_ATLAS: Texture2D = preload(
+	"res://visual/enemies/Enemy1/asset_atlas_enemy_climb&fell.png"
+)
+const ATLAS_FRAME_SIZE := Vector2(256.0, 256.0)
+
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("BoardingEnemyController") var controller_path: NodePath
 @export_group("Animation")
@@ -11,6 +31,7 @@ extends Node2D
 @export_range(1.0, 30.0, 0.5) var jump_frame_rate: float = 10.0
 @export_range(1.0, 30.0, 0.5) var flying_frame_rate: float = 8.0
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 8.0
+@export_range(32.0, 128.0, 1.0) var atlas_asset_height: float = 72.0
 
 var _body_radius: float = 12.0
 var _body_color: Color = Color(0.92, 0.24, 0.2)
@@ -30,12 +51,12 @@ var _melee: MeleeAttackComponent
 
 func _ready() -> void:
 	_enemy = get_parent() as BoardingEnemy
+	_melee = get_node("../MeleeAttackComponent") as MeleeAttackComponent
 	if _enemy != null:
-		_melee = _enemy.melee
 		_enemy.visual_state_changed.connect(_on_enemy_visual_state_changed)
 	_last_global_x = global_position.x
 	_health.health_changed.connect(_on_health_changed)
-	_animation.play(&"idle", 4, idle_frame_rate)
+	_animation.play(&"idle", 6, idle_frame_rate)
 	queue_redraw()
 
 
@@ -79,7 +100,7 @@ func detach_for_death() -> void:
 	_health = null
 	_enemy = null
 	_melee = null
-	_animation.play(&"death", 4, death_frame_rate, false, true)
+	_animation.play(&"death", _get_frame_count(&"death"), death_frame_rate, false, true)
 	queue_redraw()
 
 
@@ -89,6 +110,10 @@ func get_presentation_state_id() -> StringName:
 
 func get_animation_frame() -> int:
 	return _animation.get_frame_index()
+
+
+func get_archetype_id() -> StringName:
+	return _archetype_id
 
 
 func is_facing_right() -> bool:
@@ -121,8 +146,7 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 			return &"jump"
 		BoardingEnemyController.State.ON_PLATFORM:
 			return &"run" if absf(movement_delta) > 0.05 else &"idle"
-		BoardingEnemyController.State.WAITING_WITHOUT_PATH, \
-		BoardingEnemyController.State.RUNNING_TO_ANCHOR:
+		BoardingEnemyController.State.WAITING_WITHOUT_PATH, BoardingEnemyController.State.RUNNING_TO_ANCHOR:
 			return &"run"
 		_:
 			return &"idle"
@@ -130,28 +154,47 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 
 func _update_animation(state_id: StringName, delta: float) -> void:
 	_presentation_state_id = state_id
+	var frame_count: int = _get_frame_count(state_id)
 	match state_id:
 		&"run":
-			_animation.play(&"run", 6, run_frame_rate)
+			_animation.play(&"run", frame_count, run_frame_rate)
 			_animation.tick(delta)
 		&"attack":
-			_animation.play(&"attack", 6, attack_frame_rate, false)
+			_animation.play(&"attack", frame_count, attack_frame_rate, false)
 			_animation.set_normalized_progress(_get_attack_progress())
 		&"climb":
-			_animation.play(&"climb", 3, climb_frame_rate)
+			_animation.play(&"climb", frame_count, climb_frame_rate)
 			_animation.tick(delta)
 		&"jump":
-			_animation.play(&"jump", 6, jump_frame_rate, false)
+			_animation.play(&"jump", frame_count, jump_frame_rate, false)
 			_animation.tick(delta)
 		&"flying":
-			_animation.play(&"flying", 6, flying_frame_rate)
+			_animation.play(&"flying", frame_count, flying_frame_rate)
 			_animation.tick(delta)
 		&"landing":
-			_animation.play(&"landing", 4, flying_frame_rate, false)
+			_animation.play(&"landing", frame_count, flying_frame_rate, false)
 			_animation.tick(delta)
 		_:
-			_animation.play(&"idle", 4, idle_frame_rate)
+			_animation.play(&"idle", frame_count, idle_frame_rate)
 			_animation.tick(delta)
+
+
+func _get_frame_count(state_id: StringName) -> int:
+	if _archetype_id == &"basic":
+		match state_id:
+			&"death":
+				return 3
+			&"climb":
+				return 3
+			&"idle", &"run", &"attack", &"jump", &"landing":
+				return 6
+	match state_id:
+		&"death", &"landing":
+			return 4
+		&"climb":
+			return 3
+		_:
+			return 6
 
 
 func _get_attack_progress() -> float:
@@ -162,6 +205,52 @@ func _get_attack_progress() -> float:
 
 func _draw() -> void:
 	var frame: int = _animation.get_frame_index()
+	if _archetype_id == &"basic":
+		_draw_basic_atlas(frame)
+	else:
+		_draw_procedural_actor(frame)
+	if not _detached_death:
+		_draw_health_bar()
+
+
+func _draw_basic_atlas(frame: int) -> void:
+	var atlas: Texture2D = _get_basic_atlas()
+	var source_frame: int = frame
+	if _presentation_state_id == &"landing":
+		source_frame = 5 - mini(frame, 5)
+	var source_rect := Rect2(
+		Vector2(float(source_frame) * ATLAS_FRAME_SIZE.x, 0.0),
+		ATLAS_FRAME_SIZE
+	)
+	var display_size := Vector2(atlas_asset_height, atlas_asset_height)
+	var feet := Vector2(0.0, _body_radius + 4.0)
+	var destination := Rect2(
+		feet - Vector2(display_size.x * 0.5, display_size.y),
+		display_size
+	)
+	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
+	draw_texture_rect_region(atlas, destination, source_rect)
+	draw_set_transform(Vector2.ZERO)
+
+
+func _get_basic_atlas() -> Texture2D:
+	match _presentation_state_id:
+		&"run":
+			return ENEMY1_RUN_ATLAS
+		&"attack":
+			return ENEMY1_ATTACK_ATLAS
+		&"climb":
+			return ENEMY1_CLIMB_ATLAS
+		&"jump", &"landing":
+			return ENEMY1_JUMP_ATLAS
+		&"death":
+			return ENEMY1_DIE_ATLAS
+		_:
+			return ENEMY1_IDLE_ATLAS
+
+
+func _draw_procedural_actor(frame: int) -> void:
 	var phase: float = float(frame) * PI * 0.5
 	var bob: float = 0.0
 	var rotation: float = 0.0
@@ -184,13 +273,11 @@ func _draw() -> void:
 
 	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
 	draw_set_transform(Vector2(0.0, bob), rotation, Vector2(facing_scale, 1.0))
-	_draw_actor(frame)
+	_draw_fallback_silhouette(frame)
 	draw_set_transform(Vector2.ZERO)
-	if not _detached_death:
-		_draw_health_bar()
 
 
-func _draw_actor(frame: int) -> void:
+func _draw_fallback_silhouette(frame: int) -> void:
 	var body_color: Color = _body_color
 	if _presentation_state_id == &"climb":
 		body_color = body_color.lightened(0.18)
@@ -209,11 +296,11 @@ func _draw_actor(frame: int) -> void:
 		&"flyer":
 			_draw_flyer(body_color, frame)
 		_:
-			_draw_basic(body_color, frame)
+			_draw_basic_fallback(body_color, frame)
 	_draw_eyes()
 
 
-func _draw_basic(body_color: Color, frame: int) -> void:
+func _draw_basic_fallback(body_color: Color, frame: int) -> void:
 	var stride: float = float(frame % 2) * 2.0
 	draw_circle(Vector2(-2.0, 0.0), _body_radius, body_color)
 	draw_colored_polygon(
@@ -301,8 +388,11 @@ func _draw_health_bar() -> void:
 		return
 	var width: float = maxf(24.0, _body_radius * 2.0)
 	var height: float = 4.0
+	var top_y: float = -_body_radius - 12.0
+	if _archetype_id == &"basic":
+		top_y = _body_radius + 4.0 - atlas_asset_height - 8.0
 	var background := Rect2(
-		Vector2(-width * 0.5, -_body_radius - 12.0),
+		Vector2(-width * 0.5, top_y),
 		Vector2(width, height)
 	)
 	draw_rect(background, Color(0.15, 0.08, 0.08), true)
