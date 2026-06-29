@@ -24,15 +24,14 @@ Attack frames are selected from normalized domain windup progress. No animation 
 
 The existing warrior PNG sequences remain the defender asset source for idle, run, attack and death. The medic uses its existing static role asset with a small procedural healing/movement motion until dedicated frame sets are available. The driver stays hidden while assigned to the combined captain/platform asset.
 
-Enemy PNG sequences are not yet present in the repository. Every enemy archetype therefore receives an animated procedural fallback with a distinct silhouette:
+The existing `visual/enemies/Enemy1` atlases are used by the basic boarding enemy:
 
-- basic;
-- runner;
-- brute;
-- rope saboteur;
-- flyer.
+- six-frame idle, run, attack and jump strips;
+- the first three frames of the climb/fall strip for climbing;
+- three death frames;
+- the jump strip in reverse for landing.
 
-Adding future enemy frame sets changes only presentation asset selection; gameplay controllers do not need to change.
+The repository does not yet contain separate frame sets for every enemy archetype. Runner, brute, rope saboteur and flyer therefore use animated procedural fallbacks with different silhouettes. Adding dedicated frame sets later changes only presentation asset selection; gameplay controllers do not need to change.
 
 ## Death lifetime
 
