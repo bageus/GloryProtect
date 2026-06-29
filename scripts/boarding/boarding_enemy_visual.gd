@@ -253,26 +253,30 @@ func _get_basic_atlas() -> Texture2D:
 func _draw_procedural_actor(frame: int) -> void:
 	var phase: float = float(frame) * PI * 0.5
 	var bob: float = 0.0
-	var rotation: float = 0.0
+	var actor_rotation: float = 0.0
 	match _presentation_state_id:
 		&"idle":
 			bob = sin(phase) * 1.0
 		&"run":
 			bob = -absf(sin(phase)) * 2.5
-			rotation = sin(phase) * 0.08
+			actor_rotation = sin(phase) * 0.08
 		&"climb":
 			bob = -float(frame % 2) * 2.0
 		&"jump":
-			rotation = sin(float(frame) / 5.0 * PI) * 0.18
+			actor_rotation = sin(float(frame) / 5.0 * PI) * 0.18
 		&"attack":
-			rotation = lerpf(-0.12, 0.18, float(frame) / 5.0)
+			actor_rotation = lerpf(-0.12, 0.18, float(frame) / 5.0)
 		&"landing":
-			rotation = 0.12 - float(frame) * 0.06
+			actor_rotation = 0.12 - float(frame) * 0.06
 		&"death":
-			rotation = float(frame) / 3.0 * 1.35
+			actor_rotation = float(frame) / 3.0 * 1.35
 
 	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
-	draw_set_transform(Vector2(0.0, bob), rotation, Vector2(facing_scale, 1.0))
+	draw_set_transform(
+		Vector2(0.0, bob),
+		actor_rotation,
+		Vector2(facing_scale, 1.0)
+	)
 	_draw_fallback_silhouette(frame)
 	draw_set_transform(Vector2.ZERO)
 
@@ -311,9 +315,27 @@ func _draw_basic_fallback(body_color: Color, frame: int) -> void:
 		]),
 		body_color.darkened(0.12)
 	)
-	draw_line(Vector2(-6.0, _body_radius - 1.0), Vector2(-8.0 - stride, _body_radius + 5.0), _accent_color, 3.0)
-	draw_line(Vector2(5.0, _body_radius - 1.0), Vector2(8.0 + stride, _body_radius + 5.0), _accent_color, 3.0)
-	draw_arc(Vector2(-2.0, 0.0), _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
+	draw_line(
+		Vector2(-6.0, _body_radius - 1.0),
+		Vector2(-8.0 - stride, _body_radius + 5.0),
+		_accent_color,
+		3.0
+	)
+	draw_line(
+		Vector2(5.0, _body_radius - 1.0),
+		Vector2(8.0 + stride, _body_radius + 5.0),
+		_accent_color,
+		3.0
+	)
+	draw_arc(
+		Vector2(-2.0, 0.0),
+		_body_radius,
+		0.0,
+		TAU,
+		24,
+		_accent_color,
+		2.0
+	)
 
 
 func _draw_runner(body_color: Color, frame: int) -> void:
@@ -328,9 +350,24 @@ func _draw_runner(body_color: Color, frame: int) -> void:
 		]),
 		body_color
 	)
-	draw_line(Vector2(-4.0, 5.0), Vector2(-10.0 + stride, _body_radius + 8.0), _accent_color, 3.0)
-	draw_line(Vector2(7.0, 4.0), Vector2(13.0 - stride, _body_radius + 7.0), _accent_color, 3.0)
-	draw_line(Vector2(-_body_radius - 7.0, 2.0), Vector2(-_body_radius - 18.0, -2.0), body_color.darkened(0.15), 4.0)
+	draw_line(
+		Vector2(-4.0, 5.0),
+		Vector2(-10.0 + stride, _body_radius + 8.0),
+		_accent_color,
+		3.0
+	)
+	draw_line(
+		Vector2(7.0, 4.0),
+		Vector2(13.0 - stride, _body_radius + 7.0),
+		_accent_color,
+		3.0
+	)
+	draw_line(
+		Vector2(-_body_radius - 7.0, 2.0),
+		Vector2(-_body_radius - 18.0, -2.0),
+		body_color.darkened(0.15),
+		4.0
+	)
 
 
 func _draw_brute(body_color: Color, frame: int) -> void:
@@ -339,19 +376,51 @@ func _draw_brute(body_color: Color, frame: int) -> void:
 	var rect := Rect2(-size * 0.5, size)
 	draw_rect(rect, body_color, true)
 	draw_rect(rect, _accent_color, false, 3.0)
-	draw_line(Vector2(-size.x * 0.3, size.y * 0.5), Vector2(-size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
-	draw_line(Vector2(size.x * 0.3, size.y * 0.5), Vector2(size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
+	draw_line(
+		Vector2(-size.x * 0.3, size.y * 0.5),
+		Vector2(-size.x * 0.38, size.y * 0.75),
+		_accent_color,
+		5.0
+	)
+	draw_line(
+		Vector2(size.x * 0.3, size.y * 0.5),
+		Vector2(size.x * 0.38, size.y * 0.75),
+		_accent_color,
+		5.0
+	)
 
 
 func _draw_rope_saboteur(body_color: Color, frame: int) -> void:
 	var abdomen_radius: float = _body_radius * (0.72 + float(frame % 2) * 0.08)
 	draw_circle(Vector2(-4.0, 1.0), _body_radius * 0.65, body_color)
-	draw_circle(Vector2(7.0, 2.0), abdomen_radius, _accent_color.darkened(0.1))
+	draw_circle(
+		Vector2(7.0, 2.0),
+		abdomen_radius,
+		_accent_color.darkened(0.1)
+	)
 	for leg_index: int in range(3):
 		var y: float = -5.0 + float(leg_index) * 5.0
-		draw_line(Vector2(-2.0, y), Vector2(-12.0, y - 4.0), body_color.lightened(0.2), 2.0)
-		draw_line(Vector2(3.0, y), Vector2(14.0, y + 4.0), body_color.lightened(0.2), 2.0)
-	draw_arc(Vector2(7.0, 2.0), abdomen_radius, 0.0, TAU, 18, Color(1.0, 0.82, 0.2), 2.0)
+		draw_line(
+			Vector2(-2.0, y),
+			Vector2(-12.0, y - 4.0),
+			body_color.lightened(0.2),
+			2.0
+		)
+		draw_line(
+			Vector2(3.0, y),
+			Vector2(14.0, y + 4.0),
+			body_color.lightened(0.2),
+			2.0
+		)
+	draw_arc(
+		Vector2(7.0, 2.0),
+		abdomen_radius,
+		0.0,
+		TAU,
+		18,
+		Color(1.0, 0.82, 0.2),
+		2.0
+	)
 
 
 func _draw_flyer(body_color: Color, frame: int) -> void:
@@ -396,12 +465,17 @@ func _draw_health_bar() -> void:
 		Vector2(width, height)
 	)
 	draw_rect(background, Color(0.15, 0.08, 0.08), true)
-	var ratio: float = float(_health.current_health) / float(maxi(1, _health.max_health))
+	var ratio: float = float(_health.current_health) / float(
+		maxi(1, _health.max_health)
+	)
 	var fill := Rect2(background.position, Vector2(width * ratio, height))
 	draw_rect(fill, _accent_color, true)
 
 
-func _on_enemy_visual_state_changed(_enemy_id: int, state_id: StringName) -> void:
+func _on_enemy_visual_state_changed(
+	_enemy_id: int,
+	state_id: StringName
+) -> void:
 	_behavior_state_id = state_id
 
 

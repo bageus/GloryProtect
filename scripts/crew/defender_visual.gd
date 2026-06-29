@@ -154,10 +154,10 @@ func set_role(role_id: int) -> void:
 	queue_redraw()
 
 
-func set_selected(is_selected: bool) -> void:
-	if _selected == is_selected:
+func set_selected(selected_value: bool) -> void:
+	if _selected == selected_value:
 		return
-	_selected = is_selected
+	_selected = selected_value
 	queue_redraw()
 
 
@@ -314,7 +314,9 @@ func _finish_death_animation() -> void:
 	visible = false
 	if _defender != null:
 		_defender.visible = false
-	death_animation_finished.emit(_defender.defender_id if _defender != null else -1)
+	death_animation_finished.emit(
+		_defender.defender_id if _defender != null else -1
+	)
 
 
 func _get_current_texture() -> Texture2D:
@@ -338,12 +340,16 @@ func _get_current_texture() -> Texture2D:
 			else WARRIOR_RUN_LEFT_TEXTURES
 		)
 		return runs[mini(_frame_index, runs.size() - 1)]
-	return WARRIOR_IDLE_TEXTURES[mini(_frame_index, WARRIOR_IDLE_TEXTURES.size() - 1)]
+	return WARRIOR_IDLE_TEXTURES[
+		mini(_frame_index, WARRIOR_IDLE_TEXTURES.size() - 1)
+	]
 
 
 func _get_current_source_rect() -> Rect2:
 	if _state == AnimationState.DYING:
-		return _death_source_rects[mini(_frame_index, _death_source_rects.size() - 1)]
+		return _death_source_rects[
+			mini(_frame_index, _death_source_rects.size() - 1)
+		]
 	if _role_id == CrewRole.Id.DRIVER:
 		return Rect2(Vector2.ZERO, Vector2(asset_max_width, asset_height))
 	if _state == AnimationState.ATTACK:
@@ -360,16 +366,18 @@ func _get_current_source_rect() -> Rect2:
 			else _run_left_source_rects
 		)
 		return runs[mini(_frame_index, runs.size() - 1)]
-	return _idle_source_rects[mini(_frame_index, _idle_source_rects.size() - 1)]
+	return _idle_source_rects[
+		mini(_frame_index, _idle_source_rects.size() - 1)
+	]
 
 
 func _fit_asset_size(source_size: Vector2) -> Vector2:
 	if source_size.x <= 0.0 or source_size.y <= 0.0:
 		return Vector2(asset_max_width, asset_height)
-	var scale: float = asset_height / source_size.y
-	if source_size.x * scale > asset_max_width:
-		scale = asset_max_width / source_size.x
-	return source_size * scale
+	var asset_scale: float = asset_height / source_size.y
+	if source_size.x * asset_scale > asset_max_width:
+		asset_scale = asset_max_width / source_size.x
+	return source_size * asset_scale
 
 
 func _draw_poison_indicator(asset_rect: Rect2) -> void:
@@ -380,7 +388,10 @@ func _draw_poison_indicator(asset_rect: Rect2) -> void:
 	draw_circle(marker_position, 5.0, Color(0.52, 0.95, 0.25))
 	for index: int in range(_poison_stacks):
 		draw_circle(
-			marker_position + Vector2(float(index - _poison_stacks + 1) * 3.0, 8.0),
+			marker_position + Vector2(
+				float(index - _poison_stacks + 1) * 3.0,
+				8.0
+			),
 			1.5,
 			Color(0.76, 1.0, 0.5)
 		)
@@ -435,7 +446,9 @@ func _on_attack_started(target: HealthComponent) -> void:
 		return
 	var target_actor: Node2D = target.get_parent() as Node2D
 	if target_actor != null and _defender != null:
-		_facing_right = target_actor.global_position.x >= _defender.global_position.x
+		_facing_right = (
+			target_actor.global_position.x >= _defender.global_position.x
+		)
 	_state = AnimationState.ATTACK
 	_frame_index = 0
 	_frame_elapsed = 0.0
