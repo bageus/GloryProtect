@@ -36,4 +36,7 @@ static func get_full_survival_seconds(survival_seconds: float) -> int:
 static func get_completed_bonus_intervals(
 	full_survival_seconds: int
 ) -> int:
-	return maxi(0, full_survival_seconds) / BONUS_INTERVAL_SECONDS
+	return floori(
+		float(maxi(0, full_survival_seconds))
+		/ float(BONUS_INTERVAL_SECONDS)
+	)
