@@ -5,10 +5,12 @@ var _medical_system: MedicalStationSystem
 
 
 func _ready() -> void:
-	var scene_root: Node = get_tree().current_scene
-	if scene_root != null:
-		_medical_system = scene_root.get_node_or_null(
-			"World/MedicalStationSystem"
+	# The gameplay scene can be nested under AppShell, so current_scene is not
+	# necessarily GameRoot. Resolve the medical system from the configured grid,
+	# which is always its sibling inside World.
+	if _grid != null and _grid.get_parent() != null:
+		_medical_system = _grid.get_parent().get_node_or_null(
+			"MedicalStationSystem"
 		) as MedicalStationSystem
 	super._ready()
 

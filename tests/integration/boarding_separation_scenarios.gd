@@ -37,6 +37,7 @@ func _run_scenarios() -> void:
 	await _test_platform_enemy_separation(spawn)
 	await _test_enemy_defender_blocking(spawn, crew, roles)
 	await _test_climb_spacing(spawn, anchors, paths)
+	await _test_ground_rerouting_after_anchor_changes(spawn, anchors, paths)
 
 	print("Boarding separation scenarios passed")
 	quit()
@@ -124,6 +125,76 @@ func _test_climb_spacing(
 	await _wait_physics_frames(2)
 
 
+func _test_ground_rerouting_after_anchor_changes(
+	spawn: BoardingSpawnDirector,
+	anchors: AnchorSystem,
+	paths: AnchorPathRegistry
+) -> void:
+	# Anchor 2 remains attached from the climb-spacing scenario. Attaching an
+	# anchor on the opposite side reproduces the route split created by removing
+	# and reinstalling anchors during a run.
+	if not paths.is_path_available(0):
+		anchors.toggle_anchor(0)
+	await _wait_until_path_count(paths, 2)
+
+	var left_path: AnchorPathSnapshot = null
+	var right_path: AnchorPathSnapshot = null
+	for path: AnchorPathSnapshot in paths.get_available_paths():
+		if left_path == null or path.ground_point.x < left_path.ground_point.x:
+			left_path = path
+		if right_path == null or path.ground_point.x > right_path.ground_point.x:
+			right_path = path
+	assert(left_path != null and right_path != null)
+	assert(left_path.anchor_id != right_path.anchor_id)
+
+	var first: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", -1)
+	var second: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", 1)
+	assert(first != null and second != null)
+
+	var midpoint: float = (
+		left_path.ground_point.x + right_path.ground_point.x
+	) * 0.5
+	var minimum_gap: float = maxf(
+		spawn.balance.ground_enemy_spacing,
+		first.get_body_radius() + second.get_body_radius()
+	)
+	var initial_gap: float = minimum_gap + 2.0
+	first.global_position = Vector2(
+		midpoint - initial_gap * 0.5,
+		left_path.ground_point.y
+	)
+	second.global_position = Vector2(
+		midpoint + initial_gap * 0.5,
+		right_path.ground_point.y
+	)
+
+	# Force the stale crossed assignments that existed before anchor paths were
+	# re-evaluated. Without rerouting, both enemies walk into each other and stay
+	# blocked at the minimum collision gap.
+	first.controller.selected_anchor_id = right_path.anchor_id
+	first.controller.state = BoardingEnemyController.State.RUNNING_TO_ANCHOR
+	second.controller.selected_anchor_id = left_path.anchor_id
+	second.controller.state = BoardingEnemyController.State.RUNNING_TO_ANCHOR
+	var first_start_x: float = first.global_position.x
+	var second_start_x: float = second.global_position.x
+
+	await physics_frame
+	assert(first.get_selected_anchor_id() == left_path.anchor_id)
+	assert(second.get_selected_anchor_id() == right_path.anchor_id)
+
+	await _wait_physics_frames(20)
+	assert(first.global_position.x < first_start_x)
+	assert(second.global_position.x > second_start_x)
+	assert(
+		second.global_position.x - first.global_position.x
+		> initial_gap + 10.0
+	)
+
+	first.kill(&"test_cleanup")
+	second.kill(&"test_cleanup")
+	await _wait_physics_frames(2)
+
+
 func _wait_until_assignment_active(
 	roles: CrewRoleManager,
 	defender_id: int,
@@ -146,6 +217,18 @@ func _wait_until_path_available(
 			return
 		await physics_frame
 	assert(false, "Anchor path did not become available")
+
+
+func _wait_until_path_count(
+	paths: AnchorPathRegistry,
+	expected_count: int,
+	max_frames: int = 240
+) -> void:
+	for _frame: int in range(max_frames):
+		if paths.get_available_count() >= expected_count:
+			return
+		await physics_frame
+	assert(false, "Expected anchor paths did not become available")
 
 
 func _wait_until_both_climbing(
