@@ -75,6 +75,7 @@ func _run_scenarios() -> void:
 	assert(_label(game, "ScoreLabel").text.contains("1320"))
 	assert(_label(game, "TimeLabel").text.contains("02:05"))
 	assert(_label(game, "KillsLabel").text.contains("7"))
+	print("NEXT-22B losses label: ", _label(game, "LossesLabel").text)
 	assert(_label(game, "LossesLabel").text.contains("2"))
 	assert(_label(game, "BestScoreLabel").text.contains("1320"))
 	assert(statistics.get_persistent_best_score() == 1320)
