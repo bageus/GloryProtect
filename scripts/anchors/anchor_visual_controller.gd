@@ -93,6 +93,13 @@ func get_winch_visual_bottom(anchor_id: int) -> Vector2:
 	return _get_winch_bottom(anchor_id)
 
 
+func get_winch_chain_exit(anchor_id: int) -> Vector2:
+	var offset := winch_chain_exit_offset
+	if _is_winch_mirrored(anchor_id):
+		offset.x *= -1.0
+	return _get_winch_bottom(anchor_id) + offset
+
+
 func get_clamp_visual_scale() -> float:
 	return object_asset_scale * clamp_scale_multiplier
 
@@ -104,7 +111,7 @@ func _draw_winch_posts() -> void:
 			if anchor_id < 2
 			else AnchorRuntime.Side.RIGHT
 		)
-		var mirrored := anchor_id == 1 or anchor_id == 3
+		var mirrored := _is_winch_mirrored(anchor_id)
 		_draw_winch(
 			_get_winch_bottom(anchor_id),
 			mirrored,
@@ -242,6 +249,25 @@ func _draw_returning_anchor(
 	_draw_anchor_asset(top, color.lightened(0.12))
 
 
+static func calculate_chain_link_positions(
+	start: Vector2,
+	finish: Vector2,
+	spacing: float
+) -> PackedVector2Array:
+	var positions := PackedVector2Array()
+	var segment := finish - start
+	var length := segment.length()
+	if length <= 0.01:
+		return positions
+	var direction := segment / length
+	var safe_spacing := maxf(spacing, 1.0)
+	var count := maxi(2, ceili(length / safe_spacing) + 1)
+	var step := length / float(count - 1)
+	for index: int in range(count):
+		positions.append(start + direction * step * float(index))
+	return positions
+
+
 func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	var segment := finish - start
 	var length := segment.length()
@@ -256,8 +282,11 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 		tile_size.y * (1.0 - chain_tile_overlap_ratio),
 		1.0
 	)
-	var count := maxi(1, ceili(length / spacing))
-	var step := length / float(count)
+	var link_positions := calculate_chain_link_positions(
+		start,
+		finish,
+		spacing
+	)
 	var link_rotation := direction.angle() - PI * 0.5
 	var rect := Rect2(-tile_size * 0.5, tile_size)
 	var visible_tint := tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
@@ -265,8 +294,7 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	var backing := visible_tint
 	backing.a = 0.4
 	draw_line(start, finish, backing, CHAIN_BACKING_WIDTH, true)
-	for index: int in range(count):
-		var link_position := start + direction * (step * (float(index) + 0.5))
+	for link_position: Vector2 in link_positions:
 		draw_set_transform(link_position, link_rotation, Vector2.ONE)
 		draw_texture_rect_region(
 			CHAIN_TEXTURE,
@@ -300,10 +328,11 @@ func _get_winch_bottom(anchor_id: int) -> Vector2:
 
 
 func _get_anchor_chain_start(anchor_id: int) -> Vector2:
-	return (
-		_geometry.get_platform_attachment_world(anchor_id)
-		+ winch_chain_exit_offset
-	)
+	return get_winch_chain_exit(anchor_id)
+
+
+func _is_winch_mirrored(anchor_id: int) -> bool:
+	return anchor_id == 1 or anchor_id == 3
 
 
 func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
