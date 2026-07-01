@@ -4,6 +4,8 @@ extends Node
 signal path_opened(anchor_id: int)
 signal path_closed(anchor_id: int)
 
+const DETERMINISTIC_DISTANCE_EPSILON := 0.001
+
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
 @export var balance: BoardingBalance
 
@@ -68,6 +70,36 @@ func choose_nearest_path(
 	if candidates.size() == 1:
 		return candidates[0]
 	return candidates[_rng.randi_range(0, candidates.size() - 1)]
+
+
+func choose_nearest_path_deterministic(
+	world_x: float,
+	excluded_anchor_ids: Array[int] = []
+) -> AnchorPathSnapshot:
+	var best_path: AnchorPathSnapshot = null
+	var best_distance: float = INF
+	for path: AnchorPathSnapshot in get_available_paths():
+		if excluded_anchor_ids.has(path.anchor_id):
+			continue
+		var distance: float = absf(path.ground_point.x - world_x)
+		if distance + DETERMINISTIC_DISTANCE_EPSILON < best_distance:
+			best_path = path
+			best_distance = distance
+			continue
+		if absf(distance - best_distance) > DETERMINISTIC_DISTANCE_EPSILON:
+			continue
+		if best_path == null:
+			best_path = path
+			best_distance = distance
+			continue
+		if path.ground_point.x < best_path.ground_point.x:
+			best_path = path
+		elif (
+			is_equal_approx(path.ground_point.x, best_path.ground_point.x)
+			and path.anchor_id < best_path.anchor_id
+		):
+			best_path = path
+	return best_path
 
 
 func _sync_open_paths() -> void:
