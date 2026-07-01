@@ -50,6 +50,7 @@ func _test_added_defender_leaves_portal_after_card_pause() -> void:
 	assert(not is_equal_approx(target_x, added.position.x))
 
 	flow.finish_card_selection()
+	assert(not paused)
 	await _wait_for_active_assignment(roles, defender_id)
 	assert(is_equal_approx(added.position.x, target_x))
 	assert(not added.movement.is_moving())
@@ -160,6 +161,10 @@ func _create_game() -> Node2D:
 	await process_frame
 	await process_frame
 	flow.state = GameFlowController.RunState.RUNNING
+	var economy: RunEconomy = game.get_node("RunEconomy")
+	var starting_coins: int = economy.get_coins()
+	if starting_coins > 0:
+		assert(economy.spend_coins(starting_coins, &"spawn_assignment_test"))
 	_disable_spawners(game)
 	var roles: CrewRoleManager = game.get_node(
 		"World/Platform/CrewRoleManager"
