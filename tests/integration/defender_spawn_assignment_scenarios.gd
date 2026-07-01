@@ -158,6 +158,7 @@ func _create_game() -> Node2D:
 	var flow: GameFlowController = game.get_node("GameFlowController")
 	flow.start_delay_seconds = 0.0
 	root.add_child(game)
+	_disable_spawners(game)
 	await process_frame
 	await process_frame
 	flow.state = GameFlowController.RunState.RUNNING
@@ -165,7 +166,6 @@ func _create_game() -> Node2D:
 	var starting_coins: int = economy.get_coins()
 	if starting_coins > 0:
 		assert(economy.spend_coins(starting_coins, &"spawn_assignment_test"))
-	_disable_spawners(game)
 	var roles: CrewRoleManager = game.get_node(
 		"World/Platform/CrewRoleManager"
 	)
