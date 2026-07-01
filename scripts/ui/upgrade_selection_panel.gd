@@ -2,6 +2,7 @@ class_name UpgradeSelectionPanel
 extends Control
 
 const MODAL_Z_INDEX: int = 100
+const CARD_META_GROUP_ID: StringName = &"card_group_id"
 
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
@@ -21,6 +22,7 @@ func _ready() -> void:
 	z_as_relative = false
 	z_index = MODAL_Z_INDEX
 	visible = false
+	_cost_label.visible = false
 	_upgrades.offer_opened.connect(_on_offer_opened)
 	_upgrades.offer_closed.connect(_on_offer_closed)
 	_upgrades.progress_reset.connect(_on_progress_reset)
@@ -75,6 +77,19 @@ func get_cost_text() -> String:
 	return _cost_label.text
 
 
+func is_global_cost_visible() -> bool:
+	return _cost_label.visible
+
+
+func get_rendered_card_group_id(card_index: int) -> StringName:
+	if card_index < 0 or card_index >= _cards_container.get_child_count():
+		return &""
+	var button: Button = _cards_container.get_child(card_index) as Button
+	if button == null:
+		return &""
+	return button.get_meta(CARD_META_GROUP_ID, &"") as StringName
+
+
 func get_rendered_card_text(card_index: int) -> String:
 	if card_index < 0 or card_index >= _cards_container.get_child_count():
 		return ""
@@ -105,7 +120,8 @@ func _show_current_offer() -> void:
 	z_index = MODAL_Z_INDEX
 	visible = true
 	_offer_label.text = "Уровень %d" % _upgrades.get_current_offer_number()
-	_cost_label.text = "%d" % _upgrades.get_current_cost()
+	_cost_label.text = ""
+	_cost_label.visible = false
 	if _upgrades.is_specialization_offer():
 		_mode_label.text = "СПЕЦИАЛИЗАЦИЯ — %s" % (
 			UpgradeCardFormatter.get_branch_name(
@@ -137,6 +153,11 @@ func _rebuild_card_buttons() -> void:
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		button.text = _build_card_text(definition)
 		button.disabled = _selection_pending
+		button.set_meta(
+			CARD_META_GROUP_ID,
+			UpgradeCardFormatter.get_card_group_id(definition.card_type)
+		)
+		_apply_card_style(button, definition.card_type)
 		button.pressed.connect(
 			_submit_card.bind(card_id, offer_number)
 		)
@@ -146,10 +167,15 @@ func _rebuild_card_buttons() -> void:
 func _build_card_text(definition: UpgradeDefinition) -> String:
 	var lines := PackedStringArray([
 		definition.title,
+		"%s %s" % [
+			UpgradeCardFormatter.get_card_group_symbol(definition.card_type),
+			UpgradeCardFormatter.get_card_group_name(definition.card_type),
+		],
 		"%s • %s" % [
 			UpgradeCardFormatter.get_branch_name(definition.branch_id),
 			UpgradeCardFormatter.get_type_name(definition.card_type),
 		],
+		"Цена: %d" % _upgrades.get_current_cost(),
 		"",
 		definition.description,
 	])
@@ -167,6 +193,43 @@ func _build_card_text(definition: UpgradeDefinition) -> String:
 		lines.append("")
 		lines.append(repeat_text)
 	return "\n".join(lines)
+
+
+func _apply_card_style(button: Button, card_type: int) -> void:
+	var accent: Color = UpgradeCardFormatter.get_card_group_accent_color(card_type)
+	button.add_theme_stylebox_override("normal", _make_card_style(accent, 0.13))
+	button.add_theme_stylebox_override("hover", _make_card_style(accent, 0.18))
+	button.add_theme_stylebox_override("pressed", _make_card_style(accent, 0.10))
+	button.add_theme_stylebox_override("disabled", _make_card_style(accent, 0.07))
+	button.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(0.88, 0.94, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.62, 0.66, 0.72))
+	button.add_theme_font_size_override("font_size", 16)
+
+
+func _make_card_style(accent: Color, tint: float) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(
+		clampf(accent.r * tint, 0.0, 1.0),
+		clampf(accent.g * tint, 0.0, 1.0),
+		clampf(accent.b * tint, 0.0, 1.0),
+		0.97
+	)
+	style.border_color = Color(accent.r, accent.g, accent.b, 0.96)
+	style.set_border_width_all(2)
+	style.corner_radius_top_left = 12
+	style.corner_radius_top_right = 12
+	style.corner_radius_bottom_left = 12
+	style.corner_radius_bottom_right = 12
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
+	style.shadow_size = 6
+	style.shadow_offset = Vector2(0.0, 3.0)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 14.0
+	style.content_margin_bottom = 14.0
+	return style
 
 
 func _submit_card(
