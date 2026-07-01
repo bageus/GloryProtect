@@ -32,6 +32,9 @@ func _run() -> void:
 	var contact: OrbContactSystem = game.get_node("World/OrbContactSystem")
 	var shield: ShieldSystem = game.get_node("ShieldSystem")
 	var shield_core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
+	var alert_presenter: ShieldCriticalAlertPresenter = game.get_node(
+		"CanvasLayer/ShieldCriticalAlertPresenter"
+	)
 
 	_disable_spawners(game)
 	music.refresh_music_state_for_tests()
@@ -42,6 +45,7 @@ func _run() -> void:
 
 	assert(audio != null)
 	assert(audio.get_loaded_sound_ids().size() == 13)
+	assert(alert_presenter.get_node_or_null("AudioStreamPlayer") == null)
 
 	var defender: Defender = crew.get_defender(0)
 	var target: Defender = crew.get_defender(1)
@@ -106,9 +110,13 @@ func _run() -> void:
 	audio.refresh_audio_state_for_tests()
 	assert(not audio.is_loop_active(GameAudioController.SOUND_SHIELD_CHARGE))
 
+	assert(audio.get_trigger_count(GameAudioController.SOUND_SHIELD_ALERT) == 0)
 	shield.set_health(0, 1.0)
 	audio.refresh_audio_state_for_tests()
 	assert(audio.is_loop_active(GameAudioController.SOUND_SHIELD_ALERT))
+	assert(audio.get_trigger_count(GameAudioController.SOUND_SHIELD_ALERT) == 1)
+	audio.refresh_audio_state_for_tests()
+	assert(audio.get_trigger_count(GameAudioController.SOUND_SHIELD_ALERT) == 1)
 	shield.set_health(0, shield.get_max_health())
 	audio.refresh_audio_state_for_tests()
 	assert(not audio.is_loop_active(GameAudioController.SOUND_SHIELD_ALERT))
