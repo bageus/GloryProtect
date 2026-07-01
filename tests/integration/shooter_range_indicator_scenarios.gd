@@ -18,6 +18,7 @@ func _run() -> void:
 
 	var flow: GameFlowController = game.get_node("GameFlowController")
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var platform: PlatformController = game.get_node("World/Platform")
 	var selection := game.get_node(
 		"CrewDebugInput"
 	) as CrewSelectionController
@@ -126,7 +127,7 @@ func _run() -> void:
 	crew_panel.open_defender_command_context(defender.defender_id)
 	await process_frame
 	assert(visual.is_attack_range_visible())
-	assert(_select_empty_platform_cell(placement))
+	assert(_select_empty_platform_cell(placement, platform))
 	await process_frame
 	assert(not crew_panel._view.is_context_visible())
 	assert(not visual.is_attack_range_visible())
@@ -135,7 +136,7 @@ func _run() -> void:
 	crew_panel.open_defender_command_context(defender.defender_id)
 	await process_frame
 	assert(visual.is_attack_range_visible())
-	defender.health.apply_damage(999, &"shooter_range_death_test")
+	defender.health.set_health(0)
 	await process_frame
 	assert(not crew_panel._view.is_context_visible())
 	assert(not visual.is_attack_range_visible())
@@ -145,10 +146,10 @@ func _run() -> void:
 
 
 func _select_empty_platform_cell(
-	placement: BuildablePlacementController
+	placement: BuildablePlacementController,
+	platform: PlatformController
 ) -> bool:
-	var candidate_cells: Array[int] = [2, 3, 4, 5, 12, 13, 14, 15]
-	for cell_index: int in candidate_cells:
+	for cell_index: int in range(platform.get_cell_count()):
 		if placement.select_empty_cell(cell_index):
 			return true
 	return false
