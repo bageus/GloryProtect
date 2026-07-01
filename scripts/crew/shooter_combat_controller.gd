@@ -73,7 +73,7 @@ func _physics_process(_delta: float) -> void:
 	if is_action_active():
 		_defender.movement.pause()
 		return
-	if _is_current_station_action_active():
+	if _is_anchor_operation_active(assignment.current_role):
 		return
 	if not _ranged.can_start():
 		return
@@ -170,12 +170,12 @@ func _can_use_shooter_assignment(
 	)
 
 
-func _is_current_station_action_active() -> bool:
-	var polished_roles := _roles as ShooterCrewRoleManagerPolished
-	return (
-		polished_roles != null
-		and polished_roles.is_current_station_action_active(_defender.defender_id)
-	)
+func _is_anchor_operation_active(role_id: int) -> bool:
+	if role_id == CrewRole.Id.LEFT_ANCHOR:
+		return _roles._anchors.is_operator_busy(AnchorRuntime.Side.LEFT)
+	if role_id == CrewRole.Id.RIGHT_ANCHOR:
+		return _roles._anchors.is_operator_busy(AnchorRuntime.Side.RIGHT)
+	return false
 
 
 func _build_policy(
