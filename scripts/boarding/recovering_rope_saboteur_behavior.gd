@@ -14,21 +14,18 @@ func _on_stopped() -> void:
 
 
 func get_ground_target_x() -> float:
+	if selected_anchor_id >= 0:
+		var selected: AnchorPathSnapshot = context.paths.get_anchor_path(
+			selected_anchor_id
+		)
+		if selected != null:
+			return selected.ground_point.x
 	var path: AnchorPathSnapshot = _choose_target_path()
 	if path != null:
 		return path.ground_point.x
 	if context != null and context.platform != null:
 		return context.platform.global_position.x
 	return enemy.global_position.x if enemy != null else 0.0
-
-
-func _update_running(delta: float) -> void:
-	var path: AnchorPathSnapshot = _choose_target_path()
-	if path == null:
-		_reset_target()
-		return
-	selected_anchor_id = path.anchor_id
-	super._update_running(delta)
 
 
 func _choose_target_path() -> AnchorPathSnapshot:
@@ -72,6 +69,7 @@ func _on_path_closed(anchor_id: int) -> void:
 	if selected_anchor_id != anchor_id:
 		return
 	_reset_target()
+	_resume_waiting_target()
 
 
 func _resume_waiting_target() -> void:
