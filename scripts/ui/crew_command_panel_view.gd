@@ -3,6 +3,7 @@ extends RefCounted
 
 const NORMAL_CONTEXT_HEIGHT: float = 182.0
 const DEFENDER_CONTEXT_HEIGHT: float = 480.0
+const BUILDABLE_CONTEXT_HEIGHT: float = 320.0
 const CONTEXT_BOTTOM_OFFSET: float = -148.0
 const CONTEXT_TOP_MARGIN: float = 12.0
 const CONTEXT_HALF_WIDTH: float = 210.0
@@ -133,6 +134,38 @@ func rebuild_defender_command_context(
 				post_pressed.bind(defender_id, int(option["slot"]))
 			)
 			_context_box.add_child(button)
+	_add_close_button(close_pressed)
+
+
+func rebuild_buildable_context(
+	title: String,
+	status: String,
+	actions: Array[Dictionary],
+	feedback: String,
+	feedback_is_error: bool,
+	close_pressed: Callable
+) -> void:
+	_prepare_context(BUILDABLE_CONTEXT_HEIGHT)
+	_add_context_title(title)
+	if not status.is_empty():
+		_add_centered_label(status)
+	for action: Dictionary in actions:
+		var button := Button.new()
+		button.text = String(action["text"])
+		button.disabled = bool(action.get("disabled", false))
+		var callback: Callable = action["callback"]
+		button.pressed.connect(callback)
+		_context_box.add_child(button)
+	if not feedback.is_empty():
+		var feedback_label := Label.new()
+		feedback_label.text = feedback
+		feedback_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		feedback_label.add_theme_color_override(
+			"font_color",
+			Color(1.0, 0.48, 0.4) if feedback_is_error else Color(0.62, 0.92, 0.72)
+		)
+		_context_box.add_child(feedback_label)
 	_add_close_button(close_pressed)
 
 
