@@ -36,6 +36,15 @@ func stop() -> void:
 	super.stop()
 
 
+func get_ground_target_x() -> float:
+	var path: AnchorPathSnapshot = _choose_ground_path()
+	if path != null:
+		return path.ground_point.x
+	if _platform != null:
+		return _platform.global_position.x
+	return _enemy.global_position.x if _enemy != null else 0.0
+
+
 func _choose_ground_path() -> AnchorPathSnapshot:
 	return _paths.choose_nearest_path_deterministic(
 		_enemy.global_position.x
