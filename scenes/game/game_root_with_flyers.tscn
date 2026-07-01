@@ -206,3 +206,4 @@ buildable_placement_controller_path = NodePath("../../BuildablePlacementControll
 [node name="BuildablePlacementPanel" type="PanelContainer" parent="CanvasLayer"]
 script = ExtResource("25_placement_panel")
 controller_path = NodePath("../../BuildablePlacementController")
+use_unified_context = true
