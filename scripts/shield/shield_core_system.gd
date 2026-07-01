@@ -1,9 +1,15 @@
 class_name ShieldCoreSystem
 extends Node
 
+enum SurgePulseSource {
+	GROUND_CORE,
+	PLATFORM_CORE,
+}
+
 signal upgrades_changed
 signal focused_retargeted(section_id: int, enemy_count: int)
 signal surge_triggered(section_id: int, requested_rows: int, destroyed_rows: int)
+signal surge_pulse_requested(section_id: int, source: int)
 signal completion_energy_shared(source_section_id: int, target_section_id: int, amount: float)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
@@ -103,18 +109,22 @@ func _on_contact_started(orb_id: int) -> void:
 		)
 		focused_retargeted.emit(section_id, retargeted)
 	if upgrades.has_surge_specialization():
-		_trigger_surge(section_id)
+		_trigger_surge(section_id, SurgePulseSource.GROUND_CORE)
 
 
 func _on_contact_ended(orb_id: int) -> void:
 	if upgrades.has_surge_specialization():
-		_trigger_surge(_orbs.get_section_id(orb_id))
+		_trigger_surge(
+			_orbs.get_section_id(orb_id),
+			SurgePulseSource.PLATFORM_CORE
+		)
 
 
-func _trigger_surge(section_id: int) -> void:
+func _trigger_surge(section_id: int, source: int) -> void:
 	var rows := balance.get_surge_row_count(_rng)
 	var destroyed := _waves.destroy_nearest_rows(section_id, rows)
 	surge_triggered.emit(section_id, rows, destroyed)
+	surge_pulse_requested.emit(section_id, source)
 
 
 func _on_section_changed(

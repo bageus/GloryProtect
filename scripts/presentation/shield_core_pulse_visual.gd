@@ -1,0 +1,164 @@
+class_name ShieldCorePulseVisual
+extends Node2D
+
+signal pulse_started(source: int, section_id: int)
+
+@export_node_path("GameFlowController") var game_flow_path: NodePath
+@export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
+@export_node_path("PlatformController") var platform_path: NodePath
+@export_node_path("ShieldCoreGroundOrbRegistry") var orb_registry_path: NodePath
+@export var style: ShieldCorePulseVisualStyle
+
+var _active_pulses: Array[ShieldCorePulseRuntime] = []
+var _started_counts: Dictionary[int, int] = {}
+
+@onready var _game_flow: GameFlowController = get_node(game_flow_path)
+@onready var _shield_core: ShieldCoreSystem = get_node(shield_core_system_path)
+@onready var _platform: PlatformController = get_node(platform_path)
+@onready var _orbs: ShieldCoreGroundOrbRegistry = get_node(orb_registry_path)
+
+
+func _ready() -> void:
+	assert(style != null and style.is_valid())
+	_shield_core.surge_pulse_requested.connect(_on_surge_pulse_requested)
+	_game_flow.run_state_changed.connect(_on_run_state_changed)
+	queue_redraw()
+
+
+func _process(delta: float) -> void:
+	if not _game_flow.is_world_simulation_active():
+		return
+	var safe_delta := maxf(0.0, delta)
+	if safe_delta <= 0.0 or _active_pulses.is_empty():
+		return
+	for pulse: ShieldCorePulseRuntime in _active_pulses:
+		pulse.elapsed += safe_delta
+	for index: int in range(_active_pulses.size() - 1, -1, -1):
+		if _active_pulses[index].elapsed >= style.duration:
+			_active_pulses.remove_at(index)
+	queue_redraw()
+
+
+func _draw() -> void:
+	for pulse: ShieldCorePulseRuntime in _active_pulses:
+		var progress: float = clampf(pulse.elapsed / style.duration, 0.0, 1.0)
+		match pulse.source:
+			ShieldCoreSystem.SurgePulseSource.GROUND_CORE:
+				_draw_ground_pulse(pulse.section_id, progress)
+			ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE:
+				_draw_platform_pulse(pulse.section_id, progress)
+
+
+func get_active_pulse_count() -> int:
+	return _active_pulses.size()
+
+
+func get_started_pulse_count(source: int) -> int:
+	return int(_started_counts.get(source, 0))
+
+
+func get_oldest_pulse_elapsed_for_tests() -> float:
+	if _active_pulses.is_empty():
+		return 0.0
+	return _active_pulses[0].elapsed
+
+
+func _on_surge_pulse_requested(section_id: int, source: int) -> void:
+	if not _orbs.is_valid_orb(section_id):
+		return
+	if source not in [
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE,
+	]:
+		return
+	_active_pulses.append(ShieldCorePulseRuntime.new(source, section_id))
+	_started_counts[source] = get_started_pulse_count(source) + 1
+	pulse_started.emit(source, section_id)
+	queue_redraw()
+
+
+func _draw_ground_pulse(section_id: int, progress: float) -> void:
+	var center: Vector2 = _orbs.get_orb_world_position(section_id)
+	center.y = _orbs.catalog.ground_y + style.ground_surface_offset_y
+	var half_width: float = maxf(4.0, style.ground_max_radius * _ease_out(progress))
+	_draw_wave(
+		center,
+		half_width,
+		progress,
+		style.ground_color,
+		section_id * 11 + 3
+	)
+
+
+func _draw_platform_pulse(section_id: int, progress: float) -> void:
+	var center := _platform.position + Vector2(
+		0.0,
+		-_platform.get_platform_height() * 0.5 + style.platform_surface_offset_y
+	)
+	var half_width: float = maxf(
+		4.0,
+		_platform.get_platform_width() * 0.5 * _ease_out(progress)
+	)
+	_draw_wave(
+		center,
+		half_width,
+		progress,
+		style.platform_color,
+		section_id * 13 + 7
+	)
+
+
+func _draw_wave(
+	center: Vector2,
+	half_width: float,
+	progress: float,
+	base_color: Color,
+	seed: int
+) -> void:
+	var points := _build_wave_points(center, half_width, progress, seed)
+	var alpha: float = style.start_alpha * (1.0 - progress)
+	var outer_color := base_color
+	outer_color.a = alpha * 0.28
+	var inner_color := base_color.lightened(0.55)
+	inner_color.a = alpha
+	draw_polyline(points, outer_color, style.outer_line_width, true)
+	draw_polyline(points, inner_color, style.inner_line_width, true)
+	var front_color := base_color.lightened(0.72)
+	front_color.a = alpha
+	draw_circle(points[0], style.inner_line_width * 1.4, front_color)
+	draw_circle(points[points.size() - 1], style.inner_line_width * 1.4, front_color)
+
+
+func _build_wave_points(
+	center: Vector2,
+	half_width: float,
+	progress: float,
+	seed: int
+) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	var count: int = maxi(4, style.segment_count)
+	for index: int in range(count + 1):
+		var ratio: float = float(index) / float(count)
+		var x: float = lerpf(center.x - half_width, center.x + half_width, ratio)
+		var edge_fade: float = sin(ratio * PI)
+		var phase: float = float(index * 7 + seed) * 0.91 + progress * TAU
+		var y_offset: float = (
+			sin(phase)
+			* style.jitter_amplitude
+			* edge_fade
+			* (1.0 - progress * 0.45)
+		)
+		result.append(Vector2(x, center.y + y_offset))
+	return result
+
+
+func _ease_out(value: float) -> float:
+	var clamped: float = clampf(value, 0.0, 1.0)
+	return 1.0 - pow(1.0 - clamped, 3.0)
+
+
+func _on_run_state_changed(_previous_state: int, new_state: int) -> void:
+	if new_state != GameFlowController.RunState.START_DELAY:
+		return
+	_active_pulses.clear()
+	queue_redraw()

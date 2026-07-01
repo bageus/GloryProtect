@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3]
+[gd_scene load_steps=37 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -33,6 +33,8 @@
 [ext_resource type="Script" path="res://scripts/presentation/world_shake_controller.gd" id="31_shake"]
 [ext_resource type="PackedScene" path="res://scenes/presentation/parallax_scene_background.tscn" id="32_background"]
 [ext_resource type="Script" path="res://scripts/audio/game_music_controller.gd" id="33_music"]
+[ext_resource type="Script" path="res://scripts/presentation/shield_core_pulse_visual.gd" id="34_core_pulse"]
+[ext_resource type="Resource" path="res://resources/presentation/shield_core_pulse_visual_style.tres" id="35_core_pulse_style"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -145,6 +147,15 @@ contact_system_path = NodePath("../OrbContactSystem")
 orb_registry_path = NodePath("../GroundOrbRegistry")
 strategic_wave_system_path = NodePath("../StrategicWaveSystem")
 balance = ExtResource("22_shield_core_balance")
+
+[node name="ShieldCorePulseVisual" type="Node2D" parent="World"]
+z_index = 2
+script = ExtResource("34_core_pulse")
+game_flow_path = NodePath("../../GameFlowController")
+shield_core_system_path = NodePath("../ShieldCoreSystem")
+platform_path = NodePath("../Platform")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+style = ExtResource("35_core_pulse_style")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
 script = ExtResource("10_medic_roles")

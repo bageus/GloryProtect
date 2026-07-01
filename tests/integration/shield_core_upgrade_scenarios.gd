@@ -19,6 +19,9 @@ func _run_scenario() -> void:
 
 	var upgrade_system: UpgradeSystem = game.get_node("UpgradeSystem")
 	var core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
+	var pulse_visual: ShieldCorePulseVisual = game.get_node(
+		"World/ShieldCorePulseVisual"
+	)
 	var shield: ShieldCoreShieldSystem = game.get_node("ShieldSystem")
 	var recharge: ShieldCoreRechargeController = game.get_node(
 		"World/ShieldRechargeController"
@@ -100,16 +103,29 @@ func _run_scenario() -> void:
 			ShieldCoreUpgradeRuntime.SURGE
 		).effect
 	))
+	assert(pulse_visual.get_active_pulse_count() == 0)
 	assert(waves.add_group(2, 5, 100.0, 0.0) >= 0)
 	var before_surge := waves.get_total_enemy_count()
 	contact.call("_set_active_orb", 2)
 	var destroyed_on_connect := before_surge - waves.get_total_enemy_count()
 	assert(destroyed_on_connect >= 1 and destroyed_on_connect <= 2)
+	assert(pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE
+	) == 1)
+	assert(pulse_visual.get_active_pulse_count() == 1)
 	var before_disconnect := waves.get_total_enemy_count()
 	contact.call("_set_active_orb", -1)
 	var destroyed_on_disconnect := before_disconnect - waves.get_total_enemy_count()
 	assert(destroyed_on_disconnect >= 1 and destroyed_on_disconnect <= 2)
+	assert(pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE
+	) == 1)
+	assert(pulse_visual.get_active_pulse_count() == 2)
 	contact.call("_set_active_orb", 2)
+	assert(pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE
+	) == 2)
+	assert(pulse_visual.get_active_pulse_count() == 3)
 
 	shield.set_health(0, 50.0)
 	shield.set_health(1, 100.0)
@@ -118,6 +134,17 @@ func _run_scenario() -> void:
 	shield.set_health(2, 99.0)
 	shield.restore(2, 1.0)
 	assert(is_equal_approx(shield.get_health(0), 65.0))
+
+	var paused_elapsed := pulse_visual.get_oldest_pulse_elapsed_for_tests()
+	flow.state = GameFlowController.RunState.MANUAL_PAUSE
+	pulse_visual.call("_process", pulse_visual.style.duration + 1.0)
+	assert(is_equal_approx(
+		pulse_visual.get_oldest_pulse_elapsed_for_tests(),
+		paused_elapsed
+	))
+	flow.state = GameFlowController.RunState.RUNNING
+	pulse_visual.call("_process", pulse_visual.style.duration + 1.0)
+	assert(pulse_visual.get_active_pulse_count() == 0)
 
 	print("Shield core upgrade scenarios passed")
 	quit()
