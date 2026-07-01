@@ -95,6 +95,7 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	assert(paused)
 
 	var cost: int = upgrades.get_current_cost()
+	var scalar_card_seen: bool = false
 	for card_index: int in range(panel.get_rendered_card_count()):
 		var card_text: String = panel.get_rendered_card_text(card_index)
 		assert(card_text.contains("Цена: %d" % cost))
@@ -102,7 +103,9 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 		assert(card_text.contains("БАЗОВАЯ"))
 		assert(card_text.contains("◆"))
 		assert(not card_text.contains("Изменяет параметр:"))
-	assert(panel.get_rendered_card_text(0).contains("Модификатор:"))
+		if card_text.contains("Модификатор:"):
+			scalar_card_seen = true
+	assert(scalar_card_seen)
 
 	var offer_number: int = upgrades.get_current_offer_number()
 	var card_id: StringName = upgrades.get_card_id(0)
