@@ -222,7 +222,7 @@ func _assert_fifth_anchor_volley_knockdown(
 		crew.get_shooter_upgrades(),
 		5
 	))
-	assert(not target.health.is_alive())
+	assert(not target.visible)
 
 
 func _cleanup_enemy(enemy: BoardingEnemy) -> void:
