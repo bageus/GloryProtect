@@ -64,7 +64,7 @@ func _physics_process(_delta: float) -> void:
 	var assignment := _roles.get_assignment(_defender.defender_id)
 	if assignment == null:
 		return
-	if assignment.current_role != CrewRole.Id.SHOOTER:
+	if not _can_use_shooter_assignment(assignment):
 		return
 	if assignment.state != CrewAssignmentRuntime.State.ACTIVE:
 		return
@@ -72,6 +72,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	if is_action_active():
 		_defender.movement.pause()
+		return
+	if _is_current_station_action_active():
 		return
 	if not _ranged.can_start():
 		return
@@ -153,6 +155,27 @@ func get_completed_bolt_count() -> int:
 
 func get_completed_volley_count() -> int:
 	return _completed_volleys
+
+
+func _can_use_shooter_assignment(
+	assignment: CrewAssignmentRuntime
+) -> bool:
+	if assignment.combat_role != CrewRole.Id.SHOOTER:
+		return false
+	if assignment.current_role == CrewRole.Id.SHOOTER:
+		return true
+	return (
+		assignment.current_role == CrewRole.Id.LEFT_ANCHOR
+		or assignment.current_role == CrewRole.Id.RIGHT_ANCHOR
+	)
+
+
+func _is_current_station_action_active() -> bool:
+	var polished_roles := _roles as ShooterCrewRoleManagerPolished
+	return (
+		polished_roles != null
+		and polished_roles.is_current_station_action_active(_defender.defender_id)
+	)
 
 
 func _build_policy(
