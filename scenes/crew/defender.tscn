@@ -3,13 +3,13 @@
 [ext_resource type="Script" path="res://scripts/crew/surface_aligned_defender.gd" id="1_defender"]
 [ext_resource type="Script" path="res://scripts/combat/health_component.gd" id="2_health"]
 [ext_resource type="Script" path="res://scripts/crew/defender_movement.gd" id="3_movement"]
-[ext_resource type="Script" path="res://scripts/crew/defender_visual_polished.gd" id="4_visual"]
+[ext_resource type="Script" path="res://scripts/crew/shooter_range_defender_visual.gd" id="4_visual"]
 [ext_resource type="Script" path="res://scripts/combat/melee_attack_component.gd" id="5_melee"]
 [ext_resource type="Script" path="res://scripts/crew/defender_combat_controller.gd" id="6_combat"]
 [ext_resource type="Script" path="res://scripts/combat/status_effect_component.gd" id="7_status"]
 [ext_resource type="Script" path="res://scripts/crew/defender_durability_component.gd" id="8_durability"]
 [ext_resource type="Script" path="res://scripts/combat/ranged_attack_component.gd" id="9_ranged"]
-[ext_resource type="Script" path="res://scripts/crew/shooter_combat_controller.gd" id="10_shooter"]
+[ext_resource type="Script" path="res://scripts/crew/effective_range_shooter_combat_controller.gd" id="10_shooter"]
 
 [node name="Defender" type="Node2D"]
 script = ExtResource("1_defender")
