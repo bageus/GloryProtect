@@ -27,7 +27,7 @@ func _test_added_defender_leaves_portal_after_card_pause() -> void:
 	assert(roles.get_assignment_count() == 3)
 
 	flow.begin_card_selection()
-	assert(get_tree().paused)
+	assert(paused)
 	var added: Defender = crew.add_defender()
 	assert(added != null)
 	var defender_id: int = added.defender_id
@@ -129,7 +129,7 @@ func _test_paused_portal_replacement_keeps_single_assignment() -> void:
 	previous.health.set_health(0)
 	await _wait_until_portal_busy(portal)
 	flow.toggle_manual_pause()
-	assert(get_tree().paused)
+	assert(paused)
 	for _frame: int in range(8):
 		await process_frame
 	assert(crew.get_defender(0).get_instance_id() == previous_instance_id)
@@ -137,7 +137,7 @@ func _test_paused_portal_replacement_keeps_single_assignment() -> void:
 	assert(roles.get_assignment_count() == crew.get_total_count())
 
 	flow.toggle_manual_pause()
-	assert(not get_tree().paused)
+	assert(not paused)
 	var replacement: Defender = await _wait_for_replacement(
 		crew,
 		0,
@@ -152,7 +152,7 @@ func _test_paused_portal_replacement_keeps_single_assignment() -> void:
 
 
 func _create_game() -> Node2D:
-	get_tree().paused = false
+	paused = false
 	var game := GAME_SCENE.instantiate() as Node2D
 	var flow: GameFlowController = game.get_node("GameFlowController")
 	flow.start_delay_seconds = 0.0
@@ -169,7 +169,7 @@ func _create_game() -> Node2D:
 
 
 func _destroy_game(game: Node) -> void:
-	get_tree().paused = false
+	paused = false
 	game.queue_free()
 	await process_frame
 	await process_frame
