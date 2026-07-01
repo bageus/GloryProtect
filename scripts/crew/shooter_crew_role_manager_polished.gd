@@ -5,6 +5,27 @@ const DRIVER_FIRST_CELL_INDEX: int = 10
 const DRIVER_SECOND_CELL_INDEX: int = 11
 
 
+func _process(delta: float) -> void:
+	super._process(delta)
+	if _initialized:
+		_reconcile_living_assignments()
+
+
+func get_assignment_count() -> int:
+	return _assignments.size()
+
+
+func has_valid_living_assignment(defender_id: int) -> bool:
+	var defender: Defender = _crew.get_defender(defender_id)
+	var runtime: CrewAssignmentRuntime = get_assignment(defender_id)
+	return (
+		defender != null
+		and defender.health.is_alive()
+		and runtime != null
+		and runtime.state != CrewAssignmentRuntime.State.DEAD
+	)
+
+
 func _initialize_assignments() -> void:
 	_stations.configure(_platform)
 	_stations.set_dynamic_target(
@@ -16,6 +37,7 @@ func _initialize_assignments() -> void:
 		) * 0.5
 	)
 	super._initialize_assignments()
+	_reconcile_living_assignments()
 
 
 func request_assignment(
@@ -95,17 +117,117 @@ func _activate_replacement(defender: Defender) -> void:
 		runtime.current_role = runtime.combat_role
 		runtime.current_station_id = -1
 		runtime.state = CrewAssignmentRuntime.State.MOVING
-		defender.move_to(
-			_stations.get_target_x(
-				runtime.target_role,
-				runtime.target_station_id,
-				runtime.defender_id
-			)
-		)
-		_emit_assignment(runtime)
+		_move_runtime_to_target(defender, runtime)
 		return
 
-	_set_runtime_free(runtime, true)
+	_move_spawned_to_combat_position(defender, runtime)
+
+
+func _connect_defender(defender: Defender) -> void:
+	if not defender.destination_reached.is_connected(
+		_on_defender_destination_reached
+	):
+		defender.destination_reached.connect(
+			_on_defender_destination_reached
+		)
+	if not defender.died.is_connected(_on_defender_died):
+		defender.died.connect(_on_defender_died)
+
+
+func _on_defender_spawned(defender_id: int, defender: Defender) -> void:
+	if not _initialized:
+		call_deferred(
+			"_finalize_spawned_defender",
+			defender_id,
+			defender.get_instance_id()
+		)
+		return
+	_finalize_spawned_defender(defender_id, defender.get_instance_id())
+
+
+func _finalize_spawned_defender(
+	defender_id: int,
+	expected_instance_id: int
+) -> void:
+	if not _initialized:
+		call_deferred(
+			"_finalize_spawned_defender",
+			defender_id,
+			expected_instance_id
+		)
+		return
+	var defender: Defender = _crew.get_defender(defender_id)
+	if (
+		defender == null
+		or not defender.health.is_alive()
+		or defender.get_instance_id() != expected_instance_id
+	):
+		return
+	_connect_defender(defender)
+	var runtime: CrewAssignmentRuntime = get_assignment(defender_id)
+	if runtime == null or runtime.state == CrewAssignmentRuntime.State.DEAD:
+		_activate_replacement(defender)
+
+
+func _reconcile_living_assignments() -> void:
+	for defender: Defender in _crew.get_living_defenders():
+		_connect_defender(defender)
+		var runtime: CrewAssignmentRuntime = get_assignment(defender.defender_id)
+		if runtime == null or runtime.state == CrewAssignmentRuntime.State.DEAD:
+			_activate_replacement(defender)
+			continue
+		if runtime.state == CrewAssignmentRuntime.State.MOVING:
+			_repair_stopped_transition(defender, runtime)
+
+
+func _repair_stopped_transition(
+	defender: Defender,
+	runtime: CrewAssignmentRuntime
+) -> void:
+	if defender.movement.is_moving():
+		return
+	if CrewRole.is_fixed_station(runtime.target_role):
+		if not _has_valid_post_target(runtime):
+			_move_spawned_to_combat_position(defender, runtime)
+			return
+	_move_runtime_to_target(defender, runtime)
+
+
+func _move_spawned_to_combat_position(
+	defender: Defender,
+	runtime: CrewAssignmentRuntime
+) -> void:
+	_stations.release(
+		runtime.target_role,
+		runtime.target_station_id,
+		runtime.defender_id
+	)
+	var combat_role: int = get_combat_role(runtime.defender_id)
+	runtime.current_role = combat_role
+	runtime.current_station_id = -1
+	runtime.target_role = combat_role
+	runtime.target_station_id = -1
+	runtime.state = CrewAssignmentRuntime.State.MOVING
+	_move_runtime_to_target(defender, runtime)
+
+
+func _move_runtime_to_target(
+	defender: Defender,
+	runtime: CrewAssignmentRuntime
+) -> void:
+	var target_x: float = _stations.get_target_x(
+		runtime.target_role,
+		runtime.target_station_id,
+		runtime.defender_id
+	)
+	defender.move_to(target_x)
+	if (
+		runtime.state == CrewAssignmentRuntime.State.MOVING
+		and not defender.movement.is_moving()
+	):
+		_activate_target_role(runtime)
+	else:
+		_emit_assignment(runtime)
 
 
 func _on_defender_died(defender_id: int) -> void:
