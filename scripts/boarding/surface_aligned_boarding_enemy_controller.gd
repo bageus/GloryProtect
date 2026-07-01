@@ -46,6 +46,14 @@ func get_platform_visual_contact_y() -> float:
 	return _platform_visual_contact_y
 
 
+func get_climb_visual_contact_y(progress: float) -> float:
+	return lerpf(
+		_ground_visual_contact_y,
+		_platform_visual_contact_y,
+		clampf(progress, 0.0, 1.0)
+	)
+
+
 func _set_ground_height() -> void:
 	super._set_ground_height()
 	_align_visual_contact(_ground_visual_contact_y)
@@ -55,13 +63,7 @@ func _update_climbing(delta: float) -> void:
 	super._update_climbing(delta)
 	if state != State.CLIMBING:
 		return
-	_align_visual_contact(
-		lerpf(
-			_ground_visual_contact_y,
-			_platform_visual_contact_y,
-			_clampf(_climb_progress, 0.0, 1.0)
-		)
-	)
+	_align_visual_contact(get_climb_visual_contact_y(_climb_progress))
 
 
 func _update_world_position_from_platform(
