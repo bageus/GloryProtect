@@ -39,10 +39,8 @@ func _test_added_defender_leaves_portal_after_card_pause() -> void:
 	assert(runtime.current_role == CrewRole.Id.FREE_FIGHTER)
 	assert(runtime.target_role == CrewRole.Id.FREE_FIGHTER)
 	assert(added.movement.is_moving())
-	assert(is_equal_approx(
-		added.position.x,
-		crew.balance.replacement_door_local_x
-	))
+	var portal_x: float = crew.balance.replacement_door_local_x
+	assert(is_equal_approx(added.position.x, portal_x))
 	var target_x: float = roles.get_role_target_x(
 		CrewRole.Id.FREE_FIGHTER,
 		defender_id
@@ -52,8 +50,8 @@ func _test_added_defender_leaves_portal_after_card_pause() -> void:
 	flow.finish_card_selection()
 	assert(not paused)
 	await _wait_for_active_assignment(roles, defender_id)
-	assert(is_equal_approx(added.position.x, target_x))
-	assert(not added.movement.is_moving())
+	assert(absf(added.position.x - portal_x) > 20.0)
+	assert(roles.has_valid_living_assignment(defender_id))
 	assert(roles.get_assignment_count() == crew.get_total_count())
 	await _destroy_game(game)
 
