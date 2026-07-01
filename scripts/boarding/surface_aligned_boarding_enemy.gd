@@ -33,13 +33,20 @@ func get_visual_foot_baseline() -> float:
 			return radius + 5.0
 
 
+func get_ground_target_x() -> float:
+	var recovering_behavior := behavior as RecoveringRopeSaboteurBehavior
+	if recovering_behavior != null:
+		return recovering_behavior.get_ground_target_x()
+	var recovering_controller := controller as RecoveringBoardingEnemyController
+	if recovering_controller != null:
+		return recovering_controller.get_ground_target_x()
+	return global_position.x
+
+
 func attach_special_behavior(
 	component: EnemyBehaviorComponent,
 	game_flow: GameFlowController
 ) -> void:
 	super.attach_special_behavior(component, game_flow)
-	if (
-		visual != null
-		and component.target_domain != EnemyBehaviorComponent.TargetDomain.GROUND
-	):
+	if visual != null and not component.counts_as_ground:
 		visual.position.y = 0.0
