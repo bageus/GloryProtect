@@ -2,6 +2,7 @@ extends SceneTree
 
 const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 const ATTACK_TICK: float = 25.0
+const KNOCKDOWN_TEST_HEALTH: int = 100
 
 
 func _init() -> void:
@@ -92,10 +93,13 @@ func _test_anchor_hunter_on_post(
 	target.controller.set_physics_process(false)
 	target.controller.state = BoardingEnemyController.State.CLIMBING
 	target.global_position = defender.global_position + Vector2(80.0, 0.0)
-	defender.shooter_combat.set("_completed_volleys", 4)
+	target.health.configure(KNOCKDOWN_TEST_HEALTH)
 
-	_start_shot(defender, target)
-	_finish_ranged_sequence(defender)
+	for volley_index: int in range(5):
+		_start_shot(defender, target)
+		_finish_ranged_sequence(defender)
+		if volley_index < 4:
+			assert(target.health.is_alive())
 	assert(not target.health.is_alive())
 	assert(defender.shooter_combat.get_completed_volley_count() == 5)
 	_cleanup_enemy(target)
