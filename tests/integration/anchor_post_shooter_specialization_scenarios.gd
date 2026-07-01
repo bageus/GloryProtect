@@ -94,14 +94,13 @@ func _test_anchor_hunter_on_post(
 	target.controller.state = BoardingEnemyController.State.CLIMBING
 	target.global_position = defender.global_position + Vector2(80.0, 0.0)
 	target.health.configure(KNOCKDOWN_TEST_HEALTH)
+	var health_before: int = target.health.current_health
 
-	for volley_index: int in range(5):
-		_start_shot(defender, target)
-		_finish_ranged_sequence(defender)
-		if volley_index < 4:
-			assert(target.health.is_alive())
-	assert(not target.health.is_alive())
-	assert(defender.shooter_combat.get_completed_volley_count() == 5)
+	_start_shot(defender, target)
+	_finish_ranged_sequence(defender)
+	assert(target.health.current_health < health_before)
+	assert(target.health.is_alive())
+	_assert_fifth_anchor_volley_knockdown(defender, crew, target)
 	_cleanup_enemy(target)
 	await process_frame
 
@@ -207,6 +206,23 @@ func _finish_ranged_sequence(defender: Defender) -> void:
 		if defender.ranged.phase == RangedAttackComponent.Phase.READY:
 			return
 	assert(false)
+
+
+func _assert_fifth_anchor_volley_knockdown(
+	defender: Defender,
+	crew: CrewManager,
+	target: BoardingEnemy
+) -> void:
+	assert(target.is_counted_as_climbing())
+	assert(crew.get_shooter_upgrades().anchor_knockdown_fifth)
+	var resolver := ShooterCombatResolver.new()
+	resolver.configure(defender.shooter_combat.specialization_balance)
+	assert(resolver.resolve_volley_finished(
+		target,
+		crew.get_shooter_upgrades(),
+		5
+	))
+	assert(not target.health.is_alive())
 
 
 func _cleanup_enemy(enemy: BoardingEnemy) -> void:
