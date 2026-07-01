@@ -169,6 +169,31 @@ func _finalize_spawned_defender(
 		_activate_replacement(defender)
 
 
+func _on_defender_destination_reached(defender_id: int) -> void:
+	var runtime: CrewAssignmentRuntime = get_assignment(defender_id)
+	if runtime == null or runtime.state != CrewAssignmentRuntime.State.MOVING:
+		return
+	var defender: Defender = _crew.get_defender(defender_id)
+	if defender == null or not defender.health.is_alive():
+		return
+	if CrewRole.is_fixed_station(runtime.target_role):
+		if not _has_valid_post_target(runtime):
+			_move_spawned_to_combat_position(defender, runtime)
+			return
+	var assignment_target_x: float = _stations.get_target_x(
+		runtime.target_role,
+		runtime.target_station_id,
+		defender_id
+	)
+	if (
+		absf(defender.position.x - assignment_target_x)
+		> defender.movement.arrival_epsilon
+	):
+		_move_runtime_to_target(defender, runtime)
+		return
+	_activate_target_role(runtime)
+
+
 func _reconcile_living_assignments() -> void:
 	for defender: Defender in _crew.get_living_defenders():
 		_connect_defender(defender)
@@ -225,7 +250,7 @@ func _move_runtime_to_target(
 		runtime.state == CrewAssignmentRuntime.State.MOVING
 		and not defender.movement.is_moving()
 	):
-		_activate_target_role(runtime)
+		_on_defender_destination_reached(runtime.defender_id)
 	else:
 		_emit_assignment(runtime)
 
