@@ -13,6 +13,15 @@ func _on_stopped() -> void:
 	super._on_stopped()
 
 
+func get_ground_target_x() -> float:
+	var path: AnchorPathSnapshot = _choose_target_path()
+	if path != null:
+		return path.ground_point.x
+	if context != null and context.platform != null:
+		return context.platform.global_position.x
+	return enemy.global_position.x if enemy != null else 0.0
+
+
 func _update_running(delta: float) -> void:
 	var path: AnchorPathSnapshot = _choose_target_path()
 	if path == null:
