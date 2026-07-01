@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/boarding/rope_saboteur_behavior.gd" id="1_behavior"]
+[ext_resource type="Script" path="res://scripts/boarding/recovering_rope_saboteur_behavior.gd" id="1_behavior"]
 [ext_resource type="Script" path="res://scripts/boarding/rope_saboteur_visual.gd" id="2_visual"]
 
 [node name="RopeSaboteurBehavior" type="Node"]
