@@ -2,10 +2,16 @@ class_name BuildablePlacementPanelScene
 extends BuildablePlacementPanel
 
 @export_node_path("BuildablePlacementController") var controller_path: NodePath
+@export var use_unified_context: bool = false
 
 
 func _ready() -> void:
 	configure(get_node(controller_path) as BuildablePlacementController)
+	if use_unified_context:
+		visible = false
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_process(false)
+		return
 	super._ready()
 
 
