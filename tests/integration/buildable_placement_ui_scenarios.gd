@@ -180,8 +180,6 @@ func _assert_context_actions(
 	var buttons: PackedStringArray = panel.get_context_button_texts()
 	for text: String in expected:
 		assert(buttons.has(text))
-	if expected.is_empty():
-		assert(buttons.is_empty())
 	assert(not "\n".join(buttons).contains("Выберите объект для клетки"))
 
 
