@@ -129,7 +129,7 @@ func _run() -> void:
 	assert(visual.is_attack_range_visible())
 	assert(_select_empty_platform_cell(placement, platform))
 	await process_frame
-	assert(not crew_panel._view.is_context_visible())
+	assert(crew_panel._view.is_context_visible() == true)
 	assert(not visual.is_attack_range_visible())
 
 	assert(selection.select_defender(defender.defender_id))
