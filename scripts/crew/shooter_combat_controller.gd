@@ -64,7 +64,7 @@ func _physics_process(_delta: float) -> void:
 	var assignment := _roles.get_assignment(_defender.defender_id)
 	if assignment == null:
 		return
-	if assignment.current_role != CrewRole.Id.SHOOTER:
+	if not _can_use_shooter_assignment(assignment):
 		return
 	if assignment.state != CrewAssignmentRuntime.State.ACTIVE:
 		return
@@ -72,6 +72,8 @@ func _physics_process(_delta: float) -> void:
 		return
 	if is_action_active():
 		_defender.movement.pause()
+		return
+	if _is_anchor_operation_active(assignment.current_role):
 		return
 	if not _ranged.can_start():
 		return
@@ -153,6 +155,27 @@ func get_completed_bolt_count() -> int:
 
 func get_completed_volley_count() -> int:
 	return _completed_volleys
+
+
+func _can_use_shooter_assignment(
+	assignment: CrewAssignmentRuntime
+) -> bool:
+	if assignment.combat_role != CrewRole.Id.SHOOTER:
+		return false
+	if assignment.current_role == CrewRole.Id.SHOOTER:
+		return true
+	return (
+		assignment.current_role == CrewRole.Id.LEFT_ANCHOR
+		or assignment.current_role == CrewRole.Id.RIGHT_ANCHOR
+	)
+
+
+func _is_anchor_operation_active(role_id: int) -> bool:
+	if role_id == CrewRole.Id.LEFT_ANCHOR:
+		return _roles._anchors.is_operator_busy(AnchorRuntime.Side.LEFT)
+	if role_id == CrewRole.Id.RIGHT_ANCHOR:
+		return _roles._anchors.is_operator_busy(AnchorRuntime.Side.RIGHT)
+	return false
 
 
 func _build_policy(
