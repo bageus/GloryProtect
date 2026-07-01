@@ -4,6 +4,16 @@ extends CrewCommandPanelPlacementPolished
 var _range_context_defender_id: int = -1
 
 
+func _ready() -> void:
+	super._ready()
+	if not _selection.selected_defender_changed.is_connected(
+		_on_selected_defender_changed
+	):
+		_selection.selected_defender_changed.connect(
+			_on_selected_defender_changed
+		)
+
+
 func _process(delta: float) -> void:
 	super._process(delta)
 	if not visible and _range_context_defender_id >= 0:
@@ -42,6 +52,14 @@ func _on_defender_died(defender_id: int) -> void:
 	if defender_id == _range_context_defender_id:
 		_close_context()
 	super._on_defender_died(defender_id)
+
+
+func _on_selected_defender_changed(defender_id: int) -> void:
+	if (
+		_range_context_defender_id >= 0
+		and defender_id != _range_context_defender_id
+	):
+		_close_context()
 
 
 func _set_defender_attack_range_visible(
