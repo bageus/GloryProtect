@@ -28,6 +28,12 @@ const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_nor
 @export_range(1, 24, 1) var ground_core_frame_count: int = 6
 @export_range(1.0, 30.0, 0.5) var ground_core_frame_rate: float = 8.0
 
+@export_group("Active Contact Beam")
+@export_range(1.0, 32.0, 0.5) var contact_outer_base_width: float = 8.0
+@export_range(1.0, 16.0, 0.5) var contact_inner_base_width: float = 2.0
+@export_range(0.0, 80.0, 0.5) var contact_outer_bonus_per_multiplier: float = 20.0
+@export_range(0.0, 40.0, 0.5) var contact_inner_bonus_per_multiplier: float = 8.0
+
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _registry: GroundOrbRegistry = get_node(registry_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
@@ -84,6 +90,14 @@ func _draw() -> void:
 	_draw_active_contact()
 	for orb_id in range(_registry.get_orb_count()):
 		_draw_orb(orb_id)
+
+
+func get_contact_beam_widths_for_tests() -> Vector2:
+	var multiplier: float = _get_contact_visual_multiplier()
+	return Vector2(
+		_get_outer_contact_line_width(multiplier),
+		_get_inner_contact_line_width(multiplier)
+	)
 
 
 func _draw_ground() -> void:
@@ -227,17 +241,38 @@ func _draw_active_contact() -> void:
 		return
 	var orb_position := _registry.get_orb_world_position(orb_id)
 	var platform_orb_position := _platform.position
+	var multiplier: float = _get_contact_visual_multiplier()
 	draw_line(
 		orb_position,
 		platform_orb_position,
 		Color(0.35, 0.93, 1.0, 0.7),
-		8.0
+		_get_outer_contact_line_width(multiplier)
 	)
 	draw_line(
 		orb_position,
 		platform_orb_position,
 		Color(0.85, 1.0, 1.0, 0.95),
-		2.0
+		_get_inner_contact_line_width(multiplier)
+	)
+
+
+func _get_contact_visual_multiplier() -> float:
+	if _registry.has_method("get_contact_width_multiplier"):
+		return maxf(1.0, float(_registry.call("get_contact_width_multiplier")))
+	return 1.0
+
+
+func _get_outer_contact_line_width(multiplier: float) -> float:
+	return (
+		contact_outer_base_width
+		+ maxf(0.0, multiplier - 1.0) * contact_outer_bonus_per_multiplier
+	)
+
+
+func _get_inner_contact_line_width(multiplier: float) -> float:
+	return (
+		contact_inner_base_width
+		+ maxf(0.0, multiplier - 1.0) * contact_inner_bonus_per_multiplier
 	)
 
 
