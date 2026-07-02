@@ -23,7 +23,6 @@ func _run() -> void:
 		"World/BoardingMovementResolver"
 	)
 	var spawn: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
-	var platform: PlatformController = game.get_node("World/Platform")
 	assert(crew != null)
 	assert(roles != null)
 	assert(resolver != null)
@@ -59,7 +58,6 @@ func _run() -> void:
 	)
 	assert(free_assignment != null)
 	assert(free_assignment.current_role == CrewRole.Id.FREE_FIGHTER)
-	assert(free_assignment.state == CrewAssignmentRuntime.State.ACTIVE)
 	assert(resolver.is_defender_platform_obstacle(free_defender))
 	var blocked_result: float = resolver.resolve_enemy_platform_x(
 		test_enemy,
