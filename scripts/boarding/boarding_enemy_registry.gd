@@ -29,6 +29,11 @@ func get_enemy(enemy_id: int) -> BoardingEnemy:
 
 func get_all_enemies() -> Array[BoardingEnemy]:
 	_prune_invalid_enemies()
+	return _active_enemies.duplicate()
+
+
+func get_active_enemies_view() -> Array[BoardingEnemy]:
+	_prune_invalid_enemies()
 	return _active_enemies
 
 
@@ -43,7 +48,7 @@ func get_active_count() -> int:
 
 func get_ground_count() -> int:
 	var count: int = 0
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if enemy.is_counted_as_ground():
 			count += 1
 	return count
@@ -51,7 +56,7 @@ func get_ground_count() -> int:
 
 func get_climbing_count() -> int:
 	var count: int = 0
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if enemy.is_counted_as_climbing():
 			count += 1
 	return count
@@ -63,7 +68,7 @@ func get_boarded_count() -> int:
 
 func get_boarded_enemies() -> Array[BoardingEnemy]:
 	var result: Array[BoardingEnemy] = []
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if enemy.is_counted_as_boarded() and enemy.health.is_alive():
 			result.append(enemy)
 	return result
@@ -131,7 +136,7 @@ func kill_climbing_on_anchor(
 	reason: StringName = &"anchor_path_closed"
 ) -> int:
 	var victims: Array[BoardingEnemy] = []
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if not enemy.health.is_alive():
 			continue
 		if not enemy.is_counted_as_climbing():
@@ -146,7 +151,7 @@ func kill_climbing_on_anchor(
 
 func get_turret_targets() -> Array[BoardingEnemy]:
 	var result: Array[BoardingEnemy] = []
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if enemy.is_targetable_by_turret():
 			result.append(enemy)
 	return result
@@ -154,7 +159,7 @@ func get_turret_targets() -> Array[BoardingEnemy]:
 
 func get_archetype_count(archetype_id: StringName) -> int:
 	var count: int = 0
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		if enemy.get_archetype_id() == archetype_id:
 			count += 1
 	return count
@@ -163,7 +168,7 @@ func get_archetype_count(archetype_id: StringName) -> int:
 func get_archetype_summary() -> String:
 	var counts: Dictionary[StringName, int] = {}
 	var names: Dictionary[StringName, String] = {}
-	for enemy: BoardingEnemy in get_all_enemies():
+	for enemy: BoardingEnemy in get_active_enemies_view():
 		var archetype_id: StringName = enemy.get_archetype_id()
 		if archetype_id == &"":
 			continue
