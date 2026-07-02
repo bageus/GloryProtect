@@ -3,12 +3,16 @@ extends Node
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("CrewManager") var crew_manager_path: NodePath
+@export_node_path("CrewRoleManager") var role_manager_path: NodePath = NodePath(
+	"../Platform/CrewRoleManager"
+)
 @export_node_path("BoardingEnemyRegistry") var enemy_registry_path: NodePath
 @export var boarding_balance: BoardingBalance
 @export var crew_balance: CrewBalance
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _crew: CrewManager = get_node(crew_manager_path)
+@onready var _roles: CrewRoleManager = _resolve_role_manager()
 @onready var _enemies: BoardingEnemyRegistry = get_node(enemy_registry_path)
 
 
@@ -195,6 +199,8 @@ func can_place_enemy_at(enemy: BoardingEnemy, local_x: float) -> bool:
 
 	var defender_gap: float = get_enemy_defender_gap(enemy)
 	for defender: Defender in _crew.get_living_defenders():
+		if not is_defender_platform_obstacle(defender):
+			continue
 		if absf(defender.position.x - local_x) < defender_gap:
 			return false
 	return true
@@ -222,6 +228,8 @@ func resolve_enemy_platform_x(
 
 	var defender_gap: float = get_enemy_defender_gap(enemy)
 	for defender: Defender in _crew.get_living_defenders():
+		if not is_defender_platform_obstacle(defender):
+			continue
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
@@ -247,6 +255,23 @@ func resolve_defender_platform_x(
 	return resolved_x
 
 
+func is_defender_platform_obstacle(defender: Defender) -> bool:
+	if defender == null or not defender.health.is_alive():
+		return false
+	if _roles == null:
+		return true
+	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
+		defender.defender_id
+	)
+	if assignment == null:
+		return true
+	if assignment.state == CrewAssignmentRuntime.State.DEAD:
+		return false
+	if not _is_fixed_station_operator(assignment):
+		return true
+	return false
+
+
 func get_enemy_gap(
 	first: BoardingEnemy,
 	second: BoardingEnemy,
@@ -260,6 +285,19 @@ func get_enemy_gap(
 
 func get_enemy_defender_gap(enemy: BoardingEnemy) -> float:
 	return enemy.get_body_radius() + crew_balance.defender_body_radius
+
+
+func _resolve_role_manager() -> CrewRoleManager:
+	if role_manager_path.is_empty():
+		return null
+	return get_node_or_null(role_manager_path) as CrewRoleManager
+
+
+func _is_fixed_station_operator(assignment: CrewAssignmentRuntime) -> bool:
+	return (
+		assignment.state == CrewAssignmentRuntime.State.ACTIVE
+		or assignment.state == CrewAssignmentRuntime.State.WAITING_FOR_ACTION
+	) and CrewRole.is_fixed_station(assignment.current_role)
 
 
 func _is_ground_slot_free(enemy: BoardingEnemy, world_x: float) -> bool:
