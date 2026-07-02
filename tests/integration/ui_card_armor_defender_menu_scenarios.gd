@@ -94,7 +94,7 @@ func _run() -> void:
 	assert(not upgrade_panel.get_offer_text().contains("ВЫБЕРИТЕ"))
 	assert(not upgrade_panel.get_offer_text().contains("ВЫДАЧА"))
 	assert(not upgrade_panel.get_mode_text().contains("СОБЫТИЕ"))
-	assert(upgrade_panel.get_cost_text().is_valid_int())
+	assert(not upgrade_panel.is_global_cost_visible())
 	assert(not upgrade_panel.has_node(
 		"Center/Panel/Margin/VBox/InfoLabel"
 	))
@@ -103,8 +103,16 @@ func _run() -> void:
 		var lines: PackedStringArray = text.split("\n")
 		assert(not lines.is_empty())
 		assert(not ["1", "2", "3"].has(lines[0]))
+		assert(upgrade_panel.get_rendered_card_price_text(card_index).begins_with(
+			"Цена: "
+		))
+		assert(upgrade_panel.get_rendered_card_price_color(card_index).is_equal_approx(
+			UpgradeCardFormatter.get_price_color()
+		))
 		assert(not text.contains("ЭФФЕКТ"))
 		assert(not text.contains("ТРЕБОВАНИЯ"))
+		assert(not text.contains("Модификатор:"))
+		assert(not text.contains("Активирует новое правило"))
 		assert(not text.contains("Заблокирует альтернативы"))
 		assert(not text.contains("Нет требований"))
 
