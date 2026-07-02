@@ -5,7 +5,7 @@ extends CanvasLayer
 @export_range(0.0, 1.0, 0.001) var far_motion_scale: float = 0.035
 @export_range(0.0, 1.0, 0.001) var near_motion_scale: float = 0.075
 @export_range(1.0, 2.0, 0.01) var overscan_ratio: float = 1.25
-@export_range(-16.0, 16.0, 0.5) var near_layer_vertical_offset: float = 0.0
+@export_range(-16.0, 16.0, 0.5) var near_layer_vertical_offset: float = 1.0
 
 @onready var _far_layer: Sprite2D = $FarLayer
 @onready var _near_layer: Sprite2D = $NearLayer
