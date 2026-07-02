@@ -4,9 +4,12 @@ extends AnchorVisualController
 @export_range(1.0, 8.0, 0.25) var electric_arc_speed: float = 4.5
 @export_range(4.0, 20.0, 1.0) var electric_arc_spacing: float = 10.0
 @export_range(1.0, 8.0, 0.5) var electric_arc_amplitude: float = 4.0
+@export_range(0.05, 1.5, 0.05) var trap_burst_duration: float = 0.42
+@export_range(0.0, 1.0, 0.05) var trap_burst_start_alpha: float = 0.82
 
 var _anchor_host: CombatAnchorHostSystem
 var _combat_anchors: CombatAnchorSystem
+var _trap_bursts: Array[Dictionary] = []
 
 
 func configure_combat(
@@ -27,13 +30,30 @@ func configure_combat(
 		is_operator_available,
 		is_simulation_active
 	)
-	if (
-		_combat_anchors != null
-		and not _combat_anchors.upgrades_changed.is_connected(
-			_on_upgrades_changed
-		)
-	):
+	if _combat_anchors == null:
+		return
+	if not _combat_anchors.upgrades_changed.is_connected(_on_upgrades_changed):
 		_combat_anchors.upgrades_changed.connect(_on_upgrades_changed)
+	if not _combat_anchors.trap_triggered.is_connected(_on_trap_triggered):
+		_combat_anchors.trap_triggered.connect(_on_trap_triggered)
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	var safe_delta: float = maxf(0.0, delta)
+	if safe_delta <= 0.0 or _trap_bursts.is_empty():
+		return
+	for burst: Dictionary in _trap_bursts:
+		burst["elapsed"] = float(burst["elapsed"]) + safe_delta
+	for index: int in range(_trap_bursts.size() - 1, -1, -1):
+		if float(_trap_bursts[index]["elapsed"]) >= trap_burst_duration:
+			_trap_bursts.remove_at(index)
+	queue_redraw()
+
+
+func _draw() -> void:
+	super._draw()
+	_draw_trap_bursts()
 
 
 func is_electric_visual_active(anchor_id: int) -> bool:
@@ -49,6 +69,22 @@ func is_electric_visual_active(anchor_id: int) -> bool:
 		AnchorRuntime.State.ATTACHED,
 		AnchorRuntime.State.OVERLOADED,
 	]
+
+
+func get_active_trap_burst_count() -> int:
+	return _trap_bursts.size()
+
+
+func get_latest_trap_burst_position() -> Vector2:
+	if _trap_bursts.is_empty():
+		return Vector2(INF, INF)
+	return _trap_bursts[_trap_bursts.size() - 1]["position"] as Vector2
+
+
+func get_latest_trap_burst_radius() -> float:
+	if _trap_bursts.is_empty():
+		return 0.0
+	return float(_trap_bursts[_trap_bursts.size() - 1]["radius"])
 
 
 func _draw_attached_anchor(
@@ -127,5 +163,50 @@ func _draw_electric_arcs(
 		)
 
 
+func _draw_trap_bursts() -> void:
+	for burst: Dictionary in _trap_bursts:
+		var elapsed: float = float(burst["elapsed"])
+		var progress: float = clampf(
+			elapsed / maxf(0.01, trap_burst_duration),
+			0.0,
+			1.0
+		)
+		var center: Vector2 = burst["position"] as Vector2
+		var radius: float = float(burst["radius"])
+		var wave_radius: float = maxf(4.0, radius * _ease_out(progress))
+		var alpha: float = trap_burst_start_alpha * (1.0 - progress)
+		var ring := Color(1.0, 0.68, 0.18, alpha)
+		var glow := Color(1.0, 0.24, 0.08, alpha * 0.22)
+		draw_circle(center, wave_radius * 0.55, glow)
+		draw_arc(center, wave_radius, 0.0, TAU, 36, ring, 5.0, true)
+		var spoke_count: int = 8
+		for index: int in range(spoke_count):
+			var angle: float = float(index) / float(spoke_count) * TAU
+			var direction := Vector2.RIGHT.rotated(angle)
+			var inner: Vector2 = center + direction * wave_radius * 0.35
+			var outer: Vector2 = center + direction * wave_radius * 0.92
+			draw_line(inner, outer, ring.lightened(0.28), 2.0, true)
+
+
+func _on_trap_triggered(
+	_anchor_id: int,
+	world_position: Vector2,
+	radius: float,
+	_damaged_enemy_count: int,
+	_source_id: StringName
+) -> void:
+	_trap_bursts.append({
+		"position": world_position,
+		"radius": maxf(4.0, radius),
+		"elapsed": 0.0,
+	})
+	queue_redraw()
+
+
 func _on_upgrades_changed() -> void:
 	queue_redraw()
+
+
+func _ease_out(value: float) -> float:
+	var clamped: float = clampf(value, 0.0, 1.0)
+	return 1.0 - pow(1.0 - clamped, 3.0)
