@@ -5,7 +5,13 @@ signal upgrades_changed
 signal periodic_pulse(anchor_id: int, damaged_enemy_count: int)
 signal endpoint_pulse(anchor_id: int, damaged_enemy_count: int)
 signal enemy_dropped(anchor_id: int, enemy_id: int, source_id: StringName)
-signal trap_triggered(anchor_id: int, damaged_enemy_count: int)
+signal trap_triggered(
+	anchor_id: int,
+	world_position: Vector2,
+	radius: float,
+	damaged_enemy_count: int,
+	source_id: StringName
+)
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("CombatAnchorHostSystem") var anchor_system_path: NodePath
@@ -207,7 +213,13 @@ func _apply_attach_trap(anchor_id: int) -> void:
 		balance.trap_attach_damage,
 		&"anchor_trap_attach"
 	)
-	trap_triggered.emit(anchor_id, damaged_count)
+	trap_triggered.emit(
+		anchor_id,
+		snapshot.ground_point,
+		balance.trap_attach_radius,
+		damaged_count,
+		&"anchor_trap_attach"
+	)
 
 
 func _apply_remove_trap(anchor_id: int) -> void:
@@ -228,7 +240,13 @@ func _apply_remove_trap(anchor_id: int) -> void:
 				balance.trap_knockback_distance,
 				edge.x
 			)
-	trap_triggered.emit(anchor_id, damaged_count)
+	trap_triggered.emit(
+		anchor_id,
+		edge,
+		balance.trap_remove_radius,
+		damaged_count,
+		&"anchor_trap_remove"
+	)
 
 
 func _damage_climbers_on_anchor(
