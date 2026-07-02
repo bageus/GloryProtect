@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://bsegsrxxefsa"
+path="res://.godot/imported/Melodic Drive Core3.mp3-7c47590fb1e957e904216f1a2bd01035.mp3str"
+
+[deps]
+
+source_file="res://audio/Melodic Drive Core3.mp3"
+dest_files=["res://.godot/imported/Melodic Drive Core3.mp3-7c47590fb1e957e904216f1a2bd01035.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
