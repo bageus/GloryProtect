@@ -86,7 +86,7 @@ func _run() -> void:
 	assert(events[0]["source"] == StringName("anchor_" + TAIL + "_attach"))
 	assert(int(events[0]["affected"]) == 1)
 	assert(is_equal_approx(float(events[0]["radius"]), combat.balance.trap_attach_radius))
-	assert(not ground_target.health.is_alive())
+	assert(not _is_enemy_alive(ground_target))
 	assert(reward_count == 1)
 	assert(visual.get_active_trap_burst_count() == 1)
 	assert(visual.get_latest_trap_burst_position().distance_to(
@@ -107,7 +107,7 @@ func _run() -> void:
 	assert(await _wait_until(func() -> bool: return events.size() == 2, 60))
 	assert(events[1]["source"] == StringName("anchor_" + TAIL + "_remove"))
 	assert(int(events[1]["affected"]) == 1)
-	assert(not boarded_target.health.is_alive())
+	assert(not _is_enemy_alive(boarded_target))
 	assert(reward_count == 2)
 	assert(visual.get_active_trap_burst_count() >= 1)
 	assert(is_equal_approx(
@@ -128,7 +128,7 @@ func _run() -> void:
 	plain_target.set_physics_process(false)
 	anchors._on_anchor_detaching(ANCHOR_ID)
 	assert(events.size() == 2)
-	assert(plain_target.health.is_alive())
+	assert(_is_enemy_alive(plain_target))
 
 	print("Combat anchor trap burst scenarios passed")
 	quit()
@@ -140,6 +140,10 @@ func _wait_until(predicate: Callable, maximum_frames: int) -> bool:
 			return true
 		await physics_frame
 	return bool(predicate.call())
+
+
+func _is_enemy_alive(enemy: BoardingEnemy) -> bool:
+	return is_instance_valid(enemy) and enemy.health.is_alive()
 
 
 func _stabilize_world(game: Node) -> void:
