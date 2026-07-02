@@ -61,6 +61,12 @@ func is_coin_gain_visible() -> bool:
 	return _gain != null and _gain.visible
 
 
+func get_coin_gain_color() -> Color:
+	if _gain == null:
+		return Color.TRANSPARENT
+	return _gain.get_theme_color("font_color")
+
+
 func _on_enemy_removed(enemy_id: int, reason: StringName) -> void:
 	if not balance.is_rewarded_boarding_reason(reason):
 		return
@@ -120,6 +126,10 @@ func _build_feedback_view(scene_root: Node) -> void:
 	_gain = _make_label(56.0, 90.0, 22)
 	_gain.name = "CoinGain"
 	_gain.visible = false
+	_gain.add_theme_color_override(
+		"font_color",
+		UpgradeCardFormatter.get_price_color()
+	)
 	canvas.add_child(_counter)
 	canvas.add_child(_gain)
 	_counter.text = "Монеты: %d" % _economy.get_coins()
