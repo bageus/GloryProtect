@@ -13,7 +13,7 @@ func select_target(
 	var selected: BoardingEnemy = null
 	var selected_score: float = -INF
 	var range_squared: float = maximum_range * maximum_range
-	for enemy: BoardingEnemy in enemies.get_all_enemies():
+	for enemy: BoardingEnemy in enemies.get_active_enemies_view():
 		if not policy.is_valid_target(enemy):
 			continue
 		if enemies.get_unreserved_health(enemy.enemy_id) <= 0:
