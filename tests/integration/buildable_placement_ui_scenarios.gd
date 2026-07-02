@@ -24,8 +24,11 @@ func _run_scenario() -> void:
 	var controller: BuildablePlacementController = game.get_node(
 		"BuildablePlacementController"
 	)
-	var panel: BuildablePlacementPanel = game.get_node(
+	var legacy_panel: BuildablePlacementPanel = game.get_node(
 		"CanvasLayer/BuildablePlacementPanel"
+	)
+	var context_panel: UnifiedContextCrewCommandPanel = game.get_node(
+		"CanvasLayer/PrototypeHUD/CrewCommandPanel"
 	)
 	var upgrade_panel: UpgradeSelectionPanel = game.get_node(
 		"CanvasLayer/UpgradeSelectionPanel"
@@ -39,8 +42,9 @@ func _run_scenario() -> void:
 	)
 
 	assert(not upgrade_panel.z_as_relative)
-	assert(upgrade_panel.z_index > panel.z_index)
-	assert(not panel.visible)
+	assert(upgrade_panel.z_index > legacy_panel.z_index)
+	assert(not legacy_panel.visible)
+	assert(not context_panel.is_context_visible())
 	assert(not controller.is_grid_preview_visible())
 
 	var locked_cell: int = 3
@@ -48,30 +52,27 @@ func _run_scenario() -> void:
 		platform.get_cell_canvas_center(locked_cell)
 	))
 	await process_frame
-	assert(panel.visible)
-	assert(panel.get_selection_text() == "Ячейка 4")
-	assert(panel.get_cell_feedback_text() == "Пустая")
-	assert(not panel.get_medical_button().visible)
-	assert(not panel.get_turret_button().visible)
+	assert(context_panel.is_context_visible())
+	_assert_context_actions(context_panel, PackedStringArray())
+	assert(not legacy_panel.visible)
 	controller.clear_selection()
 	await process_frame
 
 	inventory.unlock(BuildableType.Id.MEDICAL_STATION)
 	inventory.unlock(BuildableType.Id.TURRET, 2)
 	await process_frame
-	assert(not panel.visible)
+	assert(not legacy_panel.visible)
 
 	var medical_cell: int = 2
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
-	assert(panel.visible)
-	assert(panel.get_selection_text() == "Ячейка 3")
-	assert(panel.get_cell_feedback_text() == "Пустая")
-	assert(panel.get_medical_button().visible)
-	assert(panel.get_turret_button().visible)
-	panel.get_medical_button().pressed.emit()
+	_assert_context_actions(
+		context_panel,
+		PackedStringArray(["Медпост 0/1", "Турель 0/2"])
+	)
+	assert(controller.place_type_in_selected_cell(BuildableType.Id.MEDICAL_STATION))
 	await process_frame
 
 	var medical_id: int = grid.get_buildable_id_by_type(
@@ -81,44 +82,28 @@ func _run_scenario() -> void:
 	assert(medical.has_station())
 	assert(grid.get_buildable_id_at_cell(medical_cell) == medical_id)
 	assert(grid.get_buildable_id_at_cell(medical_cell + 1) == -1)
-	assert(not panel.visible)
+	assert(not context_panel.is_context_visible())
+	assert(not legacy_panel.visible)
 
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == medical_id)
-	assert(panel.get_cell_feedback_text() == "Медицинский пост")
-	assert(not panel.get_medical_button().visible)
-	assert(not panel.get_turret_button().visible)
-	assert(panel.get_demolish_button().visible)
-	assert(panel.get_move_button().visible)
-	panel.get_move_button().pressed.emit()
-	assert(controller.get_mode() == BuildablePlacementController.Mode.MOVE)
-	assert(controller.is_grid_preview_visible())
-	var moved_medical_cell: int = 12
-	assert(controller.handle_primary_click(
-		platform.get_cell_canvas_center(moved_medical_cell)
-	))
+	_assert_context_actions(context_panel, PackedStringArray(["Демонтировать"]))
+	assert(not context_panel.get_context_button_texts().has("Перенести"))
+	assert(not legacy_panel.visible)
+	controller.clear_selection()
 	await process_frame
-	assert(grid.get_snapshot(medical_id).cell_index == moved_medical_cell)
-	assert(grid.get_buildable_id_at_cell(medical_cell) == -1)
-	assert(grid.get_buildable_id_at_cell(moved_medical_cell) == medical_id)
-	assert(not controller.is_grid_preview_visible())
-	assert(not panel.visible)
-	medical_cell = moved_medical_cell
 
 	var turret_cell: int = 3
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(turret_cell)
 	))
 	await process_frame
-	assert(panel.visible)
-	assert(panel.get_selection_text() == "Ячейка 4")
-	assert(panel.get_cell_feedback_text() == "Пустая")
-	assert(panel.get_turret_button().visible)
-	assert(not panel.get_medical_button().visible)
-	panel.get_turret_button().pressed.emit()
+	_assert_context_actions(context_panel, PackedStringArray(["Турель 0/2"]))
+	assert(not context_panel.get_context_button_texts().has("Медпост 1/1"))
+	assert(controller.place_type_in_selected_cell(BuildableType.Id.TURRET))
 	await process_frame
 
 	var turret_ids: Array[int] = grid.get_buildable_ids_by_type(
@@ -127,18 +112,18 @@ func _run_scenario() -> void:
 	assert(turret_ids.size() == 1)
 	var turret_id: int = turret_ids[0]
 	assert(turrets.has_turret(turret_id))
-	assert(not panel.visible)
+	assert(not context_panel.is_context_visible())
 
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(turret_cell)
 	))
 	await process_frame
 	assert(controller.get_selected_buildable_id() == turret_id)
-	assert(panel.get_cell_feedback_text() == "Турель")
-	assert(not panel.get_medical_button().visible)
-	assert(not panel.get_turret_button().visible)
-	assert(panel.get_move_button().visible)
-	panel.get_move_button().pressed.emit()
+	_assert_context_actions(
+		context_panel,
+		PackedStringArray(["Перенести", "Демонтировать"])
+	)
+	assert(controller.begin_move_selected())
 	assert(controller.get_mode() == BuildablePlacementController.Mode.MOVE)
 	assert(controller.is_grid_preview_visible())
 
@@ -153,7 +138,7 @@ func _run_scenario() -> void:
 		platform.get_cell_local_x(moved_cell)
 	))
 	assert(not controller.is_grid_preview_visible())
-	assert(not panel.visible)
+	assert(not context_panel.is_context_visible())
 
 	flow.state = GameFlowController.RunState.MANUAL_PAUSE
 	await process_frame
@@ -168,22 +153,34 @@ func _run_scenario() -> void:
 		platform.get_cell_canvas_center(moved_cell)
 	))
 	await process_frame
-	panel.get_demolish_button().pressed.emit()
+	assert(controller.demolish_selected())
 	assert(not grid.has_buildable(turret_id))
 	assert(not turrets.has_turret(turret_id))
-	assert(not panel.visible)
+	assert(not context_panel.is_context_visible())
 
 	assert(controller.handle_primary_click(
 		platform.get_cell_canvas_center(medical_cell)
 	))
 	await process_frame
-	panel.get_demolish_button().pressed.emit()
+	assert(controller.demolish_selected())
 	assert(not grid.has_buildable(medical_id))
 	assert(not medical.has_station())
-	assert(not panel.visible)
+	assert(not context_panel.is_context_visible())
+	assert(not legacy_panel.visible)
 
 	print("Buildable placement UI scenarios passed")
 	quit()
+
+
+func _assert_context_actions(
+	panel: UnifiedContextCrewCommandPanel,
+	expected: PackedStringArray
+) -> void:
+	assert(panel.is_context_visible())
+	var buttons: PackedStringArray = panel.get_context_button_texts()
+	for text: String in expected:
+		assert(buttons.has(text))
+	assert(not "\n".join(buttons).contains("Выберите объект для клетки"))
 
 
 func _stabilize_world(game: Node) -> void:

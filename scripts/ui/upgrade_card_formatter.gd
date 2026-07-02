@@ -21,6 +21,58 @@ static func get_type_name(card_type: int) -> String:
 	return "НЕИЗВЕСТНО"
 
 
+static func get_card_group_id(card_type: int) -> StringName:
+	match card_type:
+		UpgradeDefinition.CardType.BASIC, UpgradeDefinition.CardType.ADVANCED:
+			return &"basic"
+		UpgradeDefinition.CardType.SPECIALIZATION:
+			return &"specialization"
+		UpgradeDefinition.CardType.INDIVIDUAL, UpgradeDefinition.CardType.SPECIALIZATION_EXTRA:
+			return &"special"
+		UpgradeDefinition.CardType.UNLOCK, UpgradeDefinition.CardType.GENERAL:
+			return &"main"
+	return &"main"
+
+
+static func get_card_group_name(card_type: int) -> String:
+	match get_card_group_id(card_type):
+		&"basic":
+			return "БАЗОВАЯ"
+		&"specialization":
+			return "СПЕЦИАЛИЗАЦИЯ"
+		&"special":
+			return "СПЕЦИАЛЬНАЯ"
+		&"main":
+			return "ОСНОВНАЯ"
+	return "ОСНОВНАЯ"
+
+
+static func get_card_group_symbol(card_type: int) -> String:
+	match get_card_group_id(card_type):
+		&"basic":
+			return "◆"
+		&"specialization":
+			return "✦"
+		&"special":
+			return "⬟"
+		&"main":
+			return "●"
+	return "●"
+
+
+static func get_card_group_accent_color(card_type: int) -> Color:
+	match get_card_group_id(card_type):
+		&"basic":
+			return Color(0.34, 0.68, 1.0)
+		&"specialization":
+			return Color(0.94, 0.56, 1.0)
+		&"special":
+			return Color(1.0, 0.68, 0.28)
+		&"main":
+			return Color(0.46, 0.92, 0.66)
+	return Color(0.46, 0.92, 0.66)
+
+
 static func get_branch_name(branch_id: StringName) -> String:
 	match branch_id:
 		&"turret":
@@ -57,7 +109,7 @@ static func get_effect_summary(effect: UpgradeEffectDefinition) -> String:
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
 			return "Активирует новое правило"
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
-			return "Изменяет параметр: %s" % _format_number(effect.scalar_value)
+			return "Модификатор: %s" % _format_number(effect.scalar_value)
 		UpgradeEffectDefinition.EffectType.ADD_DEFENDER:
 			return "Добавляет защитника: +%d" % effect.integer_value
 		UpgradeEffectDefinition.EffectType.CREW_MOVE_SPEED_MULTIPLIER:

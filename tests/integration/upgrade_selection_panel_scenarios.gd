@@ -8,6 +8,7 @@ func _init() -> void:
 
 
 func _run_scenarios() -> void:
+	_test_all_card_type_presentation_mapping()
 	await _test_three_cards_and_stale_command_rejection()
 	await _test_offer_with_fewer_than_three_cards()
 	await _test_specialization_offer()
@@ -15,11 +16,62 @@ func _run_scenarios() -> void:
 	quit()
 
 
+func _test_all_card_type_presentation_mapping() -> void:
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.BASIC)
+		== &"basic"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.ADVANCED)
+		== &"basic"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.UNLOCK)
+		== &"main"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.GENERAL)
+		== &"main"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.SPECIALIZATION)
+		== &"specialization"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(UpgradeDefinition.CardType.INDIVIDUAL)
+		== &"special"
+	)
+	assert(
+		UpgradeCardFormatter.get_card_group_id(
+			UpgradeDefinition.CardType.SPECIALIZATION_EXTRA
+		) == &"special"
+	)
+	for card_type: int in [
+		UpgradeDefinition.CardType.UNLOCK,
+		UpgradeDefinition.CardType.BASIC,
+		UpgradeDefinition.CardType.ADVANCED,
+		UpgradeDefinition.CardType.INDIVIDUAL,
+		UpgradeDefinition.CardType.SPECIALIZATION,
+		UpgradeDefinition.CardType.SPECIALIZATION_EXTRA,
+		UpgradeDefinition.CardType.GENERAL,
+	]:
+		assert(not UpgradeCardFormatter.get_card_group_name(card_type).is_empty())
+		assert(not UpgradeCardFormatter.get_card_group_symbol(card_type).is_empty())
+		var accent: Color = UpgradeCardFormatter.get_card_group_accent_color(
+			card_type
+		)
+		assert(accent.a > 0.0)
+
+
 func _test_three_cards_and_stale_command_rejection() -> void:
 	var catalog := UpgradeCatalog.new()
-	catalog.definitions.append(
-		_make_card(&"same_branch_a", UpgradeDefinition.CardType.BASIC, &"turret")
+	var scalar_card := _make_card(
+		&"same_branch_a",
+		UpgradeDefinition.CardType.BASIC,
+		&"turret"
 	)
+	scalar_card.effect = _make_domain_scalar_effect()
+	catalog.definitions.append(scalar_card)
 	catalog.definitions.append(
 		_make_card(&"same_branch_b", UpgradeDefinition.CardType.BASIC, &"turret")
 	)
@@ -39,12 +91,25 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	assert(panel.visible)
 	assert(panel.get_rendered_card_count() == 3)
 	assert(upgrades.get_card_count() == 3)
+	assert(not panel.is_global_cost_visible())
 	assert(paused)
+
+	var cost: int = upgrades.get_current_cost()
+	var scalar_card_seen: bool = false
+	for card_index: int in range(panel.get_rendered_card_count()):
+		var card_text: String = panel.get_rendered_card_text(card_index)
+		assert(card_text.contains("Цена: %d" % cost))
+		assert(panel.get_rendered_card_group_id(card_index) == &"basic")
+		assert(card_text.contains("БАЗОВАЯ"))
+		assert(card_text.contains("◆"))
+		assert(not card_text.contains("Изменяет параметр:"))
+		if card_text.contains("Модификатор:"):
+			scalar_card_seen = true
+	assert(scalar_card_seen)
 
 	var offer_number: int = upgrades.get_current_offer_number()
 	var card_id: StringName = upgrades.get_card_id(0)
 	var coins_before: int = economy.get_coins()
-	var cost: int = upgrades.get_current_cost()
 	assert(upgrades.choose_card_for_offer(card_id, offer_number))
 	assert(not upgrades.choose_card_for_offer(card_id, offer_number))
 	assert(economy.get_coins() == coins_before - cost)
@@ -75,6 +140,9 @@ func _test_offer_with_fewer_than_three_cards() -> void:
 	assert(upgrades.get_card_count() == 2)
 	assert(panel.get_rendered_card_count() == 2)
 	assert(upgrades.get_card_id(0) != upgrades.get_card_id(1))
+	for card_index: int in range(panel.get_rendered_card_count()):
+		assert(panel.get_rendered_card_group_id(card_index) == &"main")
+		assert(panel.get_rendered_card_text(card_index).contains("ОСНОВНАЯ"))
 	await _remove_game(game)
 
 
@@ -126,9 +194,12 @@ func _test_specialization_offer() -> void:
 	var cards: HBoxContainer = panel.get_node(
 		"Center/Panel/Margin/VBox/CardsContainer"
 	)
-	for child: Node in cards.get_children():
-		var button: Button = child as Button
+	for card_index: int in range(cards.get_child_count()):
+		var button: Button = cards.get_child(card_index) as Button
 		assert(button != null)
+		assert(panel.get_rendered_card_group_id(card_index) == &"specialization")
+		assert(button.text.contains("✦"))
+		assert(button.text.contains("Цена: %d" % upgrades.get_current_cost()))
 		assert(not button.text.contains("Заблокирует альтернативы"))
 		assert(not button.text.contains("ТРЕБОВАНИЯ"))
 	await _remove_game(game)
@@ -167,3 +238,11 @@ func _make_card(
 	definition.card_type = card_type
 	definition.repeat_limit = 1
 	return definition
+
+
+func _make_domain_scalar_effect() -> UpgradeEffectDefinition:
+	var effect := UpgradeEffectDefinition.new()
+	effect.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR
+	effect.target_id = &"ui_test_scalar"
+	effect.scalar_value = 1.25
+	return effect
