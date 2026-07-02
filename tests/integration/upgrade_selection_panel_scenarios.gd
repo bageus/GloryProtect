@@ -46,6 +46,7 @@ func _test_all_card_type_presentation_mapping() -> void:
 			UpgradeDefinition.CardType.SPECIALIZATION_EXTRA
 		) == &"special"
 	)
+	assert(UpgradeCardFormatter.get_price_color().a > 0.0)
 	for card_type: int in [
 		UpgradeDefinition.CardType.UNLOCK,
 		UpgradeDefinition.CardType.BASIC,
@@ -84,6 +85,9 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	var panel: UpgradeSelectionPanel = game.get_node(
 		"CanvasLayer/UpgradeSelectionPanel"
 	)
+	var rewards: BoardingRewardController = game.get_node(
+		"World/BoardingRewardController"
+	)
 
 	economy.add_coins(1000, &"ui_test")
 	await process_frame
@@ -92,18 +96,28 @@ func _test_three_cards_and_stale_command_rejection() -> void:
 	assert(panel.get_rendered_card_count() == 3)
 	assert(upgrades.get_card_count() == 3)
 	assert(not panel.is_global_cost_visible())
+	assert(rewards.get_coin_gain_color().is_equal_approx(
+		UpgradeCardFormatter.get_price_color()
+	))
 	assert(paused)
 
 	var cost: int = upgrades.get_current_cost()
 	var scalar_card_seen: bool = false
 	for card_index: int in range(panel.get_rendered_card_count()):
 		var card_text: String = panel.get_rendered_card_text(card_index)
-		assert(card_text.contains("Цена: %d" % cost))
+		assert(panel.get_rendered_card_price_text(card_index) == "Цена: %d" % cost)
+		assert(panel.get_rendered_card_price_color(card_index).is_equal_approx(
+			UpgradeCardFormatter.get_price_color()
+		))
 		assert(panel.get_rendered_card_group_id(card_index) == &"basic")
+		assert(panel.get_rendered_card_type_text(card_index) == "◆ БАЗОВАЯ")
 		assert(card_text.contains("БАЗОВАЯ"))
 		assert(card_text.contains("◆"))
+		assert(card_text.contains("Цена: %d" % cost))
 		assert(not card_text.contains("Изменяет параметр:"))
-		if card_text.contains("Модификатор:"):
+		assert(not card_text.contains("Модификатор:"))
+		assert(not card_text.contains("Активирует новое правило"))
+		if card_text.contains("×1.25"):
 			scalar_card_seen = true
 	assert(scalar_card_seen)
 
@@ -142,6 +156,7 @@ func _test_offer_with_fewer_than_three_cards() -> void:
 	assert(upgrades.get_card_id(0) != upgrades.get_card_id(1))
 	for card_index: int in range(panel.get_rendered_card_count()):
 		assert(panel.get_rendered_card_group_id(card_index) == &"main")
+		assert(panel.get_rendered_card_type_text(card_index) == "● ОСНОВНАЯ")
 		assert(panel.get_rendered_card_text(card_index).contains("ОСНОВНАЯ"))
 	await _remove_game(game)
 
@@ -165,6 +180,7 @@ func _test_specialization_offer() -> void:
 			UpgradeDefinition.CardType.SPECIALIZATION,
 			&"turret"
 		)
+		definition.effect = _make_domain_flag_effect()
 		for other_id: StringName in specialization_ids:
 			if other_id != card_id:
 				definition.closes_specialization_ids.append(other_id)
@@ -191,17 +207,17 @@ func _test_specialization_offer() -> void:
 	)
 	assert(mode_label.text.contains("СПЕЦИАЛИЗАЦИЯ"))
 	assert(not mode_label.text.contains("СОБЫТИЕ"))
-	var cards: HBoxContainer = panel.get_node(
-		"Center/Panel/Margin/VBox/CardsContainer"
-	)
-	for card_index: int in range(cards.get_child_count()):
-		var button: Button = cards.get_child(card_index) as Button
-		assert(button != null)
+	for card_index: int in range(panel.get_rendered_card_count()):
+		var card_text: String = panel.get_rendered_card_text(card_index)
 		assert(panel.get_rendered_card_group_id(card_index) == &"specialization")
-		assert(button.text.contains("✦"))
-		assert(button.text.contains("Цена: %d" % upgrades.get_current_cost()))
-		assert(not button.text.contains("Заблокирует альтернативы"))
-		assert(not button.text.contains("ТРЕБОВАНИЯ"))
+		assert(panel.get_rendered_card_type_text(card_index) == "✦ СПЕЦИАЛИЗАЦИЯ")
+		assert(card_text.contains("✦"))
+		assert(panel.get_rendered_card_price_text(card_index) == (
+			"Цена: %d" % upgrades.get_current_cost()
+		))
+		assert(not card_text.contains("Активирует новое правило"))
+		assert(not card_text.contains("Заблокирует альтернативы"))
+		assert(not card_text.contains("ТРЕБОВАНИЯ"))
 	await _remove_game(game)
 
 
@@ -245,4 +261,11 @@ func _make_domain_scalar_effect() -> UpgradeEffectDefinition:
 	effect.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR
 	effect.target_id = &"ui_test_scalar"
 	effect.scalar_value = 1.25
+	return effect
+
+
+func _make_domain_flag_effect() -> UpgradeEffectDefinition:
+	var effect := UpgradeEffectDefinition.new()
+	effect.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_FLAG
+	effect.target_id = &"ui_test_flag"
 	return effect
