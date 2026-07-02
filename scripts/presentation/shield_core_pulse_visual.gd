@@ -7,10 +7,14 @@ signal pulse_started(source: int, section_id: int)
 @export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("ShieldCoreGroundOrbRegistry") var orb_registry_path: NodePath
+@export_node_path("AnchorlessControlSystem") var anchorless_control_path: NodePath = NodePath(
+	"../AnchorlessControlSystem"
+)
 @export var style: ShieldCorePulseVisualStyle
 
 var _active_pulses: Array[ShieldCorePulseRuntime] = []
 var _started_counts: Dictionary[int, int] = {}
+var _anchorless: AnchorlessControlSystem
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _shield_core: ShieldCoreSystem = get_node(shield_core_system_path)
@@ -22,6 +26,8 @@ func _ready() -> void:
 	assert(style != null and style.is_valid())
 	_shield_core.surge_pulse_requested.connect(_on_surge_pulse_requested)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
+	_connect_anchorless_system()
+	call_deferred("_connect_anchorless_system")
 	queue_redraw()
 
 
@@ -63,7 +69,44 @@ func get_oldest_pulse_elapsed_for_tests() -> float:
 	return _active_pulses[0].elapsed
 
 
+func get_ground_lift_offset_for_tests(progress: float) -> float:
+	var clamped: float = clampf(progress, 0.0, 1.0)
+	return -style.ground_lift_amplitude * sin(clamped * PI)
+
+
+func is_anchorless_connected_for_tests() -> bool:
+	return _anchorless != null
+
+
+func _connect_anchorless_system() -> void:
+	if _anchorless != null:
+		return
+	_anchorless = get_node_or_null(
+		anchorless_control_path
+	) as AnchorlessControlSystem
+	if _anchorless == null:
+		return
+	if not _anchorless.core_pulse_requested.is_connected(
+		_on_anchorless_core_pulse_requested
+	):
+		_anchorless.core_pulse_requested.connect(
+			_on_anchorless_core_pulse_requested
+		)
+
+
 func _on_surge_pulse_requested(section_id: int, source: int) -> void:
+	_start_pulse(section_id, source)
+
+
+func _on_anchorless_core_pulse_requested(
+	section_id: int,
+	source: int,
+	_damaged_enemy_count: int
+) -> void:
+	_start_pulse(section_id, source)
+
+
+func _start_pulse(section_id: int, source: int) -> void:
 	if not _orbs.is_valid_orb(section_id):
 		return
 	if source not in [
@@ -81,6 +124,7 @@ func _draw_ground_pulse(section_id: int, progress: float) -> void:
 	var center: Vector2 = _orbs.get_orb_world_position(section_id)
 	center.y = _orbs.catalog.ground_y + style.ground_surface_offset_y
 	var half_width: float = maxf(4.0, style.ground_max_radius * _ease_out(progress))
+	_draw_ground_surface_lift(center, half_width, progress)
 	_draw_wave(
 		center,
 		half_width,
@@ -106,6 +150,34 @@ func _draw_platform_pulse(section_id: int, progress: float) -> void:
 		style.platform_color,
 		section_id * 13 + 7
 	)
+
+
+func _draw_ground_surface_lift(
+	center: Vector2,
+	half_width: float,
+	progress: float
+) -> void:
+	var lift: float = get_ground_lift_offset_for_tests(progress)
+	if absf(lift) <= 0.01:
+		return
+	var count: int = maxi(4, style.segment_count)
+	var points := PackedVector2Array()
+	for index: int in range(count + 1):
+		var ratio: float = float(index) / float(count)
+		var x: float = lerpf(center.x - half_width, center.x + half_width, ratio)
+		var rise: float = sin(ratio * PI)
+		points.append(Vector2(x, center.y + lift * rise))
+	for index: int in range(count, -1, -1):
+		var ratio: float = float(index) / float(count)
+		var x: float = lerpf(center.x - half_width, center.x + half_width, ratio)
+		var rise: float = sin(ratio * PI)
+		points.append(Vector2(
+			x,
+			center.y + style.ground_lift_band_height + lift * rise * 0.25
+		))
+	var color: Color = style.ground_lift_color
+	color.a *= 1.0 - progress
+	draw_colored_polygon(points, color)
 
 
 func _draw_wave(

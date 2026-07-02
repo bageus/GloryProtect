@@ -28,6 +28,9 @@ func _run_scenarios() -> void:
 		"World/FlyingEnemySpawnDirector"
 	)
 	var orbs: GroundOrbRegistry = game.get_node("World/GroundOrbRegistry")
+	var pulse_visual: ShieldCorePulseVisual = game.get_node(
+		"World/ShieldCorePulseVisual"
+	)
 	var upgrade_system: UpgradeSystem = game.get_node("UpgradeSystem")
 	var catalog: UpgradeCatalog = upgrade_system.catalog
 	anchorless.set_physics_process(false)
@@ -50,6 +53,7 @@ func _run_scenarios() -> void:
 		spawn,
 		flying_spawn,
 		orbs,
+		pulse_visual,
 		catalog
 	)
 
@@ -97,9 +101,25 @@ func _test_core_pulses(
 	spawn: BoardingSpawnDirector,
 	flying_spawn: FlyingEnemySpawnDirector,
 	orbs: GroundOrbRegistry,
+	pulse_visual: ShieldCorePulseVisual,
 	catalog: UpgradeCatalog
 ) -> void:
 	anchorless.reset_upgrade_runtime()
+	assert(pulse_visual.is_anchorless_connected_for_tests())
+	assert(is_zero_approx(pulse_visual.get_ground_lift_offset_for_tests(0.0)))
+	assert(pulse_visual.get_ground_lift_offset_for_tests(0.5) < -1.0)
+	var pulse_events: Array[Dictionary] = []
+	anchorless.core_pulse_requested.connect(func(
+		section_id: int,
+		source: int,
+		damaged_count: int
+	) -> void:
+		pulse_events.append({
+			"section": section_id,
+			"source": source,
+			"damaged": damaged_count,
+		})
+	)
 	assert(anchorless.apply_upgrade_effect(catalog.get_definition(
 		&"anchorless_specialization_powerful"
 	).effect))
@@ -137,8 +157,30 @@ func _test_core_pulses(
 	climbing.controller.state = BoardingEnemyController.State.CLIMBING
 	climbing.global_position = platform.global_position + Vector2(0.0, 40.0)
 
+	var ground_started: int = pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE
+	)
+	var platform_started: int = pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE
+	)
 	contact.active_orb_id = -1
 	contact._set_active_orb(2)
+	_assert_core_pulse_event(
+		pulse_events[0],
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		2
+	)
+	_assert_core_pulse_event(
+		pulse_events[1],
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE,
+		3
+	)
+	assert(pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE
+	) == ground_started + 1)
+	assert(pulse_visual.get_started_pulse_count(
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE
+	) == platform_started + 1)
 	assert(ground_near.health.current_health == ground_near.health.max_health - 2)
 	assert(ground_far.health.current_health == ground_far.health.max_health - 2)
 	assert(boarded_center.health.current_health == boarded_center.health.max_health - 2)
@@ -152,6 +194,16 @@ func _test_core_pulses(
 		platform.global_position + Vector2(-1000.0, -40.0)
 	)
 	contact._set_active_orb(-1)
+	_assert_core_pulse_event(
+		pulse_events[2],
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		2
+	)
+	_assert_core_pulse_event(
+		pulse_events[3],
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE,
+		3
+	)
 	assert(not ground_near.health.is_alive())
 	assert(not ground_far.health.is_alive())
 	assert(not boarded_center.health.is_alive())
@@ -167,6 +219,16 @@ func _test_core_pulses(
 	flying_on_disconnect.kill(&"test_cleanup")
 	climbing.kill(&"test_cleanup")
 	await process_frame
+
+
+func _assert_core_pulse_event(
+	event: Dictionary,
+	expected_source: int,
+	expected_damaged: int
+) -> void:
+	assert(int(event["section"]) == 2)
+	assert(int(event["source"]) == expected_source)
+	assert(int(event["damaged"]) == expected_damaged)
 
 
 func _stabilize_world(game: Node) -> void:

@@ -4,6 +4,7 @@ extends Node
 signal upgrades_changed
 signal long_flight_restore_applied(section_id: int, amount: float)
 signal contact_pulse_applied(source_id: StringName, damaged_enemy_count: int)
+signal core_pulse_requested(section_id: int, source: int, damaged_enemy_count: int)
 signal front_sweep_triggered(enemy_id: int)
 
 const TARGET_GROUND: int = 1
@@ -155,19 +156,19 @@ func _on_contact_started(orb_id: int) -> void:
 	if upgrades.has_powerful_specialization():
 		_apply_anchor_discharges()
 	if upgrades.ground_core_enabled:
-		_apply_ground_core_pulse()
+		_apply_ground_core_pulse(orb_id)
 	if upgrades.platform_core_enabled:
-		_apply_platform_core_pulse()
+		_apply_platform_core_pulse(orb_id)
 	_flight_seconds = 0.0
 
 
-func _on_contact_ended(_orb_id: int) -> void:
+func _on_contact_ended(orb_id: int) -> void:
 	if not _game_flow.is_world_simulation_active():
 		return
 	if upgrades.ground_core_enabled:
-		_apply_ground_core_pulse()
+		_apply_ground_core_pulse(orb_id)
 	if upgrades.platform_core_enabled:
-		_apply_platform_core_pulse()
+		_apply_platform_core_pulse(orb_id)
 	_flight_seconds = 0.0
 
 
@@ -193,22 +194,43 @@ func _apply_anchor_discharges() -> void:
 	contact_pulse_applied.emit(&"anchorless_anchor_discharge", damaged_ids.size())
 
 
-func _apply_ground_core_pulse() -> void:
+func _apply_ground_core_pulse(orb_id: int) -> int:
 	var damaged_count: int = _damage_matching_targets(
 		TARGET_GROUND,
 		balance.core_pulse_damage,
 		&"anchorless_ground_core"
 	)
 	contact_pulse_applied.emit(&"anchorless_ground_core", damaged_count)
+	_emit_core_pulse(
+		orb_id,
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		damaged_count
+	)
+	return damaged_count
 
 
-func _apply_platform_core_pulse() -> void:
+func _apply_platform_core_pulse(orb_id: int) -> int:
 	var damaged_count: int = _damage_matching_targets(
 		TARGET_PLATFORM_OR_AIR,
 		balance.core_pulse_damage,
 		&"anchorless_platform_core"
 	)
 	contact_pulse_applied.emit(&"anchorless_platform_core", damaged_count)
+	_emit_core_pulse(
+		orb_id,
+		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE,
+		damaged_count
+	)
+	return damaged_count
+
+
+func _emit_core_pulse(orb_id: int, source: int, damaged_count: int) -> void:
+	if orb_id < 0:
+		return
+	var section_id: int = _orbs.get_section_id(orb_id)
+	if section_id < 0:
+		return
+	core_pulse_requested.emit(section_id, source, damaged_count)
 
 
 func _damage_near(
