@@ -2,6 +2,7 @@ extends SceneTree
 
 const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 const TAIL := "trap"
+const ANCHOR_ID: int = 2
 
 
 func _init() -> void:
@@ -34,6 +35,7 @@ func _run() -> void:
 	assert(combat != null)
 	assert(visual != null)
 	assert(catalog != null)
+	assert(platform != null)
 
 	var events: Array[Dictionary] = []
 	combat.connect(StringName(TAIL + "_triggered"), func(
@@ -67,15 +69,20 @@ func _run() -> void:
 		StringName("anchor_" + TAIL + "_attach_explosion")
 	).effect))
 
-	platform.position.x = orbs.get_world_x(2)
+	var orb_id: int = anchors.get_installation_orb_id()
+	assert(orb_id >= 0)
 	var ground_target: BoardingEnemy = spawn.spawn_debug_archetype(&"basic", 1)
 	ground_target.controller.set_physics_process(false)
 	ground_target.set_physics_process(false)
-	ground_target.global_position = orbs.get_orb_world_position(2)
+	ground_target.global_position = orbs.get_anchor_ground_point(
+		orb_id,
+		ANCHOR_ID,
+		anchors.balance.ground_offsets
+	)
 
-	anchors.toggle_anchor(0)
+	anchors.toggle_anchor(ANCHOR_ID)
 	assert(await _wait_until(func() -> bool: return events.size() == 1, 180))
-	assert(anchors.is_path_available(0))
+	assert(anchors.is_path_available(ANCHOR_ID))
 	assert(events[0]["source"] == StringName("anchor_" + TAIL + "_attach"))
 	assert(int(events[0]["affected"]) == 1)
 	assert(is_equal_approx(float(events[0]["radius"]), combat.balance.trap_attach_radius))
@@ -91,7 +98,7 @@ func _run() -> void:
 	))
 
 	var boarded_target: BoardingEnemy = spawn.spawn_debug_on_platform(
-		anchors.get_platform_attachment_world(0).x - platform.global_position.x,
+		anchors.get_platform_attachment_world(ANCHOR_ID).x - platform.global_position.x,
 		&"basic"
 	)
 	boarded_target.controller.set_physics_process(false)
@@ -107,16 +114,19 @@ func _run() -> void:
 		visual.get_latest_trap_burst_radius(),
 		combat.balance.trap_remove_radius
 	))
-	assert(await _wait_until(func() -> bool: return not anchors.is_path_available(0), 180))
+	assert(await _wait_until(
+		func() -> bool: return not anchors.is_path_available(ANCHOR_ID),
+		180
+	))
 
 	combat.reset_upgrade_runtime()
 	var plain_target: BoardingEnemy = spawn.spawn_debug_on_platform(
-		anchors.get_platform_attachment_world(0).x - platform.global_position.x,
+		anchors.get_platform_attachment_world(ANCHOR_ID).x - platform.global_position.x,
 		&"basic"
 	)
 	plain_target.controller.set_physics_process(false)
 	plain_target.set_physics_process(false)
-	anchors._on_anchor_detaching(0)
+	anchors._on_anchor_detaching(ANCHOR_ID)
 	assert(events.size() == 2)
 	assert(plain_target.health.is_alive())
 
