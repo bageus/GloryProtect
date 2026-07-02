@@ -5,6 +5,7 @@ extends CanvasLayer
 @export_range(0.0, 1.0, 0.001) var far_motion_scale: float = 0.035
 @export_range(0.0, 1.0, 0.001) var near_motion_scale: float = 0.075
 @export_range(1.0, 2.0, 0.01) var overscan_ratio: float = 1.25
+@export_range(-16.0, 16.0, 0.5) var near_layer_vertical_offset: float = 1.0
 
 @onready var _far_layer: Sprite2D = $FarLayer
 @onready var _near_layer: Sprite2D = $NearLayer
@@ -25,6 +26,18 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	_update_layer_positions()
+
+
+func get_near_layer_vertical_offset() -> float:
+	return near_layer_vertical_offset
+
+
+func get_far_layer_position() -> Vector2:
+	return _far_layer.position
+
+
+func get_near_layer_position() -> Vector2:
+	return _near_layer.position
 
 
 func _update_layout() -> void:
@@ -55,5 +68,5 @@ func _update_layer_positions() -> void:
 	)
 	_near_layer.position = Vector2(
 		_viewport_center.x - _platform.position.x * near_motion_scale,
-		_viewport_center.y
+		_viewport_center.y + near_layer_vertical_offset
 	)
