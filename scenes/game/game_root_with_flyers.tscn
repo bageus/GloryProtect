@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3]
+[gd_scene load_steps=39 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -36,6 +36,7 @@
 [ext_resource type="Script" path="res://scripts/presentation/shield_core_pulse_visual.gd" id="34_core_pulse"]
 [ext_resource type="Resource" path="res://resources/presentation/shield_core_pulse_visual_style.tres" id="35_core_pulse_style"]
 [ext_resource type="Script" path="res://scripts/presentation/platform_wind_indicator.gd" id="36_wind_indicator"]
+[ext_resource type="Script" path="res://scripts/ui/shield_core_critical_indicator.gd" id="37_core_indicator"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -209,6 +210,19 @@ first_flying_wave_number = 10
 [node name="PrototypeHUD" parent="CanvasLayer"]
 script = ExtResource("29_hud")
 buildable_placement_controller_path = NodePath("../../BuildablePlacementController")
+
+[node name="ShieldCoreCriticalIndicator" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+z_index = 8
+script = ExtResource("37_core_indicator")
+shield_system_path = NodePath("../../ShieldSystem")
+orb_registry_path = NodePath("../../World/GroundOrbRegistry")
 
 [node name="BuildablePlacementPanel" type="PanelContainer" parent="CanvasLayer"]
 script = ExtResource("25_placement_panel")
