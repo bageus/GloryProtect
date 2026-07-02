@@ -9,7 +9,9 @@ func get_nearest_target(
 ) -> BoardingEnemy:
 	var nearest: BoardingEnemy = null
 	var nearest_distance_squared: float = maximum_range * maximum_range
-	for enemy: BoardingEnemy in registry.get_turret_targets():
+	for enemy: BoardingEnemy in registry.get_all_enemies():
+		if not is_still_targetable(enemy):
+			continue
 		if registry.get_unreserved_health(enemy.enemy_id) <= 0:
 			continue
 		var distance_squared: float = world_origin.distance_squared_to(
