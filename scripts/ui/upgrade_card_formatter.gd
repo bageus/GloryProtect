@@ -73,6 +73,10 @@ static func get_card_group_accent_color(card_type: int) -> Color:
 	return Color(0.46, 0.92, 0.66)
 
 
+static func get_price_color() -> Color:
+	return Color(1.0, 0.84, 0.34)
+
+
 static func get_branch_name(branch_id: StringName) -> String:
 	match branch_id:
 		&"turret":
@@ -107,9 +111,9 @@ static func get_effect_summary(effect: UpgradeEffectDefinition) -> String:
 		UpgradeEffectDefinition.EffectType.UNLOCK_ROLE:
 			return "Открывает роль"
 		UpgradeEffectDefinition.EffectType.DOMAIN_FLAG:
-			return "Активирует новое правило"
+			return ""
 		UpgradeEffectDefinition.EffectType.DOMAIN_SCALAR:
-			return "Модификатор: %s" % _format_number(effect.scalar_value)
+			return "×%s" % _format_number(effect.scalar_value)
 		UpgradeEffectDefinition.EffectType.ADD_DEFENDER:
 			return "Добавляет защитника: +%d" % effect.integer_value
 		UpgradeEffectDefinition.EffectType.CREW_MOVE_SPEED_MULTIPLIER:

@@ -3,6 +3,8 @@ extends Control
 
 const MODAL_Z_INDEX: int = 100
 const CARD_META_GROUP_ID: StringName = &"card_group_id"
+const CARD_META_PRICE_LABEL: StringName = &"price_label"
+const CARD_META_TYPE_LABEL: StringName = &"type_label"
 
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
@@ -82,19 +84,36 @@ func is_global_cost_visible() -> bool:
 
 
 func get_rendered_card_group_id(card_index: int) -> StringName:
-	if card_index < 0 or card_index >= _cards_container.get_child_count():
-		return &""
-	var button: Button = _cards_container.get_child(card_index) as Button
+	var button: Button = _get_card_button(card_index)
 	if button == null:
 		return &""
 	return button.get_meta(CARD_META_GROUP_ID, &"") as StringName
 
 
 func get_rendered_card_text(card_index: int) -> String:
-	if card_index < 0 or card_index >= _cards_container.get_child_count():
+	var button: Button = _get_card_button(card_index)
+	if button == null:
 		return ""
-	var button: Button = _cards_container.get_child(card_index) as Button
-	return button.text if button != null else ""
+	var lines := PackedStringArray()
+	_collect_label_texts(button, lines)
+	return "\n".join(lines)
+
+
+func get_rendered_card_type_text(card_index: int) -> String:
+	var label: Label = _get_card_meta_label(card_index, CARD_META_TYPE_LABEL)
+	return "" if label == null else label.text
+
+
+func get_rendered_card_price_text(card_index: int) -> String:
+	var label: Label = _get_card_meta_label(card_index, CARD_META_PRICE_LABEL)
+	return "" if label == null else label.text
+
+
+func get_rendered_card_price_color(card_index: int) -> Color:
+	var label: Label = _get_card_meta_label(card_index, CARD_META_PRICE_LABEL)
+	if label == null:
+		return Color.TRANSPARENT
+	return label.get_theme_color("font_color")
 
 
 func _on_offer_opened(
@@ -149,50 +168,134 @@ func _rebuild_card_buttons() -> void:
 			continue
 		var button := Button.new()
 		button.name = "Card%s" % String(card_id)
+		button.text = ""
+		button.clip_contents = true
 		button.custom_minimum_size = Vector2(300.0, 360.0)
-		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		button.text = _build_card_text(definition)
 		button.disabled = _selection_pending
 		button.set_meta(
 			CARD_META_GROUP_ID,
 			UpgradeCardFormatter.get_card_group_id(definition.card_type)
 		)
 		_apply_card_style(button, definition.card_type)
+		_build_card_content(button, definition)
 		button.pressed.connect(
 			_submit_card.bind(card_id, offer_number)
 		)
 		_cards_container.add_child(button)
 
 
-func _build_card_text(definition: UpgradeDefinition) -> String:
-	var lines := PackedStringArray([
-		definition.title,
+func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
+	var accent: Color = UpgradeCardFormatter.get_card_group_accent_color(
+		definition.card_type
+	)
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	button.add_child(margin)
+
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 8)
+	margin.add_child(box)
+
+	var type_label := _make_card_label(
+		"TypeLabel",
 		"%s %s" % [
 			UpgradeCardFormatter.get_card_group_symbol(definition.card_type),
 			UpgradeCardFormatter.get_card_group_name(definition.card_type),
 		],
+		15,
+		accent.lightened(0.18),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+	button.set_meta(CARD_META_TYPE_LABEL, type_label)
+	box.add_child(type_label)
+
+	box.add_child(_make_card_label(
+		"TitleLabel",
+		definition.title,
+		18,
+		Color(0.96, 0.99, 1.0),
+		HORIZONTAL_ALIGNMENT_CENTER
+	))
+	box.add_child(_make_card_label(
+		"BranchLabel",
 		"%s • %s" % [
 			UpgradeCardFormatter.get_branch_name(definition.branch_id),
 			UpgradeCardFormatter.get_type_name(definition.card_type),
 		],
-		"Цена: %d" % _upgrades.get_current_cost(),
-		"",
+		13,
+		Color(0.72, 0.8, 0.9),
+		HORIZONTAL_ALIGNMENT_CENTER
+	))
+	box.add_child(_make_card_label(
+		"DescriptionLabel",
 		definition.description,
-	])
+		15,
+		Color(0.9, 0.94, 0.98),
+		HORIZONTAL_ALIGNMENT_LEFT
+	))
+
 	var effect_text: String = UpgradeCardFormatter.get_effect_summary(
 		definition.effect
 	)
 	if not effect_text.is_empty():
-		lines.append("")
-		lines.append(effect_text)
+		box.add_child(_make_card_label(
+			"EffectLabel",
+			effect_text,
+			15,
+			Color(0.86, 0.92, 1.0),
+			HORIZONTAL_ALIGNMENT_LEFT
+		))
 	var repeat_text: String = UpgradeCardFormatter.get_repeat_text(
 		definition,
 		_upgrades.get_runtime()
 	)
 	if not repeat_text.is_empty():
-		lines.append("")
-		lines.append(repeat_text)
-	return "\n".join(lines)
+		box.add_child(_make_card_label(
+			"RepeatLabel",
+			repeat_text,
+			14,
+			Color(0.74, 0.82, 0.92),
+			HORIZONTAL_ALIGNMENT_LEFT
+		))
+
+	var price_panel := PanelContainer.new()
+	price_panel.name = "PricePanel"
+	price_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price_panel.add_theme_stylebox_override("panel", _make_price_style())
+	var price_label := _make_card_label(
+		"PriceLabel",
+		"Цена: %d" % _upgrades.get_current_cost(),
+		18,
+		UpgradeCardFormatter.get_price_color(),
+		HORIZONTAL_ALIGNMENT_CENTER
+	)
+	button.set_meta(CARD_META_PRICE_LABEL, price_label)
+	price_panel.add_child(price_label)
+	box.add_child(price_panel)
+
+
+func _make_card_label(
+	label_name: String,
+	text: String,
+	font_size: int,
+	font_color: Color,
+	alignment: HorizontalAlignment
+) -> Label:
+	var label := Label.new()
+	label.name = label_name
+	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.horizontal_alignment = alignment
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", font_color)
+	return label
 
 
 func _apply_card_style(button: Button, card_type: int) -> void:
@@ -201,11 +304,11 @@ func _apply_card_style(button: Button, card_type: int) -> void:
 	button.add_theme_stylebox_override("hover", _make_card_style(accent, 0.18))
 	button.add_theme_stylebox_override("pressed", _make_card_style(accent, 0.10))
 	button.add_theme_stylebox_override("disabled", _make_card_style(accent, 0.07))
-	button.add_theme_color_override("font_color", Color(0.94, 0.98, 1.0))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
-	button.add_theme_color_override("font_pressed_color", Color(0.88, 0.94, 1.0))
-	button.add_theme_color_override("font_disabled_color", Color(0.62, 0.66, 0.72))
-	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override("font_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_hover_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_pressed_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_disabled_color", Color.TRANSPARENT)
+	button.add_theme_font_size_override("font_size", 1)
 
 
 func _make_card_style(accent: Color, tint: float) -> StyleBoxFlat:
@@ -225,10 +328,27 @@ func _make_card_style(accent: Color, tint: float) -> StyleBoxFlat:
 	style.shadow_color = Color(0.0, 0.0, 0.0, 0.32)
 	style.shadow_size = 6
 	style.shadow_offset = Vector2(0.0, 3.0)
-	style.content_margin_left = 14.0
-	style.content_margin_right = 14.0
-	style.content_margin_top = 14.0
-	style.content_margin_bottom = 14.0
+	style.content_margin_left = 0.0
+	style.content_margin_right = 0.0
+	style.content_margin_top = 0.0
+	style.content_margin_bottom = 0.0
+	return style
+
+
+func _make_price_style() -> StyleBoxFlat:
+	var price_color: Color = UpgradeCardFormatter.get_price_color()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(price_color.r, price_color.g, price_color.b, 0.12)
+	style.border_color = Color(price_color.r, price_color.g, price_color.b, 0.82)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 6.0
+	style.content_margin_bottom = 6.0
 	return style
 
 
@@ -274,3 +394,24 @@ func _refresh_diagnostics() -> void:
 			UpgradeCardFormatter.get_diagnostic_text(reason),
 		])
 	_diagnostics_label.text = "\n".join(lines)
+
+
+func _get_card_button(card_index: int) -> Button:
+	if card_index < 0 or card_index >= _cards_container.get_child_count():
+		return null
+	return _cards_container.get_child(card_index) as Button
+
+
+func _get_card_meta_label(card_index: int, meta_key: StringName) -> Label:
+	var button: Button = _get_card_button(card_index)
+	if button == null:
+		return null
+	return button.get_meta(meta_key, null) as Label
+
+
+func _collect_label_texts(node: Node, lines: PackedStringArray) -> void:
+	var label: Label = node as Label
+	if label != null and not label.text.is_empty():
+		lines.append(label.text)
+	for child: Node in node.get_children():
+		_collect_label_texts(child, lines)
