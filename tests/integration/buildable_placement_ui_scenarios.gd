@@ -181,6 +181,32 @@ func _assert_context_actions(
 	for text: String in expected:
 		assert(buttons.has(text))
 	assert(not "\n".join(buttons).contains("Выберите объект для клетки"))
+	_assert_context_position_and_click_targets(panel)
+
+
+func _assert_context_position_and_click_targets(
+	panel: UnifiedContextCrewCommandPanel
+) -> void:
+	var host_rect: Rect2 = panel.get_global_rect()
+	var context_rect: Rect2 = panel._view._context_panel.get_global_rect()
+	_assert_rect_inside(context_rect, host_rect)
+	assert(panel._view.get_context_center_offset_x() < -40.0)
+	assert(context_rect.get_center().x < host_rect.get_center().x - 40.0)
+	assert(panel._view.get_context_background_alpha() <= 0.82)
+	var button_rects: Array[Rect2] = panel._view.get_enabled_context_button_rects()
+	assert(not button_rects.is_empty())
+	for rect: Rect2 in button_rects:
+		assert(rect.size.x > 1.0)
+		assert(rect.size.y > 1.0)
+		_assert_rect_inside(rect, context_rect.grow(1.0))
+
+
+func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
+	const EPSILON := 1.0
+	assert(rect.position.x >= bounds.position.x - EPSILON)
+	assert(rect.position.y >= bounds.position.y - EPSILON)
+	assert(rect.end.x <= bounds.end.x + EPSILON)
+	assert(rect.end.y <= bounds.end.y + EPSILON)
 
 
 func _stabilize_world(game: Node) -> void:

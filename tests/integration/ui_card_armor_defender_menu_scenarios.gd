@@ -66,6 +66,7 @@ func _run() -> void:
 	await process_frame
 	assert(crew_panel._view.is_context_visible())
 	_assert_defender_context_inside_viewport(crew_panel)
+	_assert_context_buttons_clickable(crew_panel._view)
 	var buttons: PackedStringArray = _collect_button_texts(
 		crew_panel._view._context_box
 	)
@@ -157,6 +158,19 @@ func _assert_defender_context_inside_viewport(
 	var host_rect: Rect2 = crew_panel.get_global_rect()
 	var context_rect: Rect2 = crew_panel._view._context_panel.get_global_rect()
 	_assert_rect_inside(context_rect, host_rect)
+	assert(crew_panel._view.get_context_center_offset_x() < -40.0)
+	assert(context_rect.get_center().x < host_rect.get_center().x - 40.0)
+	assert(crew_panel._view.get_context_background_alpha() <= 0.82)
+
+
+func _assert_context_buttons_clickable(view: CrewCommandPanelView) -> void:
+	var context_rect: Rect2 = view._context_panel.get_global_rect()
+	var button_rects: Array[Rect2] = view.get_enabled_context_button_rects()
+	assert(not button_rects.is_empty())
+	for rect: Rect2 in button_rects:
+		assert(rect.size.x > 1.0)
+		assert(rect.size.y > 1.0)
+		_assert_rect_inside(rect, context_rect.grow(1.0))
 
 
 func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
