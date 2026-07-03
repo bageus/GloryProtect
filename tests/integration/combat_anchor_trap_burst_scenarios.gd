@@ -142,8 +142,11 @@ func _wait_until(predicate: Callable, maximum_frames: int) -> bool:
 	return bool(predicate.call())
 
 
-func _is_enemy_alive(enemy: BoardingEnemy) -> bool:
-	return is_instance_valid(enemy) and enemy.health.is_alive()
+func _is_enemy_alive(enemy: Variant) -> bool:
+	if not is_instance_valid(enemy):
+		return false
+	var boarding_enemy: BoardingEnemy = enemy as BoardingEnemy
+	return boarding_enemy != null and boarding_enemy.health.is_alive()
 
 
 func _stabilize_world(game: Node) -> void:
