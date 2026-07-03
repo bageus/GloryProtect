@@ -19,6 +19,7 @@ var _context_scroll: ScrollContainer
 var _context_box: VBoxContainer
 var _feedback_label: Label
 var _feedback_elapsed: float = 0.0
+var _feedback_generation: int = 0
 var _requested_context_height: float = NORMAL_CONTEXT_HEIGHT
 var _current_context_center_offset_x: float = 0.0
 
@@ -180,6 +181,7 @@ func rebuild_buildable_context(
 
 
 func set_feedback(message: String, is_error: bool) -> void:
+	_feedback_generation += 1
 	_feedback_elapsed = 0.0
 	_feedback_label.text = message
 	_feedback_label.visible = not message.is_empty()
@@ -187,14 +189,13 @@ func set_feedback(message: String, is_error: bool) -> void:
 		"font_color",
 		Color(1.0, 0.48, 0.4) if is_error else Color(0.62, 0.92, 0.72)
 	)
+	if _feedback_label.visible:
+		_schedule_feedback_clear(_feedback_generation)
 
 
 func clear_feedback() -> void:
-	_feedback_elapsed = 0.0
-	if _feedback_label == null:
-		return
-	_feedback_label.text = ""
-	_feedback_label.visible = false
+	_feedback_generation += 1
+	_hide_feedback()
 
 
 func get_feedback_text() -> String:
@@ -211,6 +212,30 @@ func get_feedback_elapsed_for_tests() -> float:
 
 func get_feedback_auto_hide_seconds() -> float:
 	return FEEDBACK_AUTO_HIDE_SECONDS
+
+
+func _schedule_feedback_clear(generation: int) -> void:
+	if _host == null:
+		return
+	var tree: SceneTree = _host.get_tree()
+	if tree == null:
+		return
+	var timer: SceneTreeTimer = tree.create_timer(FEEDBACK_AUTO_HIDE_SECONDS)
+	timer.timeout.connect(_on_feedback_timeout.bind(generation))
+
+
+func _on_feedback_timeout(generation: int) -> void:
+	if generation != _feedback_generation:
+		return
+	_hide_feedback()
+
+
+func _hide_feedback() -> void:
+	_feedback_elapsed = 0.0
+	if _feedback_label == null:
+		return
+	_feedback_label.text = ""
+	_feedback_label.visible = false
 
 
 func close_context() -> void:
