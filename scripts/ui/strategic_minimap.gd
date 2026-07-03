@@ -9,8 +9,11 @@ const MAP_WIDTH_RATIO: float = 5.0 / 6.0
 @export_node_path("RunEconomy") var run_economy_path: NodePath = NodePath("../../RunEconomy")
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath = NodePath("../../UpgradeSystem")
 @export_range(0.1, 4.0, 0.1) var cloud_morph_speed: float = 1.2
+@export_range(0.4, 2.0, 0.05) var energy_wave_duration: float = 0.9
+@export_range(0.35, 1.2, 0.05) var energy_wave_radius_scale: float = 0.82
 
 var _blink_elapsed: float = 0.0
+var _energy_waves: Array[Dictionary] = []
 var _game_flow: GameFlowController
 
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
@@ -31,12 +34,21 @@ func _ready() -> void:
 		_game_flow = scene_root.get_node_or_null(
 			"GameFlowController"
 		) as GameFlowController
+	if not _waves.strategic_enemy_impacted.is_connected(
+		_on_strategic_enemy_impacted
+	):
+		_waves.strategic_enemy_impacted.connect(_on_strategic_enemy_impacted)
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
-	if _game_flow == null or _game_flow.is_world_simulation_active():
-		_blink_elapsed += maxf(0.0, delta)
+	var simulation_active: bool = (
+		_game_flow == null or _game_flow.is_world_simulation_active()
+	)
+	if simulation_active:
+		var safe_delta: float = maxf(0.0, delta)
+		_blink_elapsed += safe_delta
+		_update_energy_waves(safe_delta)
 	_summary_label.text = "Волна: %d" % _director.get_wave_number()
 	_coins_label.text = "Монеты: %d" % _economy.get_coins()
 	_upgrade_level_label.text = "Уровень: %d" % (
@@ -90,6 +102,8 @@ func _draw() -> void:
 		shield_bar_height,
 		lane_width
 	)
+	_draw_energy_waves(section_count, margin_x, lane_top, shield_bar_y, lane_width)
+	_draw_core_markers(section_count, margin_x, lane_top, shield_bar_y, lane_width)
 	_draw_groups(section_count, margin_x, lane_top, shield_bar_y, lane_width)
 
 
@@ -107,6 +121,45 @@ func get_visual_elapsed() -> float:
 
 func get_map_width() -> float:
 	return _get_map_width()
+
+
+func get_core_marker_count() -> int:
+	return _shield.get_section_count()
+
+
+func get_core_marker_position(section_id: int) -> Vector2:
+	var section_count: int = _shield.get_section_count()
+	if section_count <= 0 or not _shield.is_valid_section(section_id):
+		return Vector2.ZERO
+	var margin_x: float = 8.0
+	var lane_top: float = 30.0
+	var lane_bottom: float = size.y - 5.0
+	var shield_bar_y: float = lane_bottom - 14.0
+	var lane_width: float = (
+		_get_map_width() - margin_x * 2.0
+	) / float(section_count)
+	return _get_core_marker_position(
+		section_id,
+		margin_x,
+		lane_top,
+		shield_bar_y,
+		lane_width
+	)
+
+
+func get_active_energy_wave_count() -> int:
+	return _energy_waves.size()
+
+
+func has_energy_wave_for_section(section_id: int) -> bool:
+	for wave: Dictionary in _energy_waves:
+		if int(wave["section"]) == section_id:
+			return true
+	return false
+
+
+func debug_emit_energy_wave(section_id: int) -> void:
+	_on_strategic_enemy_impacted(section_id, 0.0)
 
 
 func _get_map_width() -> float:
@@ -185,6 +238,101 @@ func _draw_section_lanes(
 			10,
 			Color.WHITE
 		)
+
+
+func _draw_core_markers(
+	section_count: int,
+	margin_x: float,
+	lane_top: float,
+	shield_bar_y: float,
+	lane_width: float
+) -> void:
+	for section_id: int in range(section_count):
+		var marker_position: Vector2 = _get_core_marker_position(
+			section_id,
+			margin_x,
+			lane_top,
+			shield_bar_y,
+			lane_width
+		)
+		_draw_core_marker(section_id, marker_position)
+
+
+func _draw_core_marker(section_id: int, marker_position: Vector2) -> void:
+	var section_color: Color = _shield.get_section_color(section_id)
+	var pulse: float = 0.82 + sin(_blink_elapsed * 2.4 + float(section_id)) * 0.08
+	var outer_radius: float = 7.5 * pulse
+	draw_circle(
+		marker_position,
+		outer_radius + 4.0,
+		Color(section_color.r, section_color.g, section_color.b, 0.13)
+	)
+	var diamond := PackedVector2Array([
+		marker_position + Vector2(0.0, -outer_radius),
+		marker_position + Vector2(outer_radius, 0.0),
+		marker_position + Vector2(0.0, outer_radius),
+		marker_position + Vector2(-outer_radius, 0.0),
+	])
+	draw_colored_polygon(
+		diamond,
+		Color(section_color.r, section_color.g, section_color.b, 0.78)
+	)
+	var outline := diamond.duplicate()
+	outline.append(diamond[0])
+	draw_polyline(outline, Color(0.8, 0.95, 1.0, 0.88), 1.2, true)
+	draw_circle(marker_position, 2.6, Color(0.92, 1.0, 1.0, 0.92))
+
+
+func _draw_energy_waves(
+	section_count: int,
+	margin_x: float,
+	lane_top: float,
+	shield_bar_y: float,
+	lane_width: float
+) -> void:
+	if _energy_waves.is_empty():
+		return
+	for wave: Dictionary in _energy_waves:
+		var section_id: int = clampi(int(wave["section"]), 0, section_count - 1)
+		var progress: float = clampf(
+			float(wave["elapsed"]) / maxf(0.001, energy_wave_duration),
+			0.0,
+			1.0
+		)
+		var center: Vector2 = _get_core_marker_position(
+			section_id,
+			margin_x,
+			lane_top,
+			shield_bar_y,
+			lane_width
+		)
+		var radius: float = lerpf(4.0, lane_width * energy_wave_radius_scale, progress)
+		var alpha: float = (1.0 - progress) * 0.58
+		draw_circle(center, radius * 0.28, Color(0.24, 0.74, 1.0, alpha * 0.16))
+		draw_arc(center, radius, 0.0, TAU, 40, Color(0.36, 0.82, 1.0, alpha), 2.4, true)
+		draw_arc(
+			center,
+			maxf(2.0, radius * 0.62),
+			0.0,
+			TAU,
+			36,
+			Color(0.72, 0.96, 1.0, alpha * 0.5),
+			1.2,
+			true
+		)
+
+
+func _get_core_marker_position(
+	section_id: int,
+	margin_x: float,
+	lane_top: float,
+	shield_bar_y: float,
+	lane_width: float
+) -> Vector2:
+	return Vector2(
+		margin_x + (float(section_id) + 0.5) * lane_width,
+		lerpf(lane_top, shield_bar_y, 0.48)
+	)
 
 
 func _draw_groups(
@@ -316,14 +464,33 @@ func _draw_enemy_cloud(
 	for index: int in range(visible_specks):
 		var speck_seed: float = float(snapshot.group_id * 17 + index * 11)
 		var offset := Vector2(
-			sin(speck_seed * 1.7) * radius_x * 0.55,
-			cos(speck_seed * 2.3) * radius_y * 0.45
+			sin(_blink_elapsed * 1.7 + speck_seed) * radius_x * 0.45,
+			cos(_blink_elapsed * 2.3 + speck_seed) * radius_y * 0.45
 		)
 		draw_circle(
 			cloud_position + offset,
 			1.3,
 			Color(0.2, 0.02, 0.03, 0.9)
 		)
+
+
+func _update_energy_waves(delta: float) -> void:
+	for index: int in range(_energy_waves.size() - 1, -1, -1):
+		_energy_waves[index]["elapsed"] = float(_energy_waves[index]["elapsed"]) + delta
+		if float(_energy_waves[index]["elapsed"]) >= energy_wave_duration:
+			_energy_waves.remove_at(index)
+
+
+func _on_strategic_enemy_impacted(section_id: int, _damage: float) -> void:
+	if not _shield.is_valid_section(section_id):
+		return
+	_energy_waves.append({
+		"section": section_id,
+		"elapsed": 0.0,
+	})
+	while _energy_waves.size() > 12:
+		_energy_waves.remove_at(0)
+	queue_redraw()
 
 
 func _get_health_color(section_id: int) -> Color:
