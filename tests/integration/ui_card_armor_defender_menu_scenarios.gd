@@ -99,6 +99,7 @@ func _run() -> void:
 	assert(not upgrade_panel.has_node(
 		"Center/Panel/Margin/VBox/InfoLabel"
 	))
+	var first_price_y: float = INF
 	for card_index: int in range(upgrade_panel.get_rendered_card_count()):
 		var text: String = upgrade_panel.get_rendered_card_text(card_index)
 		var lines: PackedStringArray = text.split("\n")
@@ -110,6 +111,15 @@ func _run() -> void:
 		assert(upgrade_panel.get_rendered_card_price_color(card_index).is_equal_approx(
 			UpgradeCardFormatter.get_price_color()
 		))
+		var price_y: float = upgrade_panel.get_rendered_card_price_global_y(card_index)
+		assert(is_finite(price_y))
+		if is_inf(first_price_y):
+			first_price_y = price_y
+		else:
+			assert(absf(first_price_y - price_y) <= 1.0)
+		assert(not upgrade_panel.has_rendered_card_label(card_index, "BranchLabel"))
+		assert(not upgrade_panel.has_rendered_card_label(card_index, "EffectLabel"))
+		assert(upgrade_panel.has_rendered_card_label(card_index, "ContentCenter"))
 		assert(not text.contains("ЭФФЕКТ"))
 		assert(not text.contains("ТРЕБОВАНИЯ"))
 		assert(not text.contains("Модификатор:"))
@@ -183,18 +193,18 @@ func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
 
 func _collect_button_texts(node: Node) -> PackedStringArray:
 	var result := PackedStringArray()
-	var button: Button = node as Button
-	if button != null:
-		result.append(button.text)
-	for child: Node in node.get_children():
-		result.append_array(_collect_button_texts(child))
+	_collect_button_texts_recursive(node, result)
 	return result
 
 
-func _contains_button_prefix(
-	buttons: PackedStringArray,
-	prefix: String
-) -> bool:
+func _collect_button_texts_recursive(node: Node, result: PackedStringArray) -> void:
+	if node is Button:
+		result.append((node as Button).text)
+	for child: Node in node.get_children():
+		_collect_button_texts_recursive(child, result)
+
+
+func _contains_button_prefix(buttons: PackedStringArray, prefix: String) -> bool:
 	for text: String in buttons:
 		if text.begins_with(prefix):
 			return true
@@ -205,6 +215,7 @@ func _disable_spawners(game: Node) -> void:
 	var paths: Array[NodePath] = [
 		NodePath("World/BoardingSpawnDirector"),
 		NodePath("World/FlyingEnemySpawnDirector"),
+		NodePath("World/StrategicWaveSystem"),
 		NodePath("World/StrategicWaveDirector"),
 		NodePath("World/StrategicGroupMutationController"),
 	]

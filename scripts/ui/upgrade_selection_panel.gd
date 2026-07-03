@@ -4,6 +4,7 @@ extends Control
 const MODAL_Z_INDEX: int = 100
 const CARD_META_GROUP_ID: StringName = &"card_group_id"
 const CARD_META_PRICE_LABEL: StringName = &"price_label"
+const CARD_META_PRICE_PANEL: StringName = &"price_panel"
 const CARD_META_TYPE_LABEL: StringName = &"type_label"
 
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
@@ -116,6 +117,16 @@ func get_rendered_card_price_color(card_index: int) -> Color:
 	return label.get_theme_color("font_color")
 
 
+func get_rendered_card_price_global_y(card_index: int) -> float:
+	var panel: Control = _get_card_meta_control(card_index, CARD_META_PRICE_PANEL)
+	return INF if panel == null else panel.get_global_rect().position.y
+
+
+func has_rendered_card_label(card_index: int, label_name: String) -> bool:
+	var button: Button = _get_card_button(card_index)
+	return button != null and _find_child_by_name(button, label_name) != null
+
+
 func _on_offer_opened(
 	_offer_number: int,
 	_cost: int,
@@ -194,12 +205,14 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	margin.add_theme_constant_override("margin_left", 14)
 	margin.add_theme_constant_override("margin_top", 14)
 	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
+	margin.add_theme_constant_override("margin_bottom", 18)
 	button.add_child(margin)
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 8)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
 
 	var type_label := _make_card_label(
@@ -215,59 +228,56 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	button.set_meta(CARD_META_TYPE_LABEL, type_label)
 	box.add_child(type_label)
 
-	box.add_child(_make_card_label(
+	var center := CenterContainer.new()
+	center.name = "ContentCenter"
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(center)
+
+	var content_box := VBoxContainer.new()
+	content_box.name = "MainContent"
+	content_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	content_box.add_theme_constant_override("separation", 12)
+	center.add_child(content_box)
+
+	content_box.add_child(_make_card_label(
 		"TitleLabel",
 		definition.title,
-		18,
+		19,
 		Color(0.96, 0.99, 1.0),
 		HORIZONTAL_ALIGNMENT_CENTER
 	))
-	box.add_child(_make_card_label(
-		"BranchLabel",
-		"%s • %s" % [
-			UpgradeCardFormatter.get_branch_name(definition.branch_id),
-			UpgradeCardFormatter.get_type_name(definition.card_type),
-		],
-		13,
-		Color(0.72, 0.8, 0.9),
-		HORIZONTAL_ALIGNMENT_CENTER
-	))
-	box.add_child(_make_card_label(
+	content_box.add_child(_make_card_label(
 		"DescriptionLabel",
 		definition.description,
 		15,
 		Color(0.9, 0.94, 0.98),
-		HORIZONTAL_ALIGNMENT_LEFT
+		HORIZONTAL_ALIGNMENT_CENTER
 	))
-
-	var effect_text: String = UpgradeCardFormatter.get_effect_summary(
-		definition.effect
-	)
-	if not effect_text.is_empty():
-		box.add_child(_make_card_label(
-			"EffectLabel",
-			effect_text,
-			15,
-			Color(0.86, 0.92, 1.0),
-			HORIZONTAL_ALIGNMENT_LEFT
-		))
 	var repeat_text: String = UpgradeCardFormatter.get_repeat_text(
 		definition,
 		_upgrades.get_runtime()
 	)
 	if not repeat_text.is_empty():
-		box.add_child(_make_card_label(
+		content_box.add_child(_make_card_label(
 			"RepeatLabel",
 			repeat_text,
 			14,
 			Color(0.74, 0.82, 0.92),
-			HORIZONTAL_ALIGNMENT_LEFT
+			HORIZONTAL_ALIGNMENT_CENTER
 		))
 
 	var price_panel := PanelContainer.new()
 	price_panel.name = "PricePanel"
 	price_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	price_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	price_panel.size_flags_vertical = Control.SIZE_SHRINK_END
+	price_panel.custom_minimum_size = Vector2(0.0, 38.0)
 	price_panel.add_theme_stylebox_override("panel", _make_price_style())
+	button.set_meta(CARD_META_PRICE_PANEL, price_panel)
 	var price_label := _make_card_label(
 		"PriceLabel",
 		"Цена: %d" % _upgrades.get_current_cost(),
@@ -275,6 +285,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 		UpgradeCardFormatter.get_price_color(),
 		HORIZONTAL_ALIGNMENT_CENTER
 	)
+	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	button.set_meta(CARD_META_PRICE_LABEL, price_label)
 	price_panel.add_child(price_label)
 	box.add_child(price_panel)
@@ -409,9 +420,26 @@ func _get_card_meta_label(card_index: int, meta_key: StringName) -> Label:
 	return button.get_meta(meta_key, null) as Label
 
 
+func _get_card_meta_control(card_index: int, meta_key: StringName) -> Control:
+	var button: Button = _get_card_button(card_index)
+	if button == null:
+		return null
+	return button.get_meta(meta_key, null) as Control
+
+
 func _collect_label_texts(node: Node, lines: PackedStringArray) -> void:
 	var label: Label = node as Label
 	if label != null and not label.text.is_empty():
 		lines.append(label.text)
 	for child: Node in node.get_children():
 		_collect_label_texts(child, lines)
+
+
+func _find_child_by_name(node: Node, child_name: String) -> Node:
+	if node.name == child_name:
+		return node
+	for child: Node in node.get_children():
+		var found: Node = _find_child_by_name(child, child_name)
+		if found != null:
+			return found
+	return null
