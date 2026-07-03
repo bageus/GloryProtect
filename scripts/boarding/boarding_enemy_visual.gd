@@ -1,26 +1,6 @@
 class_name BoardingEnemyVisual
 extends Node2D
 
-const ENEMY1_IDLE_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy1_idle.png"
-)
-const ENEMY1_RUN_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy1_run.png"
-)
-const ENEMY1_ATTACK_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy1_attack.png"
-)
-const ENEMY1_JUMP_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy1_jump.png"
-)
-const ENEMY1_DIE_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy1_die.png"
-)
-const ENEMY1_CLIMB_ATLAS: Texture2D = preload(
-	"res://visual/enemies/Enemy1/asset_atlas_enemy_climb&fell.png"
-)
-const ATLAS_FRAME_SIZE := Vector2(256.0, 256.0)
-
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("BoardingEnemyController") var controller_path: NodePath
 @export_group("Animation")
@@ -56,7 +36,8 @@ func _ready() -> void:
 		_enemy.visual_state_changed.connect(_on_enemy_visual_state_changed)
 	_last_global_x = global_position.x
 	_health.health_changed.connect(_on_health_changed)
-	_animation.play(&"idle", 6, idle_frame_rate)
+	_animation.set_facing_right(false)
+	_animation.play(&"idle", _get_frame_count(&"idle"), idle_frame_rate)
 	queue_redraw()
 
 
@@ -84,6 +65,12 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 	_accent_color = archetype.accent_color
 	_archetype_id = archetype.archetype_id
 	if is_node_ready():
+		_animation.play(
+			_presentation_state_id,
+			_get_frame_count(_presentation_state_id),
+			_get_frame_rate(_presentation_state_id),
+			_presentation_state_id not in [&"attack", &"jump", &"landing", &"death"]
+		)
 		queue_redraw()
 
 
@@ -122,6 +109,28 @@ func is_facing_right() -> bool:
 
 func is_detached_death() -> bool:
 	return _detached_death
+
+
+func get_asset_frame_count_for_tests(state_id: StringName) -> int:
+	return BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id)
+
+
+func get_asset_frame_paths_for_tests(state_id: StringName) -> PackedStringArray:
+	return BoardingEnemyVisualAssetCatalog.get_frame_paths(_archetype_id, state_id)
+
+
+func has_replacement_asset_for_tests(state_id: StringName) -> bool:
+	return get_asset_frame_count_for_tests(state_id) > 0
+
+
+func is_asset_mirrored_for_tests() -> bool:
+	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(
+		_animation.is_facing_right()
+	)
+
+
+func debug_set_facing_right_for_tests(facing_right: bool) -> void:
+	_animation.set_facing_right(facing_right)
 
 
 func _resolve_presentation_state(movement_delta: float) -> StringName:
@@ -180,14 +189,12 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 
 
 func _get_frame_count(state_id: StringName) -> int:
-	if _archetype_id == &"basic":
-		match state_id:
-			&"death":
-				return 3
-			&"climb":
-				return 3
-			&"idle", &"run", &"attack", &"jump", &"landing":
-				return 6
+	var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(
+		_archetype_id,
+		state_id
+	)
+	if asset_count > 0:
+		return asset_count
 	match state_id:
 		&"death", &"landing":
 			return 4
@@ -195,6 +202,24 @@ func _get_frame_count(state_id: StringName) -> int:
 			return 3
 		_:
 			return 6
+
+
+func _get_frame_rate(state_id: StringName) -> float:
+	match state_id:
+		&"run":
+			return run_frame_rate
+		&"attack":
+			return attack_frame_rate
+		&"climb":
+			return climb_frame_rate
+		&"jump":
+			return jump_frame_rate
+		&"flying", &"landing":
+			return flying_frame_rate
+		&"death":
+			return death_frame_rate
+		_:
+			return idle_frame_rate
 
 
 func _get_attack_progress() -> float:
@@ -205,49 +230,39 @@ func _get_attack_progress() -> float:
 
 func _draw() -> void:
 	var frame: int = _animation.get_frame_index()
-	if _archetype_id == &"basic":
-		_draw_basic_atlas(frame)
-	else:
+	if not _draw_asset_actor(frame):
 		_draw_procedural_actor(frame)
 	if not _detached_death:
 		_draw_health_bar()
 
 
-func _draw_basic_atlas(frame: int) -> void:
-	var atlas: Texture2D = _get_basic_atlas()
-	var source_frame: int = frame
-	if _presentation_state_id == &"landing":
-		source_frame = 5 - mini(frame, 5)
-	var source_rect := Rect2(
-		Vector2(float(source_frame) * ATLAS_FRAME_SIZE.x, 0.0),
-		ATLAS_FRAME_SIZE
+func _draw_asset_actor(frame: int) -> bool:
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(
+		_archetype_id,
+		_presentation_state_id
 	)
-	var display_size := Vector2(atlas_asset_height, atlas_asset_height)
+	if frames.is_empty():
+		return false
+	var texture: Texture2D = frames[clampi(frame, 0, frames.size() - 1)]
+	if texture == null:
+		return false
+	var texture_size := texture.get_size()
+	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+		return false
+	var display_size := Vector2(
+		atlas_asset_height * texture_size.x / texture_size.y,
+		atlas_asset_height
+	)
 	var feet := Vector2(0.0, _body_radius + 4.0)
 	var destination := Rect2(
 		feet - Vector2(display_size.x * 0.5, display_size.y),
 		display_size
 	)
-	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
+	var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
-	draw_texture_rect_region(atlas, destination, source_rect)
+	draw_texture_rect(texture, destination, false)
 	draw_set_transform(Vector2.ZERO)
-
-
-func _get_basic_atlas() -> Texture2D:
-	match _presentation_state_id:
-		&"run":
-			return ENEMY1_RUN_ATLAS
-		&"attack":
-			return ENEMY1_ATTACK_ATLAS
-		&"climb":
-			return ENEMY1_CLIMB_ATLAS
-		&"jump", &"landing":
-			return ENEMY1_JUMP_ATLAS
-		&"death":
-			return ENEMY1_DIE_ATLAS
-		_:
-			return ENEMY1_IDLE_ATLAS
+	return true
 
 
 func _draw_procedural_actor(frame: int) -> void:
@@ -315,27 +330,9 @@ func _draw_basic_fallback(body_color: Color, frame: int) -> void:
 		]),
 		body_color.darkened(0.12)
 	)
-	draw_line(
-		Vector2(-6.0, _body_radius - 1.0),
-		Vector2(-8.0 - stride, _body_radius + 5.0),
-		_accent_color,
-		3.0
-	)
-	draw_line(
-		Vector2(5.0, _body_radius - 1.0),
-		Vector2(8.0 + stride, _body_radius + 5.0),
-		_accent_color,
-		3.0
-	)
-	draw_arc(
-		Vector2(-2.0, 0.0),
-		_body_radius,
-		0.0,
-		TAU,
-		24,
-		_accent_color,
-		2.0
-	)
+	draw_line(Vector2(-6.0, _body_radius - 1.0), Vector2(-8.0 - stride, _body_radius + 5.0), _accent_color, 3.0)
+	draw_line(Vector2(5.0, _body_radius - 1.0), Vector2(8.0 + stride, _body_radius + 5.0), _accent_color, 3.0)
+	draw_arc(Vector2(-2.0, 0.0), _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
 
 
 func _draw_runner(body_color: Color, frame: int) -> void:
@@ -350,24 +347,9 @@ func _draw_runner(body_color: Color, frame: int) -> void:
 		]),
 		body_color
 	)
-	draw_line(
-		Vector2(-4.0, 5.0),
-		Vector2(-10.0 + stride, _body_radius + 8.0),
-		_accent_color,
-		3.0
-	)
-	draw_line(
-		Vector2(7.0, 4.0),
-		Vector2(13.0 - stride, _body_radius + 7.0),
-		_accent_color,
-		3.0
-	)
-	draw_line(
-		Vector2(-_body_radius - 7.0, 2.0),
-		Vector2(-_body_radius - 18.0, -2.0),
-		body_color.darkened(0.15),
-		4.0
-	)
+	draw_line(Vector2(-4.0, 5.0), Vector2(-10.0 + stride, _body_radius + 8.0), _accent_color, 3.0)
+	draw_line(Vector2(7.0, 4.0), Vector2(13.0 - stride, _body_radius + 7.0), _accent_color, 3.0)
+	draw_line(Vector2(-_body_radius - 7.0, 2.0), Vector2(-_body_radius - 18.0, -2.0), body_color.darkened(0.15), 4.0)
 
 
 func _draw_brute(body_color: Color, frame: int) -> void:
@@ -376,51 +358,19 @@ func _draw_brute(body_color: Color, frame: int) -> void:
 	var rect := Rect2(-size * 0.5, size)
 	draw_rect(rect, body_color, true)
 	draw_rect(rect, _accent_color, false, 3.0)
-	draw_line(
-		Vector2(-size.x * 0.3, size.y * 0.5),
-		Vector2(-size.x * 0.38, size.y * 0.75),
-		_accent_color,
-		5.0
-	)
-	draw_line(
-		Vector2(size.x * 0.3, size.y * 0.5),
-		Vector2(size.x * 0.38, size.y * 0.75),
-		_accent_color,
-		5.0
-	)
+	draw_line(Vector2(-size.x * 0.3, size.y * 0.5), Vector2(-size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
+	draw_line(Vector2(size.x * 0.3, size.y * 0.5), Vector2(size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
 
 
 func _draw_rope_saboteur(body_color: Color, frame: int) -> void:
 	var abdomen_radius: float = _body_radius * (0.72 + float(frame % 2) * 0.08)
 	draw_circle(Vector2(-4.0, 1.0), _body_radius * 0.65, body_color)
-	draw_circle(
-		Vector2(7.0, 2.0),
-		abdomen_radius,
-		_accent_color.darkened(0.1)
-	)
+	draw_circle(Vector2(7.0, 2.0), abdomen_radius, _accent_color.darkened(0.1))
 	for leg_index: int in range(3):
 		var y: float = -5.0 + float(leg_index) * 5.0
-		draw_line(
-			Vector2(-2.0, y),
-			Vector2(-12.0, y - 4.0),
-			body_color.lightened(0.2),
-			2.0
-		)
-		draw_line(
-			Vector2(3.0, y),
-			Vector2(14.0, y + 4.0),
-			body_color.lightened(0.2),
-			2.0
-		)
-	draw_arc(
-		Vector2(7.0, 2.0),
-		abdomen_radius,
-		0.0,
-		TAU,
-		18,
-		Color(1.0, 0.82, 0.2),
-		2.0
-	)
+		draw_line(Vector2(-2.0, y), Vector2(-12.0, y - 4.0), body_color.lightened(0.2), 2.0)
+		draw_line(Vector2(3.0, y), Vector2(14.0, y + 4.0), body_color.lightened(0.2), 2.0)
+	draw_arc(Vector2(7.0, 2.0), abdomen_radius, 0.0, TAU, 18, Color(1.0, 0.82, 0.2), 2.0)
 
 
 func _draw_flyer(body_color: Color, frame: int) -> void:
@@ -458,24 +408,16 @@ func _draw_health_bar() -> void:
 	var width: float = maxf(24.0, _body_radius * 2.0)
 	var height: float = 4.0
 	var top_y: float = -_body_radius - 12.0
-	if _archetype_id == &"basic":
+	if has_replacement_asset_for_tests(_presentation_state_id):
 		top_y = _body_radius + 4.0 - atlas_asset_height - 8.0
-	var background := Rect2(
-		Vector2(-width * 0.5, top_y),
-		Vector2(width, height)
-	)
+	var background := Rect2(Vector2(-width * 0.5, top_y), Vector2(width, height))
 	draw_rect(background, Color(0.15, 0.08, 0.08), true)
-	var ratio: float = float(_health.current_health) / float(
-		maxi(1, _health.max_health)
-	)
+	var ratio: float = float(_health.current_health) / float(maxi(1, _health.max_health))
 	var fill := Rect2(background.position, Vector2(width * ratio, height))
 	draw_rect(fill, _accent_color, true)
 
 
-func _on_enemy_visual_state_changed(
-	_enemy_id: int,
-	state_id: StringName
-) -> void:
+func _on_enemy_visual_state_changed(_enemy_id: int, state_id: StringName) -> void:
 	_behavior_state_id = state_id
 
 
