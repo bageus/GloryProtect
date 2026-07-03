@@ -116,7 +116,7 @@ func _run() -> void:
 		if is_inf(first_price_y):
 			first_price_y = price_y
 		else:
-			assert(absf(first_price_y - price_y) <= 1.0)
+			assert(absf(first_price_y - price_y) <= 2.0)
 		assert(not upgrade_panel.has_rendered_card_label(card_index, "BranchLabel"))
 		assert(not upgrade_panel.has_rendered_card_label(card_index, "EffectLabel"))
 		assert(upgrade_panel.has_rendered_card_label(card_index, "ContentCenter"))

@@ -1,6 +1,10 @@
 class_name CombatAnchorVisualController
 extends AnchorVisualController
 
+const REINFORCED_CHAIN_TEXTURE: Texture2D = preload(
+	"res://visual/tiles/tile_chain_rainforce.png"
+)
+
 @export_range(1.0, 8.0, 0.25) var electric_arc_speed: float = 4.5
 @export_range(4.0, 20.0, 1.0) var electric_arc_spacing: float = 10.0
 @export_range(1.0, 8.0, 0.5) var electric_arc_amplitude: float = 4.0
@@ -10,6 +14,15 @@ extends AnchorVisualController
 var _anchor_host: CombatAnchorHostSystem
 var _combat_anchors: CombatAnchorSystem
 var _trap_bursts: Array[Dictionary] = []
+var _reinforced_chain_source_rect: Rect2
+
+
+func _ready() -> void:
+	super._ready()
+	_reinforced_chain_source_rect = TextureRegionLayout.get_alpha_bounds(
+		REINFORCED_CHAIN_TEXTURE,
+		alpha_crop_threshold
+	)
 
 
 func configure_combat(
@@ -71,6 +84,13 @@ func is_electric_visual_active(anchor_id: int) -> bool:
 	]
 
 
+func is_reinforced_chain_visual_active() -> bool:
+	return (
+		_combat_anchors != null
+		and _combat_anchors.upgrades.has_strong_specialization()
+	)
+
+
 func get_active_trap_burst_count() -> int:
 	return _trap_bursts.size()
 
@@ -87,12 +107,46 @@ func get_latest_trap_burst_radius() -> float:
 	return float(_trap_bursts[_trap_bursts.size() - 1]["radius"])
 
 
+func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
+	super._draw_stowed_anchor(anchor, start)
+	if not is_reinforced_chain_visual_active():
+		return
+	_draw_reinforced_chain_overlay(
+		start,
+		start + Vector2(0.0, stowed_chain_length),
+		Color(1.0, 0.95, 0.72, 1.0)
+	)
+
+
+func _draw_installing_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
+	super._draw_installing_anchor(anchor, start)
+	if not is_reinforced_chain_visual_active():
+		return
+	var target: Vector2 = _get_clamp_connection_point(anchor.target_ground_point)
+	var ratio := clampf(
+		anchor.operation_progress / maxf(_balance.install_duration, 0.01),
+		0.0,
+		1.0
+	)
+	_draw_reinforced_chain_overlay(
+		start,
+		start.lerp(target, ratio),
+		Color(1.0, 0.93, 0.62, 1.0)
+	)
+
+
 func _draw_attached_anchor(
 	anchor: AnchorRuntime,
 	start: Vector2,
 	ground: Vector2
 ) -> void:
 	super._draw_attached_anchor(anchor, start, ground)
+	if is_reinforced_chain_visual_active():
+		_draw_reinforced_chain_overlay(
+			start,
+			_get_clamp_connection_point(ground),
+			Color(1.0, 0.88, 0.48, 1.0)
+		)
 	if not is_electric_visual_active(anchor.anchor_id):
 		return
 	_draw_electric_arcs(
@@ -100,6 +154,52 @@ func _draw_attached_anchor(
 		_get_clamp_connection_point(ground),
 		anchor.anchor_id
 	)
+
+
+func _draw_returning_anchor(
+	anchor: AnchorRuntime,
+	start: Vector2,
+	ground: Vector2
+) -> void:
+	super._draw_returning_anchor(anchor, start, ground)
+	if not is_reinforced_chain_visual_active():
+		return
+	var ratio := clampf(
+		anchor.operation_progress / maxf(_balance.return_duration, 0.01),
+		0.0,
+		1.0
+	)
+	var source := _get_clamp_connection_point(ground)
+	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
+	_draw_reinforced_chain_overlay(source, top, Color(0.98, 0.86, 0.52, 1.0))
+
+
+func _draw_reinforced_chain_overlay(start: Vector2, finish: Vector2, tint: Color) -> void:
+	var segment := finish - start
+	var length := segment.length()
+	if length <= 0.01:
+		return
+	var direction := segment / length
+	var tile_size: Vector2 = TextureRegionLayout.fit_height(
+		_reinforced_chain_source_rect.size,
+		chain_tile_height
+	)
+	var spacing: float = maxf(
+		tile_size.y * (1.0 - chain_tile_overlap_ratio),
+		1.0
+	)
+	var link_positions := calculate_chain_link_positions(start, finish, spacing)
+	var link_rotation := direction.angle() - PI * 0.5
+	var rect := Rect2(-tile_size * 0.5, tile_size)
+	for link_position: Vector2 in link_positions:
+		draw_set_transform(link_position, link_rotation, Vector2.ONE)
+		draw_texture_rect_region(
+			REINFORCED_CHAIN_TEXTURE,
+			rect,
+			_reinforced_chain_source_rect,
+			tint
+		)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_electric_arcs(
