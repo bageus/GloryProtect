@@ -6,6 +6,7 @@ const ARCHETYPES := {
 	&"flyer": "res://resources/enemies/boarding_flyer.tres",
 	&"runner": "res://resources/enemies/boarding_runner.tres",
 	&"brute": "res://resources/enemies/boarding_brute.tres",
+	&"rope_saboteur": "res://resources/enemies/boarding_rope_saboteur.tres",
 }
 
 
@@ -48,6 +49,14 @@ func _assert_catalog_counts() -> void:
 	_assert_count(&"brute", &"death", 2)
 	_assert_count(&"brute", &"climb", 2)
 	_assert_count(&"brute", &"attack", 3)
+	_assert_count(&"rope_saboteur", &"idle", 2)
+	_assert_count(&"rope_saboteur", &"run", 4)
+	_assert_count(&"rope_saboteur", &"death", 3)
+	_assert_count(&"rope_saboteur", &"attack", 3)
+	_assert_count(&"bomb_enemy", &"idle", 2)
+	_assert_count(&"bomb_enemy", &"run", 4)
+	_assert_count(&"bomb_enemy", &"death", 3)
+	_assert_count(&"bomb_enemy", &"attack", 3)
 
 	var base_attack_paths: PackedStringArray = (
 		BoardingEnemyVisualAssetCatalog.get_frame_paths(
@@ -57,6 +66,15 @@ func _assert_catalog_counts() -> void:
 	)
 	assert(base_attack_paths[0].ends_with(
 		"attack_distance/asset_enemy_base_attack_dist_01.png"
+	))
+	var bomb_attack_paths: PackedStringArray = (
+		BoardingEnemyVisualAssetCatalog.get_frame_paths(
+			&"rope_saboteur",
+			&"attack"
+		)
+	)
+	assert(bomb_attack_paths[0].ends_with(
+		"bomb_enemy/die/asset_enemy_bomb_die_01.png"
 	))
 	assert(not BoardingEnemyVisualAssetCatalog.source_faces_right())
 
