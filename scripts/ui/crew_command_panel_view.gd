@@ -10,6 +10,7 @@ const CONTEXT_HALF_WIDTH: float = 210.0
 const CONTEXT_LEFT_SHIFT: float = -260.0
 const CONTEXT_EDGE_MARGIN: float = 12.0
 const CONTEXT_BACKGROUND_ALPHA: float = 0.78
+const FEEDBACK_AUTO_HIDE_SECONDS: float = 2.5
 
 var _host: Control
 var _slot_buttons: Array[Button] = []
@@ -17,6 +18,7 @@ var _context_panel: PanelContainer
 var _context_scroll: ScrollContainer
 var _context_box: VBoxContainer
 var _feedback_label: Label
+var _feedback_elapsed: float = 0.0
 var _requested_context_height: float = NORMAL_CONTEXT_HEIGHT
 var _current_context_center_offset_x: float = 0.0
 
@@ -36,6 +38,14 @@ func build(
 	_build_side_panel(false, left_slot_count, total_slot_count, slot_pressed)
 	_build_context_panel()
 	_build_feedback_label()
+
+
+func process_feedback(delta: float) -> void:
+	if _feedback_label == null or not _feedback_label.visible:
+		return
+	_feedback_elapsed += maxf(0.0, delta)
+	if _feedback_elapsed >= FEEDBACK_AUTO_HIDE_SECONDS:
+		clear_feedback()
 
 
 func update_slot(
@@ -81,7 +91,8 @@ func rebuild_context(
 
 
 func rebuild_defender_type_context(
-	defender_id: int,	current_role: int,
+	defender_id: int,
+	current_role: int,
 	shooter_unlocked: bool,
 	type_pressed: Callable,
 	close_pressed: Callable
@@ -169,11 +180,37 @@ func rebuild_buildable_context(
 
 
 func set_feedback(message: String, is_error: bool) -> void:
+	_feedback_elapsed = 0.0
 	_feedback_label.text = message
+	_feedback_label.visible = not message.is_empty()
 	_feedback_label.add_theme_color_override(
 		"font_color",
 		Color(1.0, 0.48, 0.4) if is_error else Color(0.62, 0.92, 0.72)
 	)
+
+
+func clear_feedback() -> void:
+	_feedback_elapsed = 0.0
+	if _feedback_label == null:
+		return
+	_feedback_label.text = ""
+	_feedback_label.visible = false
+
+
+func get_feedback_text() -> String:
+	return "" if _feedback_label == null else _feedback_label.text
+
+
+func is_feedback_visible() -> bool:
+	return _feedback_label != null and _feedback_label.visible
+
+
+func get_feedback_elapsed_for_tests() -> float:
+	return _feedback_elapsed
+
+
+func get_feedback_auto_hide_seconds() -> float:
+	return FEEDBACK_AUTO_HIDE_SECONDS
 
 
 func close_context() -> void:
@@ -293,6 +330,7 @@ func _build_feedback_label() -> void:
 	_feedback_label.add_theme_font_size_override("font_size", 13)
 	_feedback_label.add_theme_color_override("font_color", Color(0.72, 0.82, 0.92))
 	_feedback_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_feedback_label.visible = false
 	_host.add_child(_feedback_label)
 
 
@@ -429,47 +467,44 @@ func _make_context_label(text: String, alignment: HorizontalAlignment) -> Label:
 	return label
 
 
-func _clear_children(container: Container) -> void:
-	for child: Node in container.get_children():
-		container.remove_child(child)
-		child.queue_free()
-
-
 func _make_panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.035, 0.055, 0.86)
-	style.border_color = Color(0.2, 0.34, 0.48, 0.9)
-	style.set_border_width_all(2)
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
+	style.bg_color = Color(0.04, 0.06, 0.10, 0.82)
+	style.border_color = Color(0.25, 0.45, 0.8, 0.72)
+	style.set_border_width_all(1)
 	return style
 
 
 func _make_context_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.018, 0.026, 0.043, CONTEXT_BACKGROUND_ALPHA)
-	style.border_color = Color(0.34, 0.56, 0.76, 0.88)
-	style.set_border_width_all(2)
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
+	style.bg_color = Color(0.03, 0.05, 0.08, CONTEXT_BACKGROUND_ALPHA)
+	style.border_color = Color(0.35, 0.62, 1.0, 0.84)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
 	return style
 
 
 func _collect_context_button_texts(node: Node, result: PackedStringArray) -> void:
-	var button: Button = node as Button
-	if button != null:
+	if node is Button:
+		var button := node as Button
 		result.append(button.text)
 	for child: Node in node.get_children():
 		_collect_context_button_texts(child, result)
 
 
 func _collect_enabled_button_rects(node: Node, result: Array[Rect2]) -> void:
-	var button: Button = node as Button
-	if button != null and button.visible and not button.disabled:
-		result.append(button.get_global_rect())
+	if node is Button:
+		var button := node as Button
+		if not button.disabled:
+			result.append(button.get_global_rect())
 	for child: Node in node.get_children():
 		_collect_enabled_button_rects(child, result)
+
+
+func _clear_children(container: Node) -> void:
+	for child: Node in container.get_children():
+		container.remove_child(child)
+		child.queue_free()
