@@ -6,10 +6,11 @@ const DEFENDER_CONTEXT_HEIGHT: float = 480.0
 const BUILDABLE_CONTEXT_HEIGHT: float = 320.0
 const CONTEXT_BOTTOM_OFFSET: float = -148.0
 const CONTEXT_TOP_MARGIN: float = 12.0
-const CONTEXT_HALF_WIDTH: float = 210.0
-const CONTEXT_LEFT_SHIFT: float = -260.0
+const CONTEXT_HALF_WIDTH: float = 180.0
+const CONTEXT_LEFT_SHIFT: float = -360.0
 const CONTEXT_EDGE_MARGIN: float = 12.0
-const CONTEXT_BACKGROUND_ALPHA: float = 0.78
+const CONTEXT_BACKGROUND_ALPHA: float = 0.74
+const CONTEXT_BUTTON_BACKGROUND_ALPHA: float = 0.34
 const FEEDBACK_AUTO_HIDE_SECONDS: float = 2.5
 
 var _host: Control
@@ -265,6 +266,14 @@ func get_context_background_alpha() -> float:
 	return 0.0 if style == null else style.bg_color.a
 
 
+func get_context_button_background_alpha() -> float:
+	return CONTEXT_BUTTON_BACKGROUND_ALPHA
+
+
+func get_context_panel_z_index() -> int:
+	return _context_panel.z_index
+
+
 func get_enabled_context_button_rects() -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	_collect_enabled_button_rects(_context_box, result)
@@ -320,6 +329,7 @@ func _build_context_panel() -> void:
 	_context_panel.offset_bottom = CONTEXT_BOTTOM_OFFSET
 	_context_panel.add_theme_stylebox_override("panel", _make_context_style())
 	_context_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_context_panel.z_index = 30
 	_context_panel.visible = false
 	_host.add_child(_context_panel)
 	var margin := MarginContainer.new()
@@ -382,7 +392,7 @@ func _fit_context_panel() -> void:
 	if host_size.x > 0.0:
 		half_width = minf(
 			CONTEXT_HALF_WIDTH,
-			maxf(140.0, host_size.x * 0.5 - CONTEXT_EDGE_MARGIN)
+			maxf(132.0, host_size.x * 0.5 - CONTEXT_EDGE_MARGIN)
 		)
 	var center_offset: float = CONTEXT_LEFT_SHIFT
 	if host_size.x > 0.0:
@@ -481,6 +491,13 @@ func _make_context_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
+	button.add_theme_stylebox_override(
+		"normal",
+		_make_context_button_style(CONTEXT_BUTTON_BACKGROUND_ALPHA)
+	)
+	button.add_theme_stylebox_override("hover", _make_context_button_style(0.46))
+	button.add_theme_stylebox_override("pressed", _make_context_button_style(0.28))
+	button.add_theme_stylebox_override("disabled", _make_context_button_style(0.18))
 	return button
 
 
@@ -509,6 +526,22 @@ func _make_context_style() -> StyleBoxFlat:
 	style.corner_radius_top_right = 10
 	style.corner_radius_bottom_left = 10
 	style.corner_radius_bottom_right = 10
+	return style
+
+
+func _make_context_button_style(alpha: float) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.16, 0.25, 0.38, alpha)
+	style.border_color = Color(0.72, 0.88, 1.0, 0.5)
+	style.set_border_width_all(1)
+	style.corner_radius_top_left = 7
+	style.corner_radius_top_right = 7
+	style.corner_radius_bottom_left = 7
+	style.corner_radius_bottom_right = 7
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
 	return style
 
 

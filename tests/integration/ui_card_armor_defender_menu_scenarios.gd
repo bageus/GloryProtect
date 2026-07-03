@@ -158,9 +158,12 @@ func _assert_defender_context_inside_viewport(
 	var host_rect: Rect2 = crew_panel.get_global_rect()
 	var context_rect: Rect2 = crew_panel._view._context_panel.get_global_rect()
 	_assert_rect_inside(context_rect, host_rect)
-	assert(crew_panel._view.get_context_center_offset_x() < -40.0)
-	assert(context_rect.get_center().x < host_rect.get_center().x - 40.0)
-	assert(crew_panel._view.get_context_background_alpha() <= 0.82)
+	assert(crew_panel._view.get_context_center_offset_x() <= -300.0)
+	assert(context_rect.get_center().x < host_rect.get_center().x - 180.0)
+	assert(context_rect.size.x <= 370.0)
+	assert(crew_panel._view.get_context_background_alpha() <= 0.76)
+	assert(crew_panel._view.get_context_button_background_alpha() >= 0.3)
+	assert(crew_panel._view.get_context_panel_z_index() >= 30)
 
 
 func _assert_context_buttons_clickable(view: CrewCommandPanelView) -> void:
@@ -183,18 +186,18 @@ func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
 
 func _collect_button_texts(node: Node) -> PackedStringArray:
 	var result := PackedStringArray()
-	var button: Button = node as Button
-	if button != null:
-		result.append(button.text)
-	for child: Node in node.get_children():
-		result.append_array(_collect_button_texts(child))
+	_collect_button_texts_recursive(node, result)
 	return result
 
 
-func _contains_button_prefix(
-	buttons: PackedStringArray,
-	prefix: String
-) -> bool:
+func _collect_button_texts_recursive(node: Node, result: PackedStringArray) -> void:
+	if node is Button:
+		result.append((node as Button).text)
+	for child: Node in node.get_children():
+		_collect_button_texts_recursive(child, result)
+
+
+func _contains_button_prefix(buttons: PackedStringArray, prefix: String) -> bool:
 	for text: String in buttons:
 		if text.begins_with(prefix):
 			return true
@@ -205,6 +208,7 @@ func _disable_spawners(game: Node) -> void:
 	var paths: Array[NodePath] = [
 		NodePath("World/BoardingSpawnDirector"),
 		NodePath("World/FlyingEnemySpawnDirector"),
+		NodePath("World/StrategicWaveSystem"),
 		NodePath("World/StrategicWaveDirector"),
 		NodePath("World/StrategicGroupMutationController"),
 	]
