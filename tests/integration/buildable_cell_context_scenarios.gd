@@ -120,6 +120,34 @@ func _assert_context_buttons(
 	var buttons: PackedStringArray = panel.get_context_button_texts()
 	for text: String in expected:
 		assert(buttons.has(text))
+	_assert_context_hud_geometry(panel._view)
+	_assert_context_buttons_clickable(panel._view)
+
+
+func _assert_context_hud_geometry(view: CrewCommandPanelView) -> void:
+	assert(view.get_context_center_offset_x() <= -300.0)
+	assert(view.get_context_rect().size.x <= 370.0)
+	assert(view.get_context_background_alpha() <= 0.76)
+	assert(view.get_context_button_background_alpha() >= 0.3)
+	assert(view.get_context_panel_z_index() >= 30)
+
+
+func _assert_context_buttons_clickable(view: CrewCommandPanelView) -> void:
+	var context_rect: Rect2 = view._context_panel.get_global_rect()
+	var button_rects: Array[Rect2] = view.get_enabled_context_button_rects()
+	assert(not button_rects.is_empty())
+	for rect: Rect2 in button_rects:
+		assert(rect.size.x > 1.0)
+		assert(rect.size.y > 1.0)
+		_assert_rect_inside(rect, context_rect.grow(1.0))
+
+
+func _assert_rect_inside(rect: Rect2, bounds: Rect2) -> void:
+	const EPSILON := 1.0
+	assert(rect.position.x >= bounds.position.x - EPSILON)
+	assert(rect.position.y >= bounds.position.y - EPSILON)
+	assert(rect.end.x <= bounds.end.x + EPSILON)
+	assert(rect.end.y <= bounds.end.y + EPSILON)
 
 
 func _context_text(panel: UnifiedContextCrewCommandPanel) -> String:

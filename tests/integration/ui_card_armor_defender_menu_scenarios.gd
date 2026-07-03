@@ -168,9 +168,12 @@ func _assert_defender_context_inside_viewport(
 	var host_rect: Rect2 = crew_panel.get_global_rect()
 	var context_rect: Rect2 = crew_panel._view._context_panel.get_global_rect()
 	_assert_rect_inside(context_rect, host_rect)
-	assert(crew_panel._view.get_context_center_offset_x() < -40.0)
-	assert(context_rect.get_center().x < host_rect.get_center().x - 40.0)
-	assert(crew_panel._view.get_context_background_alpha() <= 0.82)
+	assert(crew_panel._view.get_context_center_offset_x() <= -300.0)
+	assert(context_rect.get_center().x < host_rect.get_center().x - 180.0)
+	assert(context_rect.size.x <= 370.0)
+	assert(crew_panel._view.get_context_background_alpha() <= 0.76)
+	assert(crew_panel._view.get_context_button_background_alpha() >= 0.3)
+	assert(crew_panel._view.get_context_panel_z_index() >= 30)
 
 
 func _assert_context_buttons_clickable(view: CrewCommandPanelView) -> void:
