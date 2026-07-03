@@ -18,6 +18,8 @@ static func get_frame_paths(
 			return _fast_paths(state)
 		&"brute":
 			return _heavy_paths(state)
+		&"rope_saboteur", &"bomb_enemy":
+			return _bomb_paths(state)
 		_:
 			return PackedStringArray()
 
@@ -182,6 +184,18 @@ static func _heavy_paths(state: StringName) -> PackedStringArray:
 			return _numbered("heavy_enemy/climb/asset_enemy_heavy_climb_", 2)
 		&"attack":
 			return _numbered("heavy_enemy/attack_meal/asset_enemy_heavy_attack_", 3)
+		_:
+			return PackedStringArray()
+
+
+static func _bomb_paths(state: StringName) -> PackedStringArray:
+	match state:
+		&"idle":
+			return _numbered("bomb_enemy/idle/asset_enemy_bomb_idle_", 2)
+		&"run":
+			return _numbered("bomb_enemy/run/asset_enemy_bomb_run_", 4)
+		&"die", &"attack":
+			return _numbered("bomb_enemy/die/asset_enemy_bomb_die_", 3)
 		_:
 			return PackedStringArray()
 
