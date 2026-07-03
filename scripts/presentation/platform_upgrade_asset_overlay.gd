@@ -92,14 +92,12 @@ func _ready() -> void:
 			texture,
 			alpha_crop_threshold
 		)
-	if _shield_core != null and not _shield_core.upgrades_changed.is_connected(_on_upgrade_changed):
-		_shield_core.upgrades_changed.connect(_on_upgrade_changed)
-	if _anchorless != null and not _anchorless.upgrades_changed.is_connected(_on_upgrade_changed):
-		_anchorless.upgrades_changed.connect(_on_upgrade_changed)
+	_resolve_optional_systems()
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
+	_resolve_optional_systems()
 	var safe_delta: float = maxf(0.0, delta)
 	_elapsed += safe_delta
 	_update_direction_pulse(safe_delta)
@@ -294,6 +292,17 @@ func _get_motion_direction() -> int:
 func _get_frame(frames: Array[Texture2D]) -> Texture2D:
 	var index: int = floori(_elapsed * overlay_frame_rate) % frames.size()
 	return frames[index]
+
+
+func _resolve_optional_systems() -> void:
+	if _shield_core == null:
+		_shield_core = get_node_or_null(shield_core_system_path) as ShieldCoreSystem
+		if _shield_core != null and not _shield_core.upgrades_changed.is_connected(_on_upgrade_changed):
+			_shield_core.upgrades_changed.connect(_on_upgrade_changed)
+	if _anchorless == null:
+		_anchorless = get_node_or_null(anchorless_control_system_path) as AnchorlessControlSystem
+		if _anchorless != null and not _anchorless.upgrades_changed.is_connected(_on_upgrade_changed):
+			_anchorless.upgrades_changed.connect(_on_upgrade_changed)
 
 
 func _get_all_textures() -> Array[Texture2D]:
