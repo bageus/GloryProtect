@@ -2,6 +2,10 @@ class_name UpgradeSelectionPanel
 extends Control
 
 const MODAL_Z_INDEX: int = 100
+const CARD_WIDTH: float = 300.0
+const CARD_HEIGHT: float = 360.0
+const CARD_HORIZONTAL_MARGIN: float = 14.0
+const CARD_TEXT_MIN_WIDTH: float = CARD_WIDTH - CARD_HORIZONTAL_MARGIN * 2.0
 const CARD_META_GROUP_ID: StringName = &"card_group_id"
 const CARD_META_PRICE_LABEL: StringName = &"price_label"
 const CARD_META_PRICE_PANEL: StringName = &"price_panel"
@@ -181,7 +185,7 @@ func _rebuild_card_buttons() -> void:
 		button.name = "Card%s" % String(card_id)
 		button.text = ""
 		button.clip_contents = true
-		button.custom_minimum_size = Vector2(300.0, 360.0)
+		button.custom_minimum_size = Vector2(CARD_WIDTH, CARD_HEIGHT)
 		button.disabled = _selection_pending
 		button.set_meta(
 			CARD_META_GROUP_ID,
@@ -202,14 +206,15 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	var margin := MarginContainer.new()
 	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_left", int(CARD_HORIZONTAL_MARGIN))
 	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_right", int(CARD_HORIZONTAL_MARGIN))
 	margin.add_theme_constant_override("margin_bottom", 18)
 	button.add_child(margin)
 
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	box.add_theme_constant_override("separation", 10)
@@ -238,6 +243,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	var content_box := VBoxContainer.new()
 	content_box.name = "MainContent"
 	content_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	content_box.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
 	content_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	content_box.add_theme_constant_override("separation", 12)
@@ -302,6 +308,8 @@ func _make_card_label(
 	label.name = label_name
 	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.horizontal_alignment = alignment
 	label.add_theme_font_size_override("font_size", font_size)
