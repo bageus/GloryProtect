@@ -30,6 +30,9 @@ func _run_scenario() -> void:
 		"World/GroundOrbRegistry"
 	)
 	var contact: OrbContactSystem = game.get_node("World/OrbContactSystem")
+	var visual: GroundOrbVisualController = game.get_node(
+		"World/GroundOrbVisualController"
+	)
 	var waves: ShieldCoreStrategicWaveSystem = game.get_node(
 		"World/StrategicWaveSystem"
 	)
@@ -37,12 +40,22 @@ func _run_scenario() -> void:
 	recharge.set_physics_process(false)
 	waves.set_physics_process(false)
 
+	var base_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
+	assert(is_equal_approx(base_beam_widths.x, visual.contact_outer_base_width))
+	assert(is_equal_approx(base_beam_widths.y, visual.contact_inner_base_width))
+
 	_apply(upgrade_system, &"shield_capacity_basic")
 	_apply(upgrade_system, &"shield_capacity_advanced")
 	_apply(upgrade_system, &"shield_recharge_basic")
 	_apply(upgrade_system, &"shield_recharge_advanced")
 	_apply(upgrade_system, &"shield_contact_basic")
+	var improved_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
+	assert(improved_beam_widths.x > base_beam_widths.x)
+	assert(improved_beam_widths.y > base_beam_widths.y)
 	_apply(upgrade_system, &"shield_contact_advanced")
+	var mega_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
+	assert(mega_beam_widths.x > improved_beam_widths.x)
+	assert(mega_beam_widths.y > improved_beam_widths.y)
 	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.2))
 	assert(is_equal_approx(recharge.get_speed_multiplier(), 1.2))
 	assert(is_equal_approx(registry.get_contact_width_multiplier(), 1.2))
@@ -69,6 +82,9 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(recharge.get_speed_multiplier(), 1.0))
 	assert(is_equal_approx(registry.get_contact_width_multiplier(), 1.0))
 	assert(not shield.has_emergency_reserve_been_used())
+	var reset_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
+	assert(is_equal_approx(reset_beam_widths.x, base_beam_widths.x))
+	assert(is_equal_approx(reset_beam_widths.y, base_beam_widths.y))
 
 	core.set_random_seed(28)
 	assert(core.apply_upgrade_effect(
