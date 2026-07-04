@@ -247,7 +247,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	content_box.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
 	content_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	content_box.add_theme_constant_override("separation", 12)
+	content_box.add_theme_constant_override("separation", 10)
 	center.add_child(content_box)
 
 	content_box.add_child(_make_card_label(
@@ -264,6 +264,15 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 		Color(0.9, 0.94, 0.98),
 		HORIZONTAL_ALIGNMENT_CENTER
 	))
+	var effect_summary: String = UpgradeCardFormatter.get_effect_summary(definition.effect)
+	if not effect_summary.is_empty() and effect_summary != "Без немедленного эффекта":
+		content_box.add_child(_make_card_label(
+			"EffectSummaryLabel",
+			effect_summary,
+			16,
+			accent.lightened(0.28),
+			HORIZONTAL_ALIGNMENT_CENTER
+		))
 	var repeat_text: String = UpgradeCardFormatter.get_repeat_text(
 		definition,
 		_upgrades.get_runtime()
@@ -292,8 +301,6 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 		UpgradeCardFormatter.get_price_color(),
 		HORIZONTAL_ALIGNMENT_CENTER
 	)
-	# Price label lives inside a padded panel, so it must not keep the full-card
-	# minimum width: that was the source of the cropped price HUD.
 	price_label.custom_minimum_size = Vector2.ZERO
 	price_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
