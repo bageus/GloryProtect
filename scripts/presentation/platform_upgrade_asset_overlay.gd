@@ -187,7 +187,7 @@ func is_stability_pulse_active_for_tests() -> bool:
 func debug_trigger_direction_change_for_tests(direction: int) -> void:
 	if direction == 0:
 		return
-	_last_direction = int(signi(direction))
+	_last_direction = 1 if direction > 0 else -1
 	_stability_pulse_elapsed = 0.0
 	queue_redraw()
 
