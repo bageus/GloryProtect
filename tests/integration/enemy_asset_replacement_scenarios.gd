@@ -98,9 +98,30 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	assert(not visual.is_asset_mirrored_for_tests())
 	visual.debug_set_facing_right_for_tests(true)
 	assert(visual.is_asset_mirrored_for_tests())
+	if archetype_id == &"rope_saboteur":
+		_assert_behavior_state_route(visual, &"waiting", &"idle")
+		_assert_behavior_state_route(visual, &"running_to_rope", &"run")
+		_assert_behavior_state_route(visual, &"arming", &"attack")
+		_assert_behavior_state_route(visual, &"dead", &"death")
+	if archetype_id == &"flyer":
+		_assert_behavior_state_route(visual, &"flying", &"flying")
+		_assert_behavior_state_route(visual, &"landing", &"landing")
+		_assert_behavior_state_route(visual, &"attacking", &"attack")
 
 	enemy.queue_free()
 	await process_frame
+
+
+func _assert_behavior_state_route(
+	visual: BoardingEnemyVisual,
+	behavior_state: StringName,
+	expected_presentation_state: StringName
+) -> void:
+	var presentation_state: StringName = (
+		visual.get_behavior_presentation_state_for_tests(behavior_state)
+	)
+	assert(presentation_state == expected_presentation_state)
+	assert(visual.has_replacement_asset_for_tests(presentation_state))
 
 
 func _assert_count(

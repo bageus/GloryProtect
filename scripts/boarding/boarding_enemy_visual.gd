@@ -136,21 +136,22 @@ func get_current_asset_source_rect_for_tests() -> Rect2:
 	return _get_asset_source_rect(frames[0])
 
 
+func get_behavior_presentation_state_for_tests(state_id: StringName, movement_delta: float = 0.0) -> StringName:
+	return _resolve_behavior_presentation_state(state_id, movement_delta)
+
+
 func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 	_animation.set_facing_right(facing_right)
 
 
 func _resolve_presentation_state(movement_delta: float) -> StringName:
 	if _behavior_state_id != &"":
-		match _behavior_state_id:
-			&"flying":
-				return &"flying"
-			&"landing":
-				return &"landing"
-			&"attacking":
-				return &"attack"
-			&"boarded":
-				return &"run" if absf(movement_delta) > 0.05 else &"idle"
+		var behavior_state: StringName = _resolve_behavior_presentation_state(
+			_behavior_state_id,
+			movement_delta
+		)
+		if behavior_state != &"":
+			return behavior_state
 	if _controller == null:
 		return &"idle"
 	match _controller.get_state():
@@ -166,6 +167,26 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 			return &"run"
 		_:
 			return &"idle"
+
+
+static func _resolve_behavior_presentation_state(state_id: StringName, movement_delta: float) -> StringName:
+	match state_id:
+		&"flying":
+			return &"flying"
+		&"landing":
+			return &"landing"
+		&"attacking", &"arming":
+			return &"attack"
+		&"boarded":
+			return &"run" if absf(movement_delta) > 0.05 else &"idle"
+		&"waiting", &"waiting_without_path":
+			return &"idle"
+		&"running_to_rope", &"running_to_anchor":
+			return &"run"
+		&"dead", &"death":
+			return &"death"
+		_:
+			return &""
 
 
 func _update_animation(state_id: StringName, delta: float) -> void:
