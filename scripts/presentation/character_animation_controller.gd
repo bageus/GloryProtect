@@ -61,7 +61,7 @@ func tick(delta: float) -> void:
 
 func set_normalized_progress(progress: float) -> void:
 	var safe_progress: float = clampf(progress, 0.0, 1.0)
-	var next_frame: int = roundi(safe_progress * float(_frame_count))
+	var next_frame: int = roundi(safe_progress * float(maxi(0, _frame_count - 1)))
 	_set_frame_index(next_frame)
 	_frame_elapsed = 0.0
 	_finished = not _loop and safe_progress >= 1.0
