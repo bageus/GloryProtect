@@ -198,7 +198,7 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 func _get_frame_count(state_id: StringName) -> int:
 	var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id)
 	if asset_count > 0:
-		return asset_count
+		return _get_logical_frame_count_for_assets(state_id, asset_count)
 	match state_id:
 		&"death", &"landing":
 			return 4
@@ -206,6 +206,18 @@ func _get_frame_count(state_id: StringName) -> int:
 			return 3
 		_:
 			return 6
+
+
+func _get_logical_frame_count_for_assets(state_id: StringName, asset_count: int) -> int:
+	match state_id:
+		&"attack":
+			return max(asset_count, 6)
+		&"death", &"landing":
+			return max(asset_count, 4)
+		&"climb":
+			return max(asset_count, 3)
+		_:
+			return asset_count
 
 
 func _get_frame_rate(state_id: StringName) -> float:
@@ -244,7 +256,7 @@ func _draw_asset_actor(frame: int) -> bool:
 	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, _presentation_state_id)
 	if frames.is_empty():
 		return false
-	var texture: Texture2D = frames[clampi(frame, 0, frames.size() - 1)]
+	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size())]
 	if texture == null:
 		return false
 	var source_rect: Rect2 = _get_asset_source_rect(texture)
@@ -258,6 +270,16 @@ func _draw_asset_actor(frame: int) -> bool:
 	draw_texture_rect_region(texture, destination, source_rect)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true
+
+
+func _get_asset_frame_index(logical_frame: int, asset_count: int) -> int:
+	if asset_count <= 1:
+		return 0
+	var logical_count: int = max(_get_frame_count(_presentation_state_id), 1)
+	if logical_count <= 1:
+		return 0
+	var progress: float = float(clampi(logical_frame, 0, logical_count - 1)) / float(logical_count - 1)
+	return clampi(roundi(progress * float(asset_count - 1)), 0, asset_count - 1)
 
 
 func _get_asset_source_rect(texture: Texture2D) -> Rect2:
