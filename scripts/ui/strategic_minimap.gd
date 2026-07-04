@@ -4,6 +4,7 @@ extends Control
 const MAP_WIDTH_RATIO: float = 5.0 / 6.0
 const SHIELD_BAR_HEIGHT: float = 14.0
 const CORE_BULGE_RADIUS: float = 5.2
+const MAP_BOTTOM_RESERVED: float = 20.0
 
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("StrategicWaveSystem") var wave_system_path: NodePath
@@ -74,7 +75,7 @@ func _draw() -> void:
 		return
 	var margin_x: float = 8.0
 	var lane_top: float = 30.0
-	var lane_bottom: float = size.y - 5.0
+	var lane_bottom: float = _get_lane_bottom()
 	var shield_bar_y: float = lane_bottom - SHIELD_BAR_HEIGHT
 	var lane_width: float = (map_width - margin_x * 2.0) / float(section_count)
 	_draw_section_lanes(section_count, margin_x, lane_top, lane_bottom, shield_bar_y, lane_width)
@@ -107,7 +108,7 @@ func get_core_marker_position(section_id: int) -> Vector2:
 	if section_count <= 0 or not _shield.is_valid_section(section_id):
 		return Vector2.ZERO
 	var margin_x: float = 8.0
-	var lane_bottom: float = size.y - 5.0
+	var lane_bottom: float = _get_lane_bottom()
 	var shield_bar_y: float = lane_bottom - SHIELD_BAR_HEIGHT
 	var lane_width: float = (_get_map_width() - margin_x * 2.0) / float(section_count)
 	return _get_core_marker_position(section_id, margin_x, shield_bar_y, lane_width)
@@ -130,6 +131,10 @@ func debug_emit_energy_wave(section_id: int) -> void:
 
 func _get_map_width() -> float:
 	return size.x * MAP_WIDTH_RATIO
+
+
+func _get_lane_bottom() -> float:
+	return maxf(44.0, size.y - MAP_BOTTOM_RESERVED)
 
 
 func _resolve_scene_root() -> Node:
