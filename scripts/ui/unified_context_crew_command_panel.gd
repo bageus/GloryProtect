@@ -11,6 +11,7 @@ enum ContextKind {
 var _placement: BuildablePlacementController
 var _context_kind: int = ContextKind.NONE
 var _suppress_placement_refresh: bool = false
+var _last_buildable_context_signature: String = ""
 
 
 func set_placement_controller(controller: BuildablePlacementController) -> void:
@@ -31,7 +32,7 @@ func _process(delta: float) -> void:
 	if not visible:
 		_close_context()
 		return
-	_rebuild_buildable_context()
+	_rebuild_buildable_context_if_changed()
 
 
 func is_context_visible() -> bool:
@@ -44,12 +45,14 @@ func get_context_button_texts() -> PackedStringArray:
 
 func open_defender_command_context(defender_id: int) -> void:
 	_clear_placement_selection_without_refresh()
+	_last_buildable_context_signature = ""
 	_context_kind = ContextKind.CREW
 	super.open_defender_command_context(defender_id)
 
 
 func _on_slot_pressed(slot_index: int) -> void:
 	_clear_placement_selection_without_refresh()
+	_last_buildable_context_signature = ""
 	_context_kind = ContextKind.CREW
 	super._on_slot_pressed(slot_index)
 
@@ -57,6 +60,7 @@ func _on_slot_pressed(slot_index: int) -> void:
 func _close_context() -> void:
 	var clear_buildable_context: bool = _context_kind == ContextKind.BUILDABLE
 	_context_kind = ContextKind.NONE
+	_last_buildable_context_signature = ""
 	if clear_buildable_context:
 		_clear_placement_selection_without_refresh()
 	super._close_context()
@@ -153,21 +157,66 @@ func _refresh_buildable_context_if_active() -> void:
 		_rebuild_buildable_context()
 	elif _context_kind == ContextKind.BUILDABLE:
 		_context_kind = ContextKind.NONE
+		_last_buildable_context_signature = ""
 		super._close_context()
 
 
-func _rebuild_buildable_context() -> void:
+func _rebuild_buildable_context_if_changed() -> void:
+	_rebuild_buildable_context(true)
+
+
+func _rebuild_buildable_context(only_if_changed: bool = false) -> void:
 	if _placement == null or _suppress_placement_refresh:
 		return
 	var cell_index: int = _get_buildable_context_cell_index()
+	var title: String = _get_buildable_context_title(cell_index)
+	var status: String = _get_buildable_context_status(cell_index)
+	var actions: Array[Dictionary] = _build_buildable_actions(cell_index)
+	var feedback: String = _get_buildable_feedback_text()
+	var feedback_is_error: bool = _placement.is_feedback_error()
+	var signature: String = _get_buildable_context_signature(
+		title,
+		status,
+		actions,
+		feedback,
+		feedback_is_error
+	)
+	if only_if_changed and _view.is_context_visible() and signature == _last_buildable_context_signature:
+		return
+	_last_buildable_context_signature = signature
 	_view.rebuild_buildable_context(
-		_get_buildable_context_title(cell_index),
-		_get_buildable_context_status(cell_index),
-		_build_buildable_actions(cell_index),
-		_get_buildable_feedback_text(),
-		_placement.is_feedback_error(),
+		title,
+		status,
+		actions,
+		feedback,
+		feedback_is_error,
 		_close_context
 	)
+
+
+func _get_buildable_context_signature(
+	title: String,
+	status: String,
+	actions: Array[Dictionary],
+	feedback: String,
+	feedback_is_error: bool
+) -> String:
+	var parts := PackedStringArray([
+		str(_placement.get_mode()),
+		str(_placement.get_selected_cell_index()),
+		str(_placement.get_hovered_cell_index()),
+		str(_placement.get_selected_buildable_id()),
+		title,
+		status,
+		feedback,
+		str(feedback_is_error),
+	])
+	for action: Dictionary in actions:
+		parts.append("%s:%s" % [
+			String(action.get("text", "")),
+			str(bool(action.get("disabled", false))),
+		])
+	return "|".join(parts)
 
 
 func _build_buildable_actions(cell_index: int) -> Array[Dictionary]:

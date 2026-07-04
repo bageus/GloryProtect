@@ -47,6 +47,8 @@ const STABILITY_FLAME_3: Texture2D = preload(
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
 
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
+@export_range(1, 128, 1) var minimum_z_index: int = 12
+@export var snap_visuals_to_canvas_pixels: bool = true
 @export var core_overlay_size: Vector2 = Vector2(116.0, 116.0)
 @export var core_overlay_offset: Vector2 = Vector2(0.0, 12.0)
 @export var speed_engine_size: Vector2 = Vector2(54.0, 42.0)
@@ -86,17 +88,21 @@ var _stability_flames: Array[Texture2D] = [
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	z_index = maxi(z_index, 7)
+	z_as_relative = false
+	z_index = maxi(z_index, minimum_z_index)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for texture: Texture2D in _get_all_textures():
 		_source_rects[texture] = TextureRegionLayout.get_alpha_bounds(
 			texture,
 			alpha_crop_threshold
 		)
 	_resolve_optional_systems()
+	_apply_canvas_pixel_snap()
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
+	_apply_canvas_pixel_snap()
 	_resolve_optional_systems()
 	var safe_delta: float = maxf(0.0, delta)
 	_elapsed += safe_delta
@@ -292,6 +298,20 @@ func _get_motion_direction() -> int:
 func _get_frame(frames: Array[Texture2D]) -> Texture2D:
 	var index: int = floori(_elapsed * overlay_frame_rate) % frames.size()
 	return frames[index]
+
+
+func _apply_canvas_pixel_snap() -> void:
+	if not snap_visuals_to_canvas_pixels:
+		if position != Vector2.ZERO:
+			position = Vector2.ZERO
+		return
+	var parent_canvas := get_parent() as CanvasItem
+	if parent_canvas == null:
+		return
+	var canvas_origin: Vector2 = parent_canvas.get_global_transform_with_canvas().origin
+	var snapped_position: Vector2 = canvas_origin.round() - canvas_origin
+	if position != snapped_position:
+		position = snapped_position
 
 
 func _resolve_optional_systems() -> void:

@@ -17,11 +17,12 @@ const CHAIN_BACKING_WIDTH := 4.0
 const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
 @export_group("Anchor Assets")
-@export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.12
-@export_range(1.0, 2.0, 0.05) var clamp_scale_multiplier := 1.30
-@export_range(8.0, 128.0, 1.0) var chain_tile_height := 23.0
+@export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.16
+@export_range(1.0, 2.0, 0.05) var clamp_scale_multiplier := 1.55
+@export_range(8.0, 128.0, 1.0) var chain_tile_height := 26.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
+@export_range(1, 128, 1) var minimum_z_index := 18
 @export var clamp_ground_offset := Vector2(0.0, 2.0)
 @export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
 @export var stowed_chain_length := 20.0
@@ -42,7 +43,9 @@ var _anchor_source_rect: Rect2
 
 
 func _ready() -> void:
-	z_index = 2
+	z_as_relative = false
+	z_index = maxi(z_index, minimum_z_index)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_chain_source_rect = TextureRegionLayout.get_alpha_bounds(
 		CHAIN_TEXTURE,
 		alpha_crop_threshold
@@ -104,6 +107,19 @@ func get_clamp_visual_scale() -> float:
 	return object_asset_scale * clamp_scale_multiplier
 
 
+func are_anchor_asset_regions_valid_for_tests() -> bool:
+	return (
+		_chain_source_rect.size.x > 0.0
+		and _chain_source_rect.size.y > 0.0
+		and _clamp_source_rect.size.x > 0.0
+		and _clamp_source_rect.size.y > 0.0
+		and _winch_source_rect.size.x > 0.0
+		and _winch_source_rect.size.y > 0.0
+		and _anchor_source_rect.size.x > 0.0
+		and _anchor_source_rect.size.y > 0.0
+	)
+
+
 func _draw_winch_posts() -> void:
 	for anchor_id: int in range(4):
 		var side := (
@@ -131,6 +147,12 @@ func _draw_winch(
 	)
 	var size := _winch_source_rect.size * object_asset_scale
 	var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
+	var backing_center := bottom + Vector2(0.0, -size.y * 0.42)
+	draw_circle(
+		backing_center,
+		maxf(8.0, size.x * 0.24),
+		Color(0.08, 0.12, 0.18, 0.58)
+	)
 	var draw_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
 	draw_set_transform(bottom, 0.0, draw_scale)
 	draw_texture_rect_region(WINCH_TEXTURE, rect, _winch_source_rect, tint)
@@ -316,6 +338,19 @@ func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
 func _draw_clamp(ground: Vector2, tint: Color) -> void:
 	var size := _clamp_source_rect.size * get_clamp_visual_scale()
 	var bottom := ground + clamp_ground_offset
+	var marker_center := bottom + Vector2(0.0, -size.y * 0.34)
+	var glow := Color(tint.r, tint.g, tint.b, minf(0.3, maxf(0.16, tint.a * 0.24)))
+	draw_circle(marker_center, maxf(8.0, size.x * 0.25), glow)
+	draw_arc(
+		marker_center,
+		maxf(9.0, size.x * 0.31),
+		0.0,
+		TAU,
+		28,
+		Color(0.85, 0.96, 1.0, 0.55),
+		2.0,
+		true
+	)
 	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
 	draw_texture_rect_region(CLAMP_TEXTURE, rect, _clamp_source_rect, tint)
 

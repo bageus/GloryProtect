@@ -3,12 +3,12 @@ extends Node2D
 
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
-@export var indicator_offset: Vector2 = Vector2(0.0, -136.0)
-@export var arrow_size: Vector2 = Vector2(96.0, 36.0)
+@export var indicator_offset: Vector2 = Vector2(0.0, -176.0)
+@export var arrow_size: Vector2 = Vector2(86.0, 28.0)
 @export var brick_size: Vector2 = Vector2(13.0, 7.0)
 @export_range(1.0, 12.0, 0.5) var brick_gap: float = 4.0
-@export_range(0.0, 1.0, 0.05) var fill_alpha: float = 0.42
-@export_range(0.0, 1.0, 0.05) var border_alpha: float = 0.76
+@export_range(0.0, 1.0, 0.05) var fill_alpha: float = 0.74
+@export_range(0.0, 1.0, 0.05) var border_alpha: float = 0.74
 @export_range(8, 80, 1) var minimum_z_index: int = 48
 
 var _direction: int = 1
@@ -65,16 +65,16 @@ func get_strength_brick_rects_for_tests() -> Array[Rect2]:
 
 func _draw() -> void:
 	var points: PackedVector2Array = _build_arrow_points()
-	var fill := Color(0.28, 0.72, 1.0, fill_alpha)
-	var border := Color(0.78, 0.92, 1.0, border_alpha)
-	draw_colored_polygon(points, fill)
-	draw_polyline(points, border, 2.0, true)
+	var base := Color(0.45, 0.84, 1.0, fill_alpha)
+	var border := Color(0.45, 0.84, 1.0, border_alpha)
+	draw_colored_polygon(points, base)
+	draw_polyline(points, border, 1.6, true)
 	_draw_strength_bricks()
 
 
 func _draw_strength_bricks() -> void:
-	var fill := Color(0.28, 0.72, 1.0, fill_alpha * 0.95)
-	var border := Color(0.78, 0.92, 1.0, border_alpha)
+	var fill := Color(0.45, 0.84, 1.0, fill_alpha * 0.95)
+	var border := Color(0.45, 0.84, 1.0, border_alpha)
 	for brick_rect: Rect2 in _build_strength_brick_rects():
 		draw_rect(brick_rect, fill, true)
 		draw_rect(brick_rect, border, false, 1.2)
@@ -96,8 +96,8 @@ func _apply_wind_state(direction: int, strength_level: int) -> void:
 
 func _build_arrow_points() -> PackedVector2Array:
 	var half: Vector2 = arrow_size * 0.5
-	var head_width: float = minf(24.0, arrow_size.x * 0.34)
-	var tail_indent: float = minf(10.0, arrow_size.y * 0.28)
+	var head_width: float = minf(20.0, arrow_size.x * 0.3)
+	var tail_indent: float = minf(7.0, arrow_size.y * 0.24)
 	var left: float = indicator_offset.x - half.x
 	var right: float = indicator_offset.x + half.x
 	var top: float = indicator_offset.y - half.y
@@ -126,17 +126,17 @@ func _build_arrow_points() -> PackedVector2Array:
 func _build_strength_brick_rects() -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	var count: int = maxi(1, _strength_level)
-	var total_height: float = brick_size.y * float(count) + brick_gap * float(count - 1)
-	var first_y: float = indicator_offset.y - total_height * 0.5
+	var total_width: float = brick_size.x * float(count) + brick_gap * float(count - 1)
 	var arrow_half_width: float = arrow_size.x * 0.5
-	var brick_x: float = 0.0
+	var first_x: float = 0.0
 	if _direction > 0:
-		brick_x = indicator_offset.x - arrow_half_width - brick_gap - brick_size.x
+		first_x = indicator_offset.x - arrow_half_width - brick_gap - total_width
 	else:
-		brick_x = indicator_offset.x + arrow_half_width + brick_gap
+		first_x = indicator_offset.x + arrow_half_width + brick_gap
+	var y: float = indicator_offset.y - brick_size.y * 0.5
 	for index: int in range(count):
 		result.append(Rect2(
-			Vector2(brick_x, first_y + float(index) * (brick_size.y + brick_gap)),
+			Vector2(first_x + float(index) * (brick_size.x + brick_gap), y),
 			brick_size
 		))
 	return result

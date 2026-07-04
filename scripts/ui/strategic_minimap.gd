@@ -2,6 +2,7 @@ class_name StrategicMinimap
 extends Control
 
 const MAP_WIDTH_RATIO: float = 5.0 / 6.0
+const SHIELD_BAR_HEIGHT: float = 14.0
 
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
 @export_node_path("StrategicWaveSystem") var wave_system_path: NodePath
@@ -88,7 +89,7 @@ func _draw() -> void:
 	var margin_x: float = 8.0
 	var lane_top: float = 30.0
 	var lane_bottom: float = size.y - 5.0
-	var shield_bar_height: float = 14.0
+	var shield_bar_height: float = SHIELD_BAR_HEIGHT
 	var shield_bar_y: float = lane_bottom - shield_bar_height
 	var lane_width: float = (
 		map_width - margin_x * 2.0
@@ -134,7 +135,7 @@ func get_core_marker_position(section_id: int) -> Vector2:
 	var margin_x: float = 8.0
 	var lane_top: float = 30.0
 	var lane_bottom: float = size.y - 5.0
-	var shield_bar_y: float = lane_bottom - 14.0
+	var shield_bar_y: float = lane_bottom - SHIELD_BAR_HEIGHT
 	var lane_width: float = (
 		_get_map_width() - margin_x * 2.0
 	) / float(section_count)
@@ -261,11 +262,11 @@ func _draw_core_markers(
 func _draw_core_marker(section_id: int, marker_position: Vector2) -> void:
 	var section_color: Color = _shield.get_section_color(section_id)
 	var pulse: float = 0.82 + sin(_blink_elapsed * 2.4 + float(section_id)) * 0.08
-	var outer_radius: float = 7.5 * pulse
+	var outer_radius: float = 6.0 * pulse
 	draw_circle(
 		marker_position,
-		outer_radius + 4.0,
-		Color(section_color.r, section_color.g, section_color.b, 0.13)
+		outer_radius + 3.0,
+		Color(section_color.r, section_color.g, section_color.b, 0.18)
 	)
 	var diamond := PackedVector2Array([
 		marker_position + Vector2(0.0, -outer_radius),
@@ -275,12 +276,12 @@ func _draw_core_marker(section_id: int, marker_position: Vector2) -> void:
 	])
 	draw_colored_polygon(
 		diamond,
-		Color(section_color.r, section_color.g, section_color.b, 0.78)
+		Color(section_color.r, section_color.g, section_color.b, 0.82)
 	)
 	var outline := diamond.duplicate()
 	outline.append(diamond[0])
 	draw_polyline(outline, Color(0.8, 0.95, 1.0, 0.88), 1.2, true)
-	draw_circle(marker_position, 2.6, Color(0.92, 1.0, 1.0, 0.92))
+	draw_circle(marker_position, 2.1, Color(0.92, 1.0, 1.0, 0.92))
 
 
 func _draw_energy_waves(
@@ -325,13 +326,13 @@ func _draw_energy_waves(
 func _get_core_marker_position(
 	section_id: int,
 	margin_x: float,
-	lane_top: float,
+	_lane_top: float,
 	shield_bar_y: float,
 	lane_width: float
 ) -> Vector2:
 	return Vector2(
 		margin_x + (float(section_id) + 0.5) * lane_width,
-		lerpf(lane_top, shield_bar_y, 0.48)
+		shield_bar_y + SHIELD_BAR_HEIGHT * 0.5
 	)
 
 

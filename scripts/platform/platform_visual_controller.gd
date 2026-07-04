@@ -45,6 +45,9 @@ enum PortalState {
 @export_range(1.0, 30.0, 0.5) var platform_core_frame_rate: float = 8.0
 @export_range(0.05, 0.5, 0.01) var object_asset_scale: float = 0.24
 
+@export_group("Rendering Stability")
+@export var snap_visuals_to_canvas_pixels: bool = true
+
 @export_group("Driver Console")
 @export var driver_console_surface_offset: Vector2 = Vector2(0.0, -2.0)
 @export var empty_console_size: Vector2 = Vector2(76.0, 50.0)
@@ -76,6 +79,7 @@ var _portal_queue: Array[int] = []
 func _ready() -> void:
 	assert(balance != null, "PlatformVisualController requires PlatformBalance")
 	assert(crew_balance != null, "PlatformVisualController requires CrewBalance")
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_surface_visual.configure(
 		platform_core_frame_count,
 		alpha_crop_threshold
@@ -110,10 +114,12 @@ func _ready() -> void:
 			"GameFlowController"
 		) as GameFlowController
 	_steering_input.driver_availability_changed.connect(_on_visual_state_changed)
+	_apply_canvas_pixel_snap()
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
+	_apply_canvas_pixel_snap()
 	var simulation_active: bool = (
 		_game_flow == null
 		or _game_flow.is_world_simulation_active()
@@ -282,6 +288,20 @@ func _get_driver_console_bottom() -> Vector2:
 		driver_console_surface_offset.x,
 		platform_top + driver_console_surface_offset.y
 	)
+
+
+func _apply_canvas_pixel_snap() -> void:
+	if not snap_visuals_to_canvas_pixels:
+		if position != Vector2.ZERO:
+			position = Vector2.ZERO
+		return
+	var parent_canvas := get_parent() as CanvasItem
+	if parent_canvas == null:
+		return
+	var canvas_origin: Vector2 = parent_canvas.get_global_transform_with_canvas().origin
+	var snapped_position: Vector2 = canvas_origin.round() - canvas_origin
+	if position != snapped_position:
+		position = snapped_position
 
 
 func _update_portal(delta: float) -> void:
