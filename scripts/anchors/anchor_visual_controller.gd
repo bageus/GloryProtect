@@ -7,7 +7,7 @@ const CHAIN_TEXTURE: Texture2D = preload(
 const CLAMP_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_clamp.png"
 )
-const WINCH_TEXTURE: Texture2D = preload(
+const WINCH_BASE_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_01.png"
 )
 const ANCHOR_TEXTURE: Texture2D = preload(
@@ -37,8 +37,8 @@ var _is_simulation_active: Callable
 var _warning_elapsed := 0.0
 var _chain_source_rect: Rect2
 var _clamp_source_rect: Rect2
-var _winch_source_rect: Rect2
 var _anchor_source_rect: Rect2
+var _source_rects: Dictionary = {}
 
 
 func _ready() -> void:
@@ -47,8 +47,8 @@ func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_chain_source_rect = TextureRegionLayout.get_alpha_bounds(CHAIN_TEXTURE, alpha_crop_threshold)
 	_clamp_source_rect = TextureRegionLayout.get_alpha_bounds(CLAMP_TEXTURE, alpha_crop_threshold)
-	_winch_source_rect = TextureRegionLayout.get_alpha_bounds(WINCH_TEXTURE, alpha_crop_threshold)
 	_anchor_source_rect = TextureRegionLayout.get_alpha_bounds(ANCHOR_TEXTURE, alpha_crop_threshold)
+	_register_texture_source_rect(WINCH_BASE_TEXTURE)
 
 
 func configure(
@@ -63,6 +63,7 @@ func configure(
 	_balance = balance
 	_is_operator_available = is_operator_available
 	_is_simulation_active = is_simulation_active
+	queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -90,6 +91,10 @@ func get_winch_chain_exit(anchor_id: int) -> Vector2:
 	return _get_winch_bottom(anchor_id) + offset
 
 
+func get_winch_asset_id_for_tests(anchor_id: int = 0) -> StringName:
+	return _get_winch_asset_id(anchor_id)
+
+
 func get_clamp_visual_scale() -> float:
 	return object_asset_scale * clamp_scale_multiplier
 
@@ -98,20 +103,35 @@ func are_anchor_asset_regions_valid_for_tests() -> bool:
 	return (
 		_chain_source_rect.size.x > 0.0 and _chain_source_rect.size.y > 0.0
 		and _clamp_source_rect.size.x > 0.0 and _clamp_source_rect.size.y > 0.0
-		and _winch_source_rect.size.x > 0.0 and _winch_source_rect.size.y > 0.0
 		and _anchor_source_rect.size.x > 0.0 and _anchor_source_rect.size.y > 0.0
+		and _get_winch_source_rect(0).size.x > 0.0
+		and _get_winch_source_rect(0).size.y > 0.0
 	)
 
 
 func _draw_winch_posts() -> void:
 	for anchor_id: int in range(4):
 		var side := AnchorRuntime.Side.LEFT if anchor_id < 2 else AnchorRuntime.Side.RIGHT
-		_draw_winch(_get_winch_bottom(anchor_id), _is_winch_mirrored(anchor_id), bool(_is_operator_available.call(side)))
+		_draw_winch(
+			anchor_id,
+			_get_winch_bottom(anchor_id),
+			_is_winch_mirrored(anchor_id),
+			bool(_is_operator_available.call(side))
+		)
 
 
-func _draw_winch(bottom: Vector2, mirrored: bool, operator_available: bool) -> void:
+func _draw_winch(
+	anchor_id: int,
+	bottom: Vector2,
+	mirrored: bool,
+	operator_available: bool
+) -> void:
+	var texture: Texture2D = _get_winch_texture(anchor_id)
+	var source_rect: Rect2 = _get_winch_source_rect(anchor_id)
+	if texture == null or source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		return
 	var tint := Color.WHITE if operator_available else Color(0.52, 0.55, 0.58, 1.0)
-	var size := _winch_source_rect.size * object_asset_scale
+	var size := source_rect.size * object_asset_scale
 	var pedestal_size := Vector2(maxf(34.0, size.x * 0.74), 12.0)
 	var pedestal_rect := Rect2(bottom - Vector2(pedestal_size.x * 0.5, pedestal_size.y * 0.86), pedestal_size)
 	draw_rect(pedestal_rect.grow(2.0), Color(0.02, 0.035, 0.055, 0.82), true)
@@ -123,7 +143,7 @@ func _draw_winch(bottom: Vector2, mirrored: bool, operator_available: bool) -> v
 	var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
 	var draw_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
 	draw_set_transform(bottom, 0.0, draw_scale)
-	draw_texture_rect_region(WINCH_TEXTURE, rect, _winch_source_rect, tint)
+	draw_texture_rect_region(texture, rect, source_rect, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -264,6 +284,29 @@ func _get_anchor_chain_start(anchor_id: int) -> Vector2:
 
 func _is_winch_mirrored(anchor_id: int) -> bool:
 	return anchor_id == 1 or anchor_id == 3
+
+
+func _get_winch_texture(_anchor_id: int) -> Texture2D:
+	return WINCH_BASE_TEXTURE
+
+
+func _get_winch_asset_id(_anchor_id: int) -> StringName:
+	return &"base"
+
+
+func _get_winch_source_rect(anchor_id: int) -> Rect2:
+	return _get_texture_source_rect(_get_winch_texture(anchor_id))
+
+
+func _register_texture_source_rect(texture: Texture2D) -> void:
+	if texture == null or _source_rects.has(texture):
+		return
+	_source_rects[texture] = TextureRegionLayout.get_alpha_bounds(texture, alpha_crop_threshold)
+
+
+func _get_texture_source_rect(texture: Texture2D) -> Rect2:
+	_register_texture_source_rect(texture)
+	return _source_rects.get(texture, Rect2())
 
 
 func _get_clamp_tint(anchor: AnchorRuntime) -> Color:

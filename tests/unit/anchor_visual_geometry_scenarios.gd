@@ -50,6 +50,28 @@ func _run() -> void:
 	)
 	assert(not left_exit.is_equal_approx(physical_attachment))
 	assert(is_equal_approx(visual.get_clamp_visual_scale(), 0.156))
+	assert(visual.get_winch_asset_id_for_tests() == &"base")
+
+	var combat_system := CombatAnchorSystem.new()
+	var combat_visual := CombatAnchorVisualController.new()
+	combat_visual.configure_combat(
+		AnchorRuntimeStore.new(),
+		geometry,
+		anchor_balance,
+		Callable(self, "_always_true"),
+		Callable(self, "_always_true"),
+		null,
+		combat_system
+	)
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"base")
+	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.STRONG))
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"strong")
+	combat_system.upgrades.reset()
+	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.ELECTRIC))
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
+	combat_system.upgrades.reset()
+	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
 
 	var original_exit := visual.get_winch_chain_exit(2)
 	platform.position.x += 120.0
