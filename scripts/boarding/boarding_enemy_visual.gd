@@ -25,7 +25,7 @@ var _last_global_x: float = 0.0
 var _detached_death: bool = false
 var _enemy: BoardingEnemy
 var _melee: MeleeAttackComponent
-var _asset_source_rect_cache: Dictionary[Texture2D, Rect2] = {}
+var _asset_source_rect_cache: Dictionary = {}
 
 @onready var _health: HealthComponent = get_node(health_path)
 @onready var _controller: BoardingEnemyController = get_node(controller_path)
