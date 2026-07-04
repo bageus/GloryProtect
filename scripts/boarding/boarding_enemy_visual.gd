@@ -12,6 +12,7 @@ extends Node2D
 @export_range(1.0, 30.0, 0.5) var flying_frame_rate: float = 8.0
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 8.0
 @export_range(32.0, 128.0, 1.0) var atlas_asset_height: float = 72.0
+@export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.08
 
 var _body_radius: float = 12.0
 var _body_color: Color = Color(0.92, 0.24, 0.2)
@@ -24,12 +25,14 @@ var _last_global_x: float = 0.0
 var _detached_death: bool = false
 var _enemy: BoardingEnemy
 var _melee: MeleeAttackComponent
+var _asset_source_rect_cache: Dictionary = {}
 
 @onready var _health: HealthComponent = get_node(health_path)
 @onready var _controller: BoardingEnemyController = get_node(controller_path)
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_enemy = get_parent() as BoardingEnemy
 	_melee = get_node("../MeleeAttackComponent") as MeleeAttackComponent
 	if _enemy != null:
@@ -49,7 +52,6 @@ func _process(delta: float) -> void:
 		else:
 			queue_redraw()
 		return
-
 	var movement_delta: float = global_position.x - _last_global_x
 	_last_global_x = global_position.x
 	_animation.face_delta(movement_delta, 0.05)
@@ -124,9 +126,14 @@ func has_replacement_asset_for_tests(state_id: StringName) -> bool:
 
 
 func is_asset_mirrored_for_tests() -> bool:
-	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(
-		_animation.is_facing_right()
-	)
+	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
+
+
+func get_current_asset_source_rect_for_tests() -> Rect2:
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, _presentation_state_id)
+	if frames.is_empty():
+		return Rect2()
+	return _get_asset_source_rect(frames[0])
 
 
 func debug_set_facing_right_for_tests(facing_right: bool) -> void:
@@ -189,12 +196,9 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 
 
 func _get_frame_count(state_id: StringName) -> int:
-	var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(
-		_archetype_id,
-		state_id
-	)
+	var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id)
 	if asset_count > 0:
-		return asset_count
+		return _get_logical_frame_count_for_assets(state_id, asset_count)
 	match state_id:
 		&"death", &"landing":
 			return 4
@@ -202,6 +206,18 @@ func _get_frame_count(state_id: StringName) -> int:
 			return 3
 		_:
 			return 6
+
+
+func _get_logical_frame_count_for_assets(state_id: StringName, asset_count: int) -> int:
+	match state_id:
+		&"attack":
+			return max(asset_count, 6)
+		&"death", &"landing":
+			return max(asset_count, 4)
+		&"climb":
+			return max(asset_count, 3)
+		_:
+			return asset_count
 
 
 func _get_frame_rate(state_id: StringName) -> float:
@@ -237,32 +253,43 @@ func _draw() -> void:
 
 
 func _draw_asset_actor(frame: int) -> bool:
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(
-		_archetype_id,
-		_presentation_state_id
-	)
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, _presentation_state_id)
 	if frames.is_empty():
 		return false
-	var texture: Texture2D = frames[clampi(frame, 0, frames.size() - 1)]
+	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size())]
 	if texture == null:
 		return false
-	var texture_size := texture.get_size()
-	if texture_size.x <= 0.0 or texture_size.y <= 0.0:
+	var source_rect: Rect2 = _get_asset_source_rect(texture)
+	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
 		return false
-	var display_size := Vector2(
-		atlas_asset_height * texture_size.x / texture_size.y,
-		atlas_asset_height
-	)
+	var display_size := Vector2(atlas_asset_height * source_rect.size.x / source_rect.size.y, atlas_asset_height)
 	var feet := Vector2(0.0, _body_radius + 4.0)
-	var destination := Rect2(
-		feet - Vector2(display_size.x * 0.5, display_size.y),
-		display_size
-	)
+	var destination := Rect2(feet - Vector2(display_size.x * 0.5, display_size.y), display_size)
 	var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
-	draw_texture_rect(texture, destination, false)
-	draw_set_transform(Vector2.ZERO)
+	draw_texture_rect_region(texture, destination, source_rect)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true
+
+
+func _get_asset_frame_index(logical_frame: int, asset_count: int) -> int:
+	if asset_count <= 1:
+		return 0
+	var logical_count: int = max(_get_frame_count(_presentation_state_id), 1)
+	if logical_count <= 1:
+		return 0
+	var progress: float = float(clampi(logical_frame, 0, logical_count - 1)) / float(logical_count - 1)
+	return clampi(roundi(progress * float(asset_count - 1)), 0, asset_count - 1)
+
+
+func _get_asset_source_rect(texture: Texture2D) -> Rect2:
+	if _asset_source_rect_cache.has(texture):
+		return _asset_source_rect_cache[texture]
+	var source_rect: Rect2 = TextureRegionLayout.get_alpha_bounds(texture, asset_alpha_crop_threshold)
+	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		source_rect = Rect2(Vector2.ZERO, texture.get_size())
+	_asset_source_rect_cache[texture] = source_rect
+	return source_rect
 
 
 func _draw_procedural_actor(frame: int) -> void:
@@ -285,15 +312,10 @@ func _draw_procedural_actor(frame: int) -> void:
 			actor_rotation = 0.12 - float(frame) * 0.06
 		&"death":
 			actor_rotation = float(frame) / 3.0 * 1.35
-
 	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
-	draw_set_transform(
-		Vector2(0.0, bob),
-		actor_rotation,
-		Vector2(facing_scale, 1.0)
-	)
+	draw_set_transform(Vector2(0.0, bob), actor_rotation, Vector2(facing_scale, 1.0))
 	_draw_fallback_silhouette(frame)
-	draw_set_transform(Vector2.ZERO)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_fallback_silhouette(frame: int) -> void:
@@ -304,7 +326,6 @@ func _draw_fallback_silhouette(frame: int) -> void:
 		body_color = body_color.darkened(0.12)
 	elif _presentation_state_id == &"death":
 		body_color.a = maxf(0.2, 1.0 - float(frame) * 0.22)
-
 	match _archetype_id:
 		&"runner":
 			_draw_runner(body_color, frame)
@@ -322,14 +343,7 @@ func _draw_fallback_silhouette(frame: int) -> void:
 func _draw_basic_fallback(body_color: Color, frame: int) -> void:
 	var stride: float = float(frame % 2) * 2.0
 	draw_circle(Vector2(-2.0, 0.0), _body_radius, body_color)
-	draw_colored_polygon(
-		PackedVector2Array([
-			Vector2(-_body_radius + 2.0, 1.0),
-			Vector2(-_body_radius - 12.0, 6.0),
-			Vector2(-_body_radius - 4.0, -3.0),
-		]),
-		body_color.darkened(0.12)
-	)
+	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius + 2.0, 1.0), Vector2(-_body_radius - 12.0, 6.0), Vector2(-_body_radius - 4.0, -3.0)]), body_color.darkened(0.12))
 	draw_line(Vector2(-6.0, _body_radius - 1.0), Vector2(-8.0 - stride, _body_radius + 5.0), _accent_color, 3.0)
 	draw_line(Vector2(5.0, _body_radius - 1.0), Vector2(8.0 + stride, _body_radius + 5.0), _accent_color, 3.0)
 	draw_arc(Vector2(-2.0, 0.0), _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
@@ -337,16 +351,7 @@ func _draw_basic_fallback(body_color: Color, frame: int) -> void:
 
 func _draw_runner(body_color: Color, frame: int) -> void:
 	var stride: float = 5.0 if frame % 2 == 0 else -5.0
-	draw_colored_polygon(
-		PackedVector2Array([
-			Vector2(-_body_radius - 10.0, 2.0),
-			Vector2(-5.0, -_body_radius * 0.8),
-			Vector2(_body_radius + 6.0, -4.0),
-			Vector2(_body_radius, _body_radius * 0.65),
-			Vector2(-5.0, _body_radius * 0.75),
-		]),
-		body_color
-	)
+	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius - 10.0, 2.0), Vector2(-5.0, -_body_radius * 0.8), Vector2(_body_radius + 6.0, -4.0), Vector2(_body_radius, _body_radius * 0.65), Vector2(-5.0, _body_radius * 0.75)]), body_color)
 	draw_line(Vector2(-4.0, 5.0), Vector2(-10.0 + stride, _body_radius + 8.0), _accent_color, 3.0)
 	draw_line(Vector2(7.0, 4.0), Vector2(13.0 - stride, _body_radius + 7.0), _accent_color, 3.0)
 	draw_line(Vector2(-_body_radius - 7.0, 2.0), Vector2(-_body_radius - 18.0, -2.0), body_color.darkened(0.15), 4.0)
@@ -377,22 +382,8 @@ func _draw_flyer(body_color: Color, frame: int) -> void:
 	var flap: float = sin(float(frame) / 6.0 * TAU)
 	var wing_y: float = -8.0 - flap * 8.0
 	draw_circle(Vector2.ZERO, _body_radius, body_color)
-	draw_colored_polygon(
-		PackedVector2Array([
-			Vector2(-_body_radius + 2.0, 0.0),
-			Vector2(-_body_radius - 18.0, wing_y),
-			Vector2(-_body_radius - 8.0, 10.0),
-		]),
-		_accent_color
-	)
-	draw_colored_polygon(
-		PackedVector2Array([
-			Vector2(_body_radius - 2.0, 0.0),
-			Vector2(_body_radius + 18.0, wing_y),
-			Vector2(_body_radius + 8.0, 10.0),
-		]),
-		_accent_color
-	)
+	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius + 2.0, 0.0), Vector2(-_body_radius - 18.0, wing_y), Vector2(-_body_radius - 8.0, 10.0)]), _accent_color)
+	draw_colored_polygon(PackedVector2Array([Vector2(_body_radius - 2.0, 0.0), Vector2(_body_radius + 18.0, wing_y), Vector2(_body_radius + 8.0, 10.0)]), _accent_color)
 	draw_arc(Vector2.ZERO, _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
 
 
