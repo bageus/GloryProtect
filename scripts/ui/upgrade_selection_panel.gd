@@ -3,9 +3,10 @@ extends Control
 
 const MODAL_Z_INDEX: int = 100
 const CARD_WIDTH: float = 300.0
-const CARD_HEIGHT: float = 360.0
+const CARD_HEIGHT: float = 384.0
 const CARD_HORIZONTAL_MARGIN: float = 14.0
 const CARD_TEXT_MIN_WIDTH: float = CARD_WIDTH - CARD_HORIZONTAL_MARGIN * 2.0
+const PRICE_PANEL_HEIGHT: float = 46.0
 const CARD_META_GROUP_ID: StringName = &"card_group_id"
 const CARD_META_PRICE_LABEL: StringName = &"price_label"
 const CARD_META_PRICE_PANEL: StringName = &"price_panel"
@@ -209,7 +210,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	margin.add_theme_constant_override("margin_left", int(CARD_HORIZONTAL_MARGIN))
 	margin.add_theme_constant_override("margin_top", 14)
 	margin.add_theme_constant_override("margin_right", int(CARD_HORIZONTAL_MARGIN))
-	margin.add_theme_constant_override("margin_bottom", 18)
+	margin.add_theme_constant_override("margin_bottom", 16)
 	button.add_child(margin)
 
 	var box := VBoxContainer.new()
@@ -217,7 +218,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	box.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	box.add_theme_constant_override("separation", 10)
+	box.add_theme_constant_override("separation", 9)
 	margin.add_child(box)
 
 	var type_label := _make_card_label(
@@ -246,7 +247,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	content_box.custom_minimum_size = Vector2(CARD_TEXT_MIN_WIDTH, 0.0)
 	content_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	content_box.add_theme_constant_override("separation", 12)
+	content_box.add_theme_constant_override("separation", 10)
 	center.add_child(content_box)
 
 	content_box.add_child(_make_card_label(
@@ -263,6 +264,15 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 		Color(0.9, 0.94, 0.98),
 		HORIZONTAL_ALIGNMENT_CENTER
 	))
+	var effect_summary: String = UpgradeCardFormatter.get_effect_summary(definition.effect)
+	if not effect_summary.is_empty() and effect_summary != "Без немедленного эффекта":
+		content_box.add_child(_make_card_label(
+			"EffectSummaryLabel",
+			effect_summary,
+			16,
+			accent.lightened(0.28),
+			HORIZONTAL_ALIGNMENT_CENTER
+		))
 	var repeat_text: String = UpgradeCardFormatter.get_repeat_text(
 		definition,
 		_upgrades.get_runtime()
@@ -281,7 +291,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 	price_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	price_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	price_panel.size_flags_vertical = Control.SIZE_SHRINK_END
-	price_panel.custom_minimum_size = Vector2(0.0, 38.0)
+	price_panel.custom_minimum_size = Vector2(0.0, PRICE_PANEL_HEIGHT)
 	price_panel.add_theme_stylebox_override("panel", _make_price_style())
 	button.set_meta(CARD_META_PRICE_PANEL, price_panel)
 	var price_label := _make_card_label(
@@ -291,7 +301,10 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 		UpgradeCardFormatter.get_price_color(),
 		HORIZONTAL_ALIGNMENT_CENTER
 	)
+	price_label.custom_minimum_size = Vector2.ZERO
+	price_label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	price_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	price_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.set_meta(CARD_META_PRICE_LABEL, price_label)
 	price_panel.add_child(price_label)
 	box.add_child(price_panel)
@@ -364,10 +377,10 @@ func _make_price_style() -> StyleBoxFlat:
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
 	style.corner_radius_bottom_right = 8
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 6.0
-	style.content_margin_bottom = 6.0
+	style.content_margin_left = 6.0
+	style.content_margin_right = 6.0
+	style.content_margin_top = 4.0
+	style.content_margin_bottom = 4.0
 	return style
 
 

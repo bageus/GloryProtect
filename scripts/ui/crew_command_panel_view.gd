@@ -2,13 +2,13 @@ class_name CrewCommandPanelView
 extends RefCounted
 
 const NORMAL_CONTEXT_HEIGHT: float = 182.0
-const DEFENDER_CONTEXT_HEIGHT: float = 480.0
+const DEFENDER_CONTEXT_HEIGHT: float = 410.0
 const BUILDABLE_CONTEXT_HEIGHT: float = 320.0
-const CONTEXT_BOTTOM_OFFSET: float = -148.0
-const CONTEXT_TOP_MARGIN: float = 12.0
-const CONTEXT_HALF_WIDTH: float = 180.0
-const CONTEXT_LEFT_SHIFT: float = -360.0
-const CONTEXT_EDGE_MARGIN: float = 12.0
+const CONTEXT_BOTTOM_OFFSET: float = -126.0
+const CONTEXT_TOP_MARGIN: float = 88.0
+const CONTEXT_HALF_WIDTH: float = 168.0
+const CONTEXT_LEFT_SHIFT: float = -520.0
+const CONTEXT_EDGE_MARGIN: float = 18.0
 const CONTEXT_BACKGROUND_ALPHA: float = 0.74
 const CONTEXT_BUTTON_BACKGROUND_ALPHA: float = 0.34
 const FEEDBACK_AUTO_HIDE_SECONDS: float = 2.5
@@ -25,12 +25,7 @@ var _requested_context_height: float = NORMAL_CONTEXT_HEIGHT
 var _current_context_center_offset_x: float = 0.0
 
 
-func build(
-	host: Control,
-	left_slot_count: int,
-	total_slot_count: int,
-	slot_pressed: Callable
-) -> void:
+func build(host: Control, left_slot_count: int, total_slot_count: int, slot_pressed: Callable) -> void:
 	_host = host
 	_host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -50,28 +45,14 @@ func process_feedback(delta: float) -> void:
 		clear_feedback()
 
 
-func update_slot(
-	slot_index: int,
-	spec: Dictionary,
-	description: Dictionary
-) -> void:
+func update_slot(slot_index: int, spec: Dictionary, description: Dictionary) -> void:
 	var button: Button = _slot_buttons[slot_index]
-	button.text = "%s\n%s" % [
-		description["title"],
-		description["occupant"],
-	]
+	button.text = "%s\n%s" % [description["title"], description["occupant"]]
 	button.disabled = not bool(description["available"])
 	button.tooltip_text = "Ячейка платформы %d" % (int(spec["cell"]) + 1)
 
 
-func rebuild_context(
-	description: Dictionary,
-	free_ids: Array[int],
-	slot_index: int,
-	release_pressed: Callable,
-	assign_pressed: Callable,
-	close_pressed: Callable
-) -> void:
+func rebuild_context(description: Dictionary, free_ids: Array[int], slot_index: int, release_pressed: Callable, assign_pressed: Callable, close_pressed: Callable) -> void:
 	_prepare_context(NORMAL_CONTEXT_HEIGHT)
 	_add_context_title(String(description["title"]))
 	if not bool(description["available"]):
@@ -80,9 +61,7 @@ func rebuild_context(
 		return
 	var owner_id: int = int(description["owner"])
 	if owner_id >= 0:
-		var release := _make_context_button(
-			"Освободить пост — защитник %d" % (owner_id + 1)
-		)
+		var release := _make_context_button("Освободить пост — защитник %d" % (owner_id + 1))
 		release.pressed.connect(release_pressed.bind(slot_index))
 		_context_box.add_child(release)
 	if free_ids.is_empty():
@@ -92,43 +71,18 @@ func rebuild_context(
 	_add_close_button(close_pressed)
 
 
-func rebuild_defender_type_context(
-	defender_id: int,
-	current_role: int,
-	shooter_unlocked: bool,
-	type_pressed: Callable,
-	close_pressed: Callable
-) -> void:
+func rebuild_defender_type_context(defender_id: int, current_role: int, shooter_unlocked: bool, type_pressed: Callable, close_pressed: Callable) -> void:
 	_prepare_context(NORMAL_CONTEXT_HEIGHT)
 	_add_context_title("Защитник %d — тип" % (defender_id + 1))
-	_add_type_buttons(
-		defender_id,
-		current_role,
-		shooter_unlocked,
-		type_pressed
-	)
+	_add_type_buttons(defender_id, current_role, shooter_unlocked, type_pressed)
 	_add_close_button(close_pressed)
 
 
-func rebuild_defender_command_context(
-	defender_id: int,
-	current_combat_role: int,
-	shooter_unlocked: bool,
-	post_options: Array[Dictionary],
-	type_pressed: Callable,
-	post_pressed: Callable,
-	free_pressed: Callable,
-	close_pressed: Callable
-) -> void:
+func rebuild_defender_command_context(defender_id: int, current_combat_role: int, shooter_unlocked: bool, post_options: Array[Dictionary], type_pressed: Callable, post_pressed: Callable, free_pressed: Callable, close_pressed: Callable) -> void:
 	_prepare_context(DEFENDER_CONTEXT_HEIGHT)
 	_add_context_title("Защитник %d" % (defender_id + 1))
 	_add_section_label("ТИП БОЙЦА")
-	_add_type_buttons(
-		defender_id,
-		current_combat_role,
-		shooter_unlocked,
-		type_pressed
-	)
+	_add_type_buttons(defender_id, current_combat_role, shooter_unlocked, type_pressed)
 	_add_section_label("НАЗНАЧЕНИЕ")
 	var free_button := _make_context_button("Свободная боевая ячейка")
 	free_button.pressed.connect(free_pressed.bind(defender_id))
@@ -145,21 +99,12 @@ func rebuild_defender_command_context(
 			elif owner_id >= 0:
 				button.text += " — занят бойцом %d" % (owner_id + 1)
 			button.disabled = is_current
-			button.pressed.connect(
-				post_pressed.bind(defender_id, int(option["slot"]))
-			)
+			button.pressed.connect(post_pressed.bind(defender_id, int(option["slot"])))
 			_context_box.add_child(button)
 	_add_close_button(close_pressed)
 
 
-func rebuild_buildable_context(
-	title: String,
-	status: String,
-	actions: Array[Dictionary],
-	feedback: String,
-	feedback_is_error: bool,
-	close_pressed: Callable
-) -> void:
+func rebuild_buildable_context(title: String, status: String, actions: Array[Dictionary], feedback: String, feedback_is_error: bool, close_pressed: Callable) -> void:
 	_prepare_context(BUILDABLE_CONTEXT_HEIGHT)
 	_add_context_title(title)
 	if not status.is_empty():
@@ -173,10 +118,7 @@ func rebuild_buildable_context(
 	if not feedback.is_empty():
 		var feedback_label := _make_context_label(feedback, HORIZONTAL_ALIGNMENT_CENTER)
 		feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		feedback_label.add_theme_color_override(
-			"font_color",
-			Color(1.0, 0.48, 0.4) if feedback_is_error else Color(0.62, 0.92, 0.72)
-		)
+		feedback_label.add_theme_color_override("font_color", Color(1.0, 0.48, 0.4) if feedback_is_error else Color(0.62, 0.92, 0.72))
 		_context_box.add_child(feedback_label)
 	_add_close_button(close_pressed)
 
@@ -186,10 +128,7 @@ func set_feedback(message: String, is_error: bool) -> void:
 	_feedback_elapsed = 0.0
 	_feedback_label.text = message
 	_feedback_label.visible = not message.is_empty()
-	_feedback_label.add_theme_color_override(
-		"font_color",
-		Color(1.0, 0.48, 0.4) if is_error else Color(0.62, 0.92, 0.72)
-	)
+	_feedback_label.add_theme_color_override("font_color", Color(1.0, 0.48, 0.4) if is_error else Color(0.62, 0.92, 0.72))
 	if _feedback_label.visible:
 		_schedule_feedback_clear(_feedback_generation)
 
@@ -280,12 +219,7 @@ func get_enabled_context_button_rects() -> Array[Rect2]:
 	return result
 
 
-func _build_side_panel(
-	is_left: bool,
-	begin: int,
-	end: int,
-	slot_pressed: Callable
-) -> void:
+func _build_side_panel(is_left: bool, begin: int, end: int, slot_pressed: Callable) -> void:
 	var panel := PanelContainer.new()
 	panel.anchor_top = 1.0
 	panel.anchor_bottom = 1.0
@@ -383,28 +317,15 @@ func _fit_context_panel() -> void:
 	var host_size: Vector2 = _host.size
 	var available_height: float = _requested_context_height
 	if host_size.y > 0.0:
-		available_height = maxf(
-			160.0,
-			host_size.y + CONTEXT_BOTTOM_OFFSET - CONTEXT_TOP_MARGIN
-		)
+		available_height = maxf(160.0, host_size.y + CONTEXT_BOTTOM_OFFSET - CONTEXT_TOP_MARGIN)
 	var panel_height: float = minf(_requested_context_height, available_height)
 	var half_width: float = CONTEXT_HALF_WIDTH
 	if host_size.x > 0.0:
-		half_width = minf(
-			CONTEXT_HALF_WIDTH,
-			maxf(132.0, host_size.x * 0.5 - CONTEXT_EDGE_MARGIN)
-		)
+		half_width = minf(CONTEXT_HALF_WIDTH, maxf(132.0, host_size.x * 0.5 - CONTEXT_EDGE_MARGIN))
 	var center_offset: float = CONTEXT_LEFT_SHIFT
 	if host_size.x > 0.0:
-		var maximum_offset: float = maxf(
-			0.0,
-			host_size.x * 0.5 - half_width - CONTEXT_EDGE_MARGIN
-		)
-		center_offset = clampf(
-			CONTEXT_LEFT_SHIFT,
-			-maximum_offset,
-			maximum_offset
-		)
+		var maximum_offset: float = maxf(0.0, host_size.x * 0.5 - half_width - CONTEXT_EDGE_MARGIN)
+		center_offset = clampf(CONTEXT_LEFT_SHIFT, -maximum_offset, maximum_offset)
 	_current_context_center_offset_x = center_offset
 	_context_panel.offset_left = center_offset - half_width
 	_context_panel.offset_right = center_offset + half_width
@@ -425,12 +346,7 @@ func _add_section_label(text: String) -> void:
 	_context_box.add_child(label)
 
 
-func _add_type_buttons(
-	defender_id: int,
-	current_role: int,
-	shooter_unlocked: bool,
-	type_pressed: Callable
-) -> void:
+func _add_type_buttons(defender_id: int, current_role: int, shooter_unlocked: bool, type_pressed: Callable) -> void:
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -438,22 +354,12 @@ func _add_type_buttons(
 	_context_box.add_child(row)
 	var melee := _make_context_button("Боец")
 	melee.disabled = current_role == CrewRole.Id.FREE_FIGHTER
-	melee.pressed.connect(
-		type_pressed.bind(defender_id, CrewRole.Id.FREE_FIGHTER)
-	)
+	melee.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.FREE_FIGHTER))
 	row.add_child(melee)
 	var shooter := _make_context_button("Стрелок")
-	shooter.disabled = (
-		not shooter_unlocked or current_role == CrewRole.Id.SHOOTER
-	)
-	shooter.tooltip_text = (
-		""
-		if shooter_unlocked
-		else "Тип «Стрелок» ещё не открыт"
-	)
-	shooter.pressed.connect(
-		type_pressed.bind(defender_id, CrewRole.Id.SHOOTER)
-	)
+	shooter.disabled = (not shooter_unlocked or current_role == CrewRole.Id.SHOOTER)
+	shooter.tooltip_text = "" if shooter_unlocked else "Тип «Стрелок» ещё не открыт"
+	shooter.pressed.connect(type_pressed.bind(defender_id, CrewRole.Id.SHOOTER))
 	row.add_child(shooter)
 
 
@@ -461,15 +367,8 @@ func _add_centered_label(text: String) -> void:
 	_context_box.add_child(_make_context_label(text, HORIZONTAL_ALIGNMENT_CENTER))
 
 
-func _add_assignment_buttons(
-	free_ids: Array[int],
-	slot_index: int,
-	assign_pressed: Callable
-) -> void:
-	_context_box.add_child(_make_context_label(
-		"Назначить свободного защитника:",
-		HORIZONTAL_ALIGNMENT_LEFT
-	))
+func _add_assignment_buttons(free_ids: Array[int], slot_index: int, assign_pressed: Callable) -> void:
+	_context_box.add_child(_make_context_label("Назначить свободного защитника:", HORIZONTAL_ALIGNMENT_LEFT))
 	var row := HBoxContainer.new()
 	row.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -491,10 +390,7 @@ func _make_context_button(text: String) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
-	button.add_theme_stylebox_override(
-		"normal",
-		_make_context_button_style(CONTEXT_BUTTON_BACKGROUND_ALPHA)
-	)
+	button.add_theme_stylebox_override("normal", _make_context_button_style(CONTEXT_BUTTON_BACKGROUND_ALPHA))
 	button.add_theme_stylebox_override("hover", _make_context_button_style(0.46))
 	button.add_theme_stylebox_override("pressed", _make_context_button_style(0.28))
 	button.add_theme_stylebox_override("disabled", _make_context_button_style(0.18))

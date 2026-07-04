@@ -5,8 +5,8 @@ extends Node2D
 @export_node_path("PlatformController") var platform_path: NodePath
 @export var indicator_offset: Vector2 = Vector2(0.0, -176.0)
 @export var arrow_size: Vector2 = Vector2(86.0, 28.0)
-@export var brick_size: Vector2 = Vector2(13.0, 7.0)
-@export_range(1.0, 12.0, 0.5) var brick_gap: float = 4.0
+@export var brick_size: Vector2 = Vector2(10.0, 6.0)
+@export_range(1.0, 12.0, 0.5) var brick_gap: float = 3.0
 @export_range(0.0, 1.0, 0.05) var fill_alpha: float = 0.74
 @export_range(0.0, 1.0, 0.05) var border_alpha: float = 0.74
 @export_range(8, 80, 1) var minimum_z_index: int = 48
@@ -126,17 +126,17 @@ func _build_arrow_points() -> PackedVector2Array:
 func _build_strength_brick_rects() -> Array[Rect2]:
 	var result: Array[Rect2] = []
 	var count: int = maxi(1, _strength_level)
-	var total_width: float = brick_size.x * float(count) + brick_gap * float(count - 1)
+	var total_height: float = brick_size.y * float(count) + brick_gap * float(count - 1)
 	var arrow_half_width: float = arrow_size.x * 0.5
-	var first_x: float = 0.0
+	var brick_x: float = 0.0
 	if _direction > 0:
-		first_x = indicator_offset.x - arrow_half_width - brick_gap - total_width
+		brick_x = indicator_offset.x - arrow_half_width - brick_gap - brick_size.x
 	else:
-		first_x = indicator_offset.x + arrow_half_width + brick_gap
-	var y: float = indicator_offset.y - brick_size.y * 0.5
+		brick_x = indicator_offset.x + arrow_half_width + brick_gap
+	var first_y: float = indicator_offset.y - total_height * 0.5
 	for index: int in range(count):
 		result.append(Rect2(
-			Vector2(first_x + float(index) * (brick_size.x + brick_gap), y),
+			Vector2(brick_x, first_y + float(index) * (brick_size.y + brick_gap)),
 			brick_size
 		))
 	return result
