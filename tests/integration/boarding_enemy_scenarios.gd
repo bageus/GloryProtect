@@ -41,7 +41,7 @@ func _run_scenarios() -> void:
 	assert(paths.get_available_count() == 1)
 	var path: AnchorPathSnapshot = paths.get_available_paths()[0]
 
-	var climbing_enemy: BoardingEnemy = spawn.spawn_now()
+	var climbing_enemy: BoardingEnemy = await _wait_for_active_enemy(enemies, 120)
 	assert(climbing_enemy != null)
 	climbing_enemy.global_position = path.ground_point
 	await _wait_physics_frames(3)
@@ -107,6 +107,18 @@ func _run_scenarios() -> void:
 
 	print("Boarding enemy scenarios passed")
 	quit()
+
+
+func _wait_for_active_enemy(
+	enemies: BoardingEnemyRegistry,
+	max_frames: int
+) -> BoardingEnemy:
+	for _frame: int in range(max_frames):
+		var active_enemies: Array[BoardingEnemy] = enemies.get_all_enemies()
+		if not active_enemies.is_empty():
+			return active_enemies[0]
+		await physics_frame
+	return null
 
 
 func _wait_for_health_loss(
