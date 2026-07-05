@@ -14,7 +14,9 @@ const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
 @export_range(1.0, 30.0, 0.5) var flying_frame_rate: float = 8.0
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 8.0
 @export_range(32.0, 128.0, 1.0) var atlas_asset_height: float = 72.0
+@export_range(32.0, 128.0, 1.0) var atlas_asset_max_width: float = 72.0
 @export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.08
+@export var asset_offset: Vector2 = Vector2.ZERO
 
 var _body_radius: float = 12.0
 var _body_color: Color = Color(0.92, 0.24, 0.2)
@@ -28,7 +30,6 @@ var _detached_death: bool = false
 var _enemy: BoardingEnemy
 var _melee: MeleeAttackComponent
 var _asset_source_rect_cache: Dictionary = {}
-var _asset_sprite: Sprite2D
 
 @onready var _health: HealthComponent = get_node(health_path)
 @onready var _controller: BoardingEnemyController = get_node(controller_path)
@@ -36,7 +37,6 @@ var _asset_sprite: Sprite2D
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_create_asset_sprite()
 	_enemy = get_parent() as BoardingEnemy
 	_melee = get_node("../MeleeAttackComponent") as MeleeAttackComponent
 	if _enemy != null:
@@ -45,14 +45,12 @@ func _ready() -> void:
 	_health.health_changed.connect(_on_health_changed)
 	_animation.set_facing_right(false)
 	_animation.play(&"idle", _get_frame_count(&"idle"), idle_frame_rate)
-	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
 	if _detached_death:
 		_animation.tick(delta)
-		_sync_asset_sprite(_animation.get_frame_index())
 		if _animation.is_finished():
 			queue_free()
 		else:
@@ -63,7 +61,6 @@ func _process(delta: float) -> void:
 	_animation.face_delta(movement_delta, 0.05)
 	var next_state: StringName = _resolve_presentation_state(movement_delta)
 	_update_animation(next_state, delta)
-	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
@@ -80,7 +77,6 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 			_get_frame_rate(_presentation_state_id),
 			_presentation_state_id not in [&"attack", &"jump", &"landing", &"death"]
 		)
-		_sync_asset_sprite(_animation.get_frame_index())
 		queue_redraw()
 
 
@@ -98,7 +94,6 @@ func detach_for_death() -> void:
 	_enemy = null
 	_melee = null
 	_animation.play(&"death", _get_frame_count(&"death"), death_frame_rate, false, true)
-	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
@@ -127,7 +122,9 @@ func get_asset_frame_count_for_tests(state_id: StringName) -> int:
 
 
 func get_asset_frame_paths_for_tests(state_id: StringName) -> PackedStringArray:
-	return BoardingEnemyVisualAssetCatalog.get_frame_paths(_archetype_id, state_id)
+	if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id) > 0:
+		return BoardingEnemyVisualAssetCatalog.get_frame_paths(_archetype_id, state_id)
+	return BoardingEnemyVisualAssetCatalog.get_frame_paths(FALLBACK_ASSET_ARCHETYPE_ID, state_id)
 
 
 func has_replacement_asset_for_tests(state_id: StringName) -> bool:
@@ -135,7 +132,7 @@ func has_replacement_asset_for_tests(state_id: StringName) -> bool:
 
 
 func has_current_replacement_asset_for_tests() -> bool:
-	return get_current_asset_state_for_tests() != &""
+	return _get_current_texture() != null
 
 
 func get_current_asset_state_for_tests() -> StringName:
@@ -151,12 +148,13 @@ func get_asset_state_for_tests(state_id: StringName) -> StringName:
 
 
 func is_using_asset_sprite_for_tests() -> bool:
-	return _asset_sprite != null and _asset_sprite.visible and _asset_sprite.texture != null
+	# Backwards-compatible test helper: enemies now follow DefenderVisual and
+	# draw the current PNG directly in _draw(), without a child Sprite2D.
+	return _get_current_texture() != null
 
 
 func should_draw_procedural_for_tests() -> bool:
-	var asset_state: StringName = get_current_asset_state_for_tests()
-	return asset_state == &"" and not is_using_asset_sprite_for_tests()
+	return false
 
 
 func is_asset_mirrored_for_tests() -> bool:
@@ -164,16 +162,7 @@ func is_asset_mirrored_for_tests() -> bool:
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
-	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
-	if asset_state == &"":
-		return Rect2()
-	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
-	if asset_archetype_id == &"":
-		return Rect2()
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(asset_archetype_id, asset_state)
-	if frames.is_empty():
-		return Rect2()
-	return _get_asset_source_rect(frames[0])
+	return _get_current_source_rect()
 
 
 func get_behavior_presentation_state_for_tests(state_id: StringName, movement_delta: float = 0.0) -> StringName:
@@ -182,7 +171,7 @@ func get_behavior_presentation_state_for_tests(state_id: StringName, movement_de
 
 func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 	_animation.set_facing_right(facing_right)
-	_sync_asset_sprite(_animation.get_frame_index())
+	queue_redraw()
 
 
 func _resolve_presentation_state(movement_delta: float) -> StringName:
@@ -252,6 +241,9 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 		&"landing":
 			_animation.play(&"landing", frame_count, flying_frame_rate, false)
 			_animation.tick(delta)
+		&"death":
+			_animation.play(&"death", frame_count, death_frame_rate, false)
+			_animation.tick(delta)
 		_:
 			_animation.play(&"idle", frame_count, idle_frame_rate)
 			_animation.tick(delta)
@@ -309,68 +301,50 @@ func _get_attack_progress() -> float:
 
 
 func _draw() -> void:
-	var frame: int = _animation.get_frame_index()
-	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
-	var sprite_ready: bool = _sync_asset_sprite(frame)
-	if asset_state == &"" and _resolve_asset_archetype_id(asset_state) == &"" and not sprite_ready:
-		_draw_procedural_actor(frame)
+	var texture: Texture2D = _get_current_texture()
+	var source_rect: Rect2 = _get_current_source_rect()
+	var asset_size: Vector2 = _fit_asset_size(source_rect.size)
+	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
+	var asset_rect := Rect2(
+		feet - Vector2(asset_size.x * 0.5, asset_size.y),
+		asset_size
+	)
+	if texture != null:
+		var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
+		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if not _detached_death:
-		_draw_health_bar()
+		_draw_health_bar(asset_rect)
 
 
-func _create_asset_sprite() -> void:
-	if _asset_sprite != null:
-		return
-	_asset_sprite = Sprite2D.new()
-	_asset_sprite.name = "ReplacementAssetSprite"
-	_asset_sprite.centered = true
-	_asset_sprite.region_enabled = true
-	_asset_sprite.visible = false
-	_asset_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_asset_sprite.z_index = 1
-	add_child(_asset_sprite)
-
-
-func _sync_asset_sprite(frame: int) -> bool:
-	if _asset_sprite == null:
-		return false
+func _get_current_texture() -> Texture2D:
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
 	if asset_state == &"":
-		_clear_asset_sprite()
-		return false
+		return null
 	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
 	if asset_archetype_id == &"":
-		_clear_asset_sprite()
-		return false
+		return null
 	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(asset_archetype_id, asset_state)
 	if frames.is_empty():
-		_clear_asset_sprite()
-		return false
-	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size(), asset_state)]
+		return null
+	return frames[_get_asset_frame_index(_animation.get_frame_index(), frames.size(), asset_state)]
+
+
+func _get_current_source_rect() -> Rect2:
+	var texture: Texture2D = _get_current_texture()
 	if texture == null:
-		_clear_asset_sprite()
-		return false
-	var source_rect: Rect2 = _get_asset_source_rect(texture)
-	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
-		_clear_asset_sprite()
-		return false
-	var display_size := Vector2(atlas_asset_height * source_rect.size.x / source_rect.size.y, atlas_asset_height)
-	var feet := Vector2(0.0, _body_radius + 4.0)
-	_asset_sprite.texture = texture
-	_asset_sprite.region_enabled = true
-	_asset_sprite.region_rect = source_rect
-	_asset_sprite.flip_h = is_asset_mirrored_for_tests()
-	_asset_sprite.position = feet - Vector2(0.0, display_size.y * 0.5)
-	_asset_sprite.scale = Vector2(display_size.x / source_rect.size.x, display_size.y / source_rect.size.y)
-	_asset_sprite.visible = true
-	return true
+		return Rect2(Vector2.ZERO, Vector2(atlas_asset_max_width, atlas_asset_height))
+	return _get_asset_source_rect(texture)
 
 
-func _clear_asset_sprite() -> void:
-	if _asset_sprite == null:
-		return
-	_asset_sprite.visible = false
-	_asset_sprite.texture = null
+func _fit_asset_size(source_size: Vector2) -> Vector2:
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		return Vector2(atlas_asset_max_width, atlas_asset_height)
+	var asset_scale: float = atlas_asset_height / source_size.y
+	if source_size.x * asset_scale > atlas_asset_max_width:
+		asset_scale = atlas_asset_max_width / source_size.x
+	return source_size * asset_scale
 
 
 func _resolve_asset_state(state_id: StringName) -> StringName:
@@ -423,7 +397,7 @@ func _append_candidate(candidates: Array[StringName], state_id: StringName) -> v
 func _get_asset_frame_index(logical_frame: int, asset_count: int, asset_state: StringName) -> int:
 	if asset_count <= 1:
 		return 0
-	var logical_count: int = max(_get_frame_count(asset_state), 1)
+	var logical_count: int = max(_get_logical_frame_count_for_assets(asset_state, asset_count), 1)
 	if logical_count <= 1:
 		return 0
 	var progress: float = float(clampi(logical_frame, 0, logical_count - 1)) / float(logical_count - 1)
@@ -440,121 +414,28 @@ func _get_asset_source_rect(texture: Texture2D) -> Rect2:
 	return source_rect
 
 
-func _draw_procedural_actor(frame: int) -> void:
-	var phase: float = float(frame) * PI * 0.5
-	var bob: float = 0.0
-	var actor_rotation: float = 0.0
-	match _presentation_state_id:
-		&"idle":
-			bob = sin(phase) * 1.0
-		&"run":
-			bob = -absf(sin(phase)) * 2.5
-			actor_rotation = sin(phase) * 0.08
-		&"climb":
-			bob = -float(frame % 2) * 2.0
-		&"jump":
-			actor_rotation = sin(float(frame) / 5.0 * PI) * 0.18
-		&"attack":
-			actor_rotation = lerpf(-0.12, 0.18, float(frame) / 5.0)
-		&"landing":
-			actor_rotation = 0.12 - float(frame) * 0.06
-		&"death":
-			actor_rotation = float(frame) / 3.0 * 1.35
-	var facing_scale: float = 1.0 if _animation.is_facing_right() else -1.0
-	draw_set_transform(Vector2(0.0, bob), actor_rotation, Vector2(facing_scale, 1.0))
-	_draw_fallback_silhouette(frame)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _draw_fallback_silhouette(frame: int) -> void:
-	var body_color: Color = _body_color
-	if _presentation_state_id == &"climb":
-		body_color = body_color.lightened(0.18)
-	elif _presentation_state_id == &"attack":
-		body_color = body_color.darkened(0.12)
-	elif _presentation_state_id == &"death":
-		body_color.a = maxf(0.2, 1.0 - float(frame) * 0.22)
-	match _archetype_id:
-		&"runner":
-			_draw_runner(body_color, frame)
-		&"brute":
-			_draw_brute(body_color, frame)
-		&"rope_saboteur":
-			_draw_rope_saboteur(body_color, frame)
-		&"flyer":
-			_draw_flyer(body_color, frame)
-		_:
-			_draw_basic_fallback(body_color, frame)
-	_draw_eyes()
-
-
-func _draw_basic_fallback(body_color: Color, frame: int) -> void:
-	var stride: float = float(frame % 2) * 2.0
-	draw_circle(Vector2(-2.0, 0.0), _body_radius, body_color)
-	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius + 2.0, 1.0), Vector2(-_body_radius - 12.0, 6.0), Vector2(-_body_radius - 4.0, -3.0)]), body_color.darkened(0.12))
-	draw_line(Vector2(-6.0, _body_radius - 1.0), Vector2(-8.0 - stride, _body_radius + 5.0), _accent_color, 3.0)
-	draw_line(Vector2(5.0, _body_radius - 1.0), Vector2(8.0 + stride, _body_radius + 5.0), _accent_color, 3.0)
-	draw_arc(Vector2(-2.0, 0.0), _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
-
-
-func _draw_runner(body_color: Color, frame: int) -> void:
-	var stride: float = 5.0 if frame % 2 == 0 else -5.0
-	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius - 10.0, 2.0), Vector2(-5.0, -_body_radius * 0.8), Vector2(_body_radius + 6.0, -4.0), Vector2(_body_radius, _body_radius * 0.65), Vector2(-5.0, _body_radius * 0.75)]), body_color)
-	draw_line(Vector2(-4.0, 5.0), Vector2(-10.0 + stride, _body_radius + 8.0), _accent_color, 3.0)
-	draw_line(Vector2(7.0, 4.0), Vector2(13.0 - stride, _body_radius + 7.0), _accent_color, 3.0)
-	draw_line(Vector2(-_body_radius - 7.0, 2.0), Vector2(-_body_radius - 18.0, -2.0), body_color.darkened(0.15), 4.0)
-
-
-func _draw_brute(body_color: Color, frame: int) -> void:
-	var pulse: float = 1.0 + float(frame % 2) * 0.04
-	var size := Vector2(_body_radius * 2.2, _body_radius * 1.8) * pulse
-	var rect := Rect2(-size * 0.5, size)
-	draw_rect(rect, body_color, true)
-	draw_rect(rect, _accent_color, false, 3.0)
-	draw_line(Vector2(-size.x * 0.3, size.y * 0.5), Vector2(-size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
-	draw_line(Vector2(size.x * 0.3, size.y * 0.5), Vector2(size.x * 0.38, size.y * 0.75), _accent_color, 5.0)
-
-
-func _draw_rope_saboteur(body_color: Color, frame: int) -> void:
-	var abdomen_radius: float = _body_radius * (0.72 + float(frame % 2) * 0.08)
-	draw_circle(Vector2(-4.0, 1.0), _body_radius * 0.65, body_color)
-	draw_circle(Vector2(7.0, 2.0), abdomen_radius, _accent_color.darkened(0.1))
-	for leg_index: int in range(3):
-		var y: float = -5.0 + float(leg_index) * 5.0
-		draw_line(Vector2(-2.0, y), Vector2(-12.0, y - 4.0), body_color.lightened(0.2), 2.0)
-		draw_line(Vector2(3.0, y), Vector2(14.0, y + 4.0), body_color.lightened(0.2), 2.0)
-	draw_arc(Vector2(7.0, 2.0), abdomen_radius, 0.0, TAU, 18, Color(1.0, 0.82, 0.2), 2.0)
-
-
-func _draw_flyer(body_color: Color, frame: int) -> void:
-	var flap: float = sin(float(frame) / 6.0 * TAU)
-	var wing_y: float = -8.0 - flap * 8.0
-	draw_circle(Vector2.ZERO, _body_radius, body_color)
-	draw_colored_polygon(PackedVector2Array([Vector2(-_body_radius + 2.0, 0.0), Vector2(-_body_radius - 18.0, wing_y), Vector2(-_body_radius - 8.0, 10.0)]), _accent_color)
-	draw_colored_polygon(PackedVector2Array([Vector2(_body_radius - 2.0, 0.0), Vector2(_body_radius + 18.0, wing_y), Vector2(_body_radius + 8.0, 10.0)]), _accent_color)
-	draw_arc(Vector2.ZERO, _body_radius, 0.0, TAU, 24, _accent_color, 2.0)
-
-
-func _draw_eyes() -> void:
-	var eye_color := Color(0.05, 0.03, 0.03)
-	draw_circle(Vector2(3.0, -3.0), 2.0, eye_color)
-	draw_circle(Vector2(8.0, -2.0), 2.0, eye_color)
-
-
-func _draw_health_bar() -> void:
+func _draw_health_bar(asset_rect: Rect2) -> void:
 	if _health == null or not is_instance_valid(_health):
 		return
-	var width: float = maxf(24.0, _body_radius * 2.0)
-	var height: float = 4.0
-	var top_y: float = -_body_radius - 12.0
-	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
-	if asset_state != &"":
-		top_y = _body_radius + 4.0 - atlas_asset_height - 8.0
-	var background := Rect2(Vector2(-width * 0.5, top_y), Vector2(width, height))
-	draw_rect(background, Color(0.15, 0.08, 0.08), true)
-	var ratio: float = float(_health.current_health) / float(maxi(1, _health.max_health))
-	var fill := Rect2(background.position, Vector2(width * ratio, height))
-	draw_rect(fill, _accent_color, true)
+	var segment_width := 8.0
+	var segment_height := 4.0
+	var gap := 2.0
+	var total_width := (
+		float(_health.max_health) * segment_width
+		+ float(_health.max_health - 1) * gap
+	)
+	var start_x := asset_rect.get_center().x - total_width * 0.5
+	var y := asset_rect.position.y - 8.0
+	for index: int in range(_health.max_health):
+		var rect := Rect2(
+			Vector2(start_x + float(index) * (segment_width + gap), y),
+			Vector2(segment_width, segment_height)
+		)
+		var fill := Color(0.18, 0.22, 0.25)
+		if index < _health.current_health:
+			fill = Color(0.35, 0.95, 0.48)
+		draw_rect(rect, fill, true)
+		draw_rect(rect, Color(0.75, 0.85, 0.9), false, 1.0)
 
 
 func _on_enemy_visual_state_changed(_enemy_id: int, state_id: StringName) -> void:
