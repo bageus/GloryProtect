@@ -13,9 +13,9 @@ const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
 @export_range(1.0, 30.0, 0.5) var jump_frame_rate: float = 10.0
 @export_range(1.0, 30.0, 0.5) var flying_frame_rate: float = 8.0
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 8.0
-@export_range(32.0, 128.0, 1.0) var atlas_asset_height: float = 72.0
-@export_range(32.0, 128.0, 1.0) var atlas_asset_max_width: float = 72.0
-@export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.08
+@export_range(32.0, 160.0, 1.0) var atlas_asset_height: float = 88.0
+@export_range(32.0, 160.0, 1.0) var atlas_asset_max_width: float = 96.0
+@export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.18
 @export var asset_offset: Vector2 = Vector2.ZERO
 
 var _body_radius: float = 12.0
@@ -59,8 +59,7 @@ func _process(delta: float) -> void:
 	var movement_delta: float = global_position.x - _last_global_x
 	_last_global_x = global_position.x
 	_animation.face_delta(movement_delta, 0.05)
-	var next_state: StringName = _resolve_presentation_state(movement_delta)
-	_update_animation(next_state, delta)
+	_update_animation(_resolve_presentation_state(movement_delta), delta)
 	queue_redraw()
 
 
@@ -122,7 +121,7 @@ func get_asset_frame_count_for_tests(state_id: StringName) -> int:
 
 
 func get_asset_frame_paths_for_tests(state_id: StringName) -> PackedStringArray:
-	if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(_archetype_id, state_id) > 0:
 		return BoardingEnemyVisualAssetCatalog.get_frame_paths(_archetype_id, state_id)
 	return BoardingEnemyVisualAssetCatalog.get_frame_paths(FALLBACK_ASSET_ARCHETYPE_ID, state_id)
 
@@ -148,8 +147,6 @@ func get_asset_state_for_tests(state_id: StringName) -> StringName:
 
 
 func is_using_asset_sprite_for_tests() -> bool:
-	# Backwards-compatible test helper: enemies now follow DefenderVisual and
-	# draw the current PNG directly in _draw(), without a child Sprite2D.
 	return _get_current_texture() != null
 
 
@@ -158,14 +155,17 @@ func should_draw_procedural_for_tests() -> bool:
 
 
 func is_asset_mirrored_for_tests() -> bool:
-	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
+	return _animation.is_facing_right()
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
 	return _get_current_source_rect()
 
 
-func get_behavior_presentation_state_for_tests(state_id: StringName, movement_delta: float = 0.0) -> StringName:
+func get_behavior_presentation_state_for_tests(
+	state_id: StringName,
+	movement_delta: float = 0.0
+) -> StringName:
 	return _resolve_behavior_presentation_state(state_id, movement_delta)
 
 
@@ -199,7 +199,10 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 			return &"idle"
 
 
-static func _resolve_behavior_presentation_state(state_id: StringName, movement_delta: float) -> StringName:
+static func _resolve_behavior_presentation_state(
+	state_id: StringName,
+	movement_delta: float
+) -> StringName:
 	match state_id:
 		&"flying":
 			return &"flying"
@@ -305,10 +308,7 @@ func _draw() -> void:
 	var source_rect: Rect2 = _get_current_source_rect()
 	var asset_size: Vector2 = _fit_asset_size(source_rect.size)
 	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
-	var asset_rect := Rect2(
-		feet - Vector2(asset_size.x * 0.5, asset_size.y),
-		asset_size
-	)
+	var asset_rect := Rect2(feet - Vector2(asset_size.x * 0.5, asset_size.y), asset_size)
 	if texture != null:
 		var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
@@ -320,12 +320,10 @@ func _draw() -> void:
 
 func _get_current_texture() -> Texture2D:
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
-	if asset_state == &"":
-		return null
 	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
-	if asset_archetype_id == &"":
+	if asset_state == &"" or asset_archetype_id == &"":
 		return null
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(asset_archetype_id, asset_state)
+	var frames: Array[Texture2D] = BoardingEnemyVisualTextureBank.get_frames(asset_archetype_id, asset_state)
 	if frames.is_empty():
 		return null
 	return frames[_get_asset_frame_index(_animation.get_frame_index(), frames.size(), asset_state)]
@@ -374,9 +372,9 @@ func _resolve_asset_state(state_id: StringName) -> StringName:
 func _resolve_asset_archetype_id(asset_state: StringName) -> StringName:
 	if asset_state == &"":
 		return &""
-	if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, asset_state) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(_archetype_id, asset_state) > 0:
 		return _archetype_id
-	if BoardingEnemyVisualAssetCatalog.get_frame_count(FALLBACK_ASSET_ARCHETYPE_ID, asset_state) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(FALLBACK_ASSET_ARCHETYPE_ID, asset_state) > 0:
 		return FALLBACK_ASSET_ARCHETYPE_ID
 	return &""
 
@@ -385,7 +383,7 @@ func _get_effective_asset_frame_count(asset_state: StringName) -> int:
 	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
 	if asset_archetype_id == &"":
 		return 0
-	return BoardingEnemyVisualAssetCatalog.get_frame_count(asset_archetype_id, asset_state)
+	return BoardingEnemyVisualTextureBank.get_frame_count(asset_archetype_id, asset_state)
 
 
 func _append_candidate(candidates: Array[StringName], state_id: StringName) -> void:
@@ -420,10 +418,7 @@ func _draw_health_bar(asset_rect: Rect2) -> void:
 	var segment_width := 8.0
 	var segment_height := 4.0
 	var gap := 2.0
-	var total_width := (
-		float(_health.max_health) * segment_width
-		+ float(_health.max_health - 1) * gap
-	)
+	var total_width := float(_health.max_health) * segment_width + float(_health.max_health - 1) * gap
 	var start_x := asset_rect.get_center().x - total_width * 0.5
 	var y := asset_rect.position.y - 8.0
 	for index: int in range(_health.max_health):
