@@ -3,6 +3,8 @@ extends RefCounted
 
 const ROOT := "res://visual/enemies/Enemy1/"
 
+static var _frame_cache: Dictionary = {}
+
 
 static func get_frame_paths(
 	archetype_id: StringName,
@@ -35,7 +37,13 @@ static func get_frames(
 	archetype_id: StringName,
 	state_id: StringName
 ) -> Array[Texture2D]:
-	return BoardingEnemyVisualTextureBank.get_frames(archetype_id, state_id)
+	var paths: PackedStringArray = get_frame_paths(archetype_id, state_id)
+	var result: Array[Texture2D] = []
+	for path: String in paths:
+		var texture: Texture2D = _load_texture(path)
+		if texture != null:
+			result.append(texture)
+	return result
 
 
 static func source_faces_right() -> bool:
@@ -44,6 +52,14 @@ static func source_faces_right() -> bool:
 
 static func should_mirror_for_facing(facing_right: bool) -> bool:
 	return facing_right != source_faces_right()
+
+
+static func _load_texture(path: String) -> Texture2D:
+	if _frame_cache.has(path):
+		return _frame_cache[path]
+	var texture: Texture2D = load(path) as Texture2D
+	_frame_cache[path] = texture
+	return texture
 
 
 static func _normalize_state(state_id: StringName) -> StringName:
