@@ -15,7 +15,7 @@ const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
 @export_range(1.0, 30.0, 0.5) var death_frame_rate: float = 8.0
 @export_range(32.0, 160.0, 1.0) var atlas_asset_height: float = 88.0
 @export_range(32.0, 160.0, 1.0) var atlas_asset_max_width: float = 96.0
-@export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.18
+@export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.08
 @export var asset_offset: Vector2 = Vector2.ZERO
 
 var _body_radius: float = 12.0
@@ -162,6 +162,15 @@ func is_asset_mirrored_for_tests() -> bool:
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
 	return _get_current_source_rect()
+
+
+func get_current_asset_texture_size_for_tests() -> Vector2:
+	var texture: Texture2D = _get_current_texture()
+	return texture.get_size() if texture != null else Vector2.ZERO
+
+
+func get_current_asset_draw_size_for_tests() -> Vector2:
+	return _fit_asset_size(_get_current_source_rect().size)
 
 
 func get_behavior_presentation_state_for_tests(
@@ -409,11 +418,12 @@ func _get_asset_source_rect(texture: Texture2D) -> Rect2:
 		return Rect2()
 	if _asset_source_rect_cache.has(texture):
 		return _asset_source_rect_cache[texture]
-	# Enemy PNGs are already authored as complete transparent canvases. The
-	# alpha crop path can produce a bad near-empty region for these 512x512
-	# assets, which leaves only the health bar visible. Use the full texture
-	# rect for the live enemy body draw path.
-	var source_rect := Rect2(Vector2.ZERO, texture.get_size())
+	var source_rect: Rect2 = TextureRegionLayout.get_alpha_bounds(
+		texture,
+		asset_alpha_crop_threshold
+	)
+	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		source_rect = Rect2(Vector2.ZERO, texture.get_size())
 	_asset_source_rect_cache[texture] = source_rect
 	return source_rect
 

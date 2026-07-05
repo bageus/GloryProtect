@@ -94,6 +94,8 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	assert(visual.get_asset_frame_paths_for_tests(&"idle")[0].begins_with(
 		"res://visual/enemies/Enemy1/"
 	))
+	assert(visual.has_current_replacement_asset_for_tests())
+	_assert_cropped_draw_rect(visual)
 	visual.debug_set_facing_right_for_tests(false)
 	assert(not visual.is_asset_mirrored_for_tests())
 	visual.debug_set_facing_right_for_tests(true)
@@ -110,6 +112,19 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 
 	enemy.queue_free()
 	await process_frame
+
+
+func _assert_cropped_draw_rect(visual: BoardingEnemyVisual) -> void:
+	var texture_size: Vector2 = visual.get_current_asset_texture_size_for_tests()
+	var source_rect: Rect2 = visual.get_current_asset_source_rect_for_tests()
+	var draw_size: Vector2 = visual.get_current_asset_draw_size_for_tests()
+	assert(texture_size.x > 0.0)
+	assert(texture_size.y > 0.0)
+	assert(source_rect.size.x > 0.0)
+	assert(source_rect.size.y > 0.0)
+	assert(source_rect.size.x < texture_size.x or source_rect.size.y < texture_size.y)
+	assert(draw_size.x > 12.0)
+	assert(draw_size.y > 12.0)
 
 
 func _assert_behavior_state_route(
