@@ -78,6 +78,10 @@ func _draw() -> void:
 	_draw_trap_bursts()
 
 
+func get_winch_asset_id_for_tests(anchor_id: int = 0) -> StringName:
+	return _get_combat_winch_asset_id(anchor_id)
+
+
 func is_electric_visual_active(anchor_id: int) -> bool:
 	if _anchor_host == null or _combat_anchors == null or anchor_id < 0:
 		return false
@@ -94,10 +98,7 @@ func is_electric_visual_active(anchor_id: int) -> bool:
 
 
 func is_reinforced_chain_visual_active() -> bool:
-	return (
-		_combat_anchors != null
-		and _combat_anchors.upgrades.has_strong_specialization()
-	)
+	return _get_combat_winch_asset_id(0) == &"strong"
 
 
 func get_active_trap_burst_count() -> int:
@@ -117,7 +118,7 @@ func get_latest_trap_burst_radius() -> float:
 
 
 func _get_winch_texture(anchor_id: int) -> Texture2D:
-	match _get_winch_asset_id(anchor_id):
+	match _get_combat_winch_asset_id(anchor_id):
 		&"strong":
 			return STRONG_WINCH_TEXTURE
 		&"specialization_2":
@@ -127,16 +128,20 @@ func _get_winch_texture(anchor_id: int) -> Texture2D:
 
 
 func _get_winch_asset_id(anchor_id: int) -> StringName:
+	return _get_combat_winch_asset_id(anchor_id)
+
+
+func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 	if _combat_anchors == null:
 		return super._get_winch_asset_id(anchor_id)
-	if _combat_anchors.upgrades.has_strong_specialization():
-		return &"strong"
-	if (
-		_combat_anchors.upgrades.has_electric_specialization()
-		or _combat_anchors.upgrades.has_trap_specialization()
-	):
-		return &"specialization_2"
-	return super._get_winch_asset_id(anchor_id)
+	var specialization: StringName = _combat_anchors.upgrades.specialization_id
+	match specialization:
+		CombatAnchorUpgradeRuntime.STRONG:
+			return &"strong"
+		CombatAnchorUpgradeRuntime.ELECTRIC, CombatAnchorUpgradeRuntime.TRAP:
+			return &"specialization_2"
+		_:
+			return super._get_winch_asset_id(anchor_id)
 
 
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
