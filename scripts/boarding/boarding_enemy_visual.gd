@@ -406,11 +406,15 @@ func _get_asset_frame_index(logical_frame: int, asset_count: int, asset_state: S
 
 
 func _get_asset_source_rect(texture: Texture2D) -> Rect2:
+	if texture == null:
+		return Rect2()
 	if _asset_source_rect_cache.has(texture):
 		return _asset_source_rect_cache[texture]
-	var source_rect: Rect2 = TextureRegionLayout.get_alpha_bounds(texture, asset_alpha_crop_threshold)
-	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
-		source_rect = Rect2(Vector2.ZERO, texture.get_size())
+	# Enemy PNGs are already authored as complete transparent canvases. The
+	# alpha crop path can produce a bad near-empty region for these 512x512
+	# assets, which leaves only the health bar visible. Use the full texture
+	# rect for the live enemy body draw path.
+	var source_rect := Rect2(Vector2.ZERO, texture.get_size())
 	_asset_source_rect_cache[texture] = source_rect
 	return source_rect
 
