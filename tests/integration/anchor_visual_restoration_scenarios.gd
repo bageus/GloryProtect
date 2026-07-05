@@ -38,18 +38,18 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(visual.is_reinforced_chain_visual_active())
-	assert(visual.get_winch_asset_id_for_tests(0) == &"strong")
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
+		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
 
 	combat.reset_upgrade_runtime()
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests(0) == &"specialization_2")
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
+		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
 
 	print("Anchor visual restoration scenarios passed")
 	quit()
