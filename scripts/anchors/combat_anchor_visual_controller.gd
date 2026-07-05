@@ -4,12 +4,6 @@ extends AnchorVisualController
 const REINFORCED_CHAIN_TEXTURE: Texture2D = preload(
 	"res://visual/tiles/tile_chain_rainforce.png"
 )
-const STRONG_WINCH_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_winch_02.png"
-)
-const SPECIALIZATION_2_WINCH_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_winch_03.png"
-)
 
 @export_range(1.0, 8.0, 0.25) var electric_arc_speed: float = 4.5
 @export_range(4.0, 20.0, 1.0) var electric_arc_spacing: float = 10.0
@@ -29,8 +23,6 @@ func _ready() -> void:
 		REINFORCED_CHAIN_TEXTURE,
 		alpha_crop_threshold
 	)
-	_register_texture_source_rect(STRONG_WINCH_TEXTURE)
-	_register_texture_source_rect(SPECIALIZATION_2_WINCH_TEXTURE)
 
 
 func configure_combat(
@@ -114,29 +106,6 @@ func get_latest_trap_burst_radius() -> float:
 	if _trap_bursts.is_empty():
 		return 0.0
 	return float(_trap_bursts[_trap_bursts.size() - 1]["radius"])
-
-
-func _get_winch_texture(anchor_id: int) -> Texture2D:
-	match _get_winch_asset_id(anchor_id):
-		&"strong":
-			return STRONG_WINCH_TEXTURE
-		&"specialization_2":
-			return SPECIALIZATION_2_WINCH_TEXTURE
-		_:
-			return super._get_winch_texture(anchor_id)
-
-
-func _get_winch_asset_id(anchor_id: int) -> StringName:
-	if _combat_anchors == null:
-		return super._get_winch_asset_id(anchor_id)
-	if _combat_anchors.upgrades.has_strong_specialization():
-		return &"strong"
-	if (
-		_combat_anchors.upgrades.has_electric_specialization()
-		or _combat_anchors.upgrades.has_trap_specialization()
-	):
-		return &"specialization_2"
-	return super._get_winch_asset_id(anchor_id)
 
 
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
