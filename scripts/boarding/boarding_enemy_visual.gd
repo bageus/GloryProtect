@@ -175,6 +175,7 @@ func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 
 
 func _resolve_presentation_state(movement_delta: float) -> StringName:
+	var is_moving: bool = absf(movement_delta) > 0.05
 	if _behavior_state_id != &"":
 		var behavior_state: StringName = _resolve_behavior_presentation_state(
 			_behavior_state_id,
@@ -182,8 +183,10 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 		)
 		if behavior_state != &"":
 			return behavior_state
+		if is_moving:
+			return &"run"
 	if _controller == null:
-		return &"idle"
+		return &"run" if is_moving else &"idle"
 	match _controller.get_state():
 		BoardingEnemyController.State.CLIMBING:
 			return &"climb"
@@ -192,11 +195,11 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 		BoardingEnemyController.State.JUMPING:
 			return &"jump"
 		BoardingEnemyController.State.ON_PLATFORM:
-			return &"run" if absf(movement_delta) > 0.05 else &"idle"
+			return &"run" if is_moving else &"idle"
 		BoardingEnemyController.State.WAITING_WITHOUT_PATH, BoardingEnemyController.State.RUNNING_TO_ANCHOR:
 			return &"run"
 		_:
-			return &"idle"
+			return &"run" if is_moving else &"idle"
 
 
 static func _resolve_behavior_presentation_state(
