@@ -35,6 +35,13 @@ func _run() -> void:
 	visual._process(0.2)
 	assert(not visual.is_facing_right())
 
+	enemy.controller.stop()
+	enemy.global_position.x = -60.0
+	visual._process(0.2)
+	assert(visual.get_presentation_state_id() == &"run")
+	assert(not visual.is_facing_right())
+	assert(visual.get_animation_frame() > 0)
+
 	enemy.controller.state = BoardingEnemyController.State.CLIMBING
 	visual._process(0.2)
 	assert(visual.get_presentation_state_id() == &"climb")
