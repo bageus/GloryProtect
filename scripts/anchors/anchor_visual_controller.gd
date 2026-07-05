@@ -22,7 +22,7 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 @export_range(8.0, 128.0, 1.0) var chain_tile_height := 28.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
-@export_range(1, 128, 1) var minimum_z_index := 28
+@export_range(1, 128, 1) var minimum_z_index := 80
 @export var clamp_ground_offset := Vector2(0.0, 2.0)
 @export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
 @export var stowed_chain_length := 20.0
@@ -99,13 +99,24 @@ func get_clamp_visual_scale() -> float:
 	return object_asset_scale * clamp_scale_multiplier
 
 
+func get_anchor_visual_z_index_for_tests() -> int:
+	return z_index
+
+
+func is_winch_drawable_for_tests(anchor_id: int) -> bool:
+	var texture: Texture2D = _get_winch_texture(anchor_id)
+	var source_rect: Rect2 = _get_texture_source_rect(texture)
+	if texture != null and _is_rect_drawable(source_rect):
+		return true
+	return _is_rect_drawable(_get_texture_source_rect(WINCH_BASE_TEXTURE))
+
+
 func are_anchor_asset_regions_valid_for_tests() -> bool:
 	return (
-		_chain_source_rect.size.x > 0.0 and _chain_source_rect.size.y > 0.0
-		and _clamp_source_rect.size.x > 0.0 and _clamp_source_rect.size.y > 0.0
-		and _anchor_source_rect.size.x > 0.0 and _anchor_source_rect.size.y > 0.0
-		and _get_winch_source_rect(0).size.x > 0.0
-		and _get_winch_source_rect(0).size.y > 0.0
+		_is_rect_drawable(_chain_source_rect)
+		and _is_rect_drawable(_clamp_source_rect)
+		and _is_rect_drawable(_anchor_source_rect)
+		and is_winch_drawable_for_tests(0)
 	)
 
 
@@ -128,10 +139,13 @@ func _draw_winch(
 ) -> void:
 	var texture: Texture2D = _get_winch_texture(anchor_id)
 	var source_rect: Rect2 = _get_winch_source_rect(anchor_id)
-	if texture == null or source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
-		return
+	if texture == null or not _is_rect_drawable(source_rect):
+		texture = WINCH_BASE_TEXTURE
+		source_rect = _get_texture_source_rect(WINCH_BASE_TEXTURE)
 	var tint := Color.WHITE if operator_available else Color(0.52, 0.55, 0.58, 1.0)
-	var size := source_rect.size * object_asset_scale
+	var size := Vector2(58.0, 54.0)
+	if _is_rect_drawable(source_rect):
+		size = source_rect.size * object_asset_scale
 	var pedestal_size := Vector2(maxf(34.0, size.x * 0.74), 12.0)
 	var pedestal_rect := Rect2(bottom - Vector2(pedestal_size.x * 0.5, pedestal_size.y * 0.86), pedestal_size)
 	draw_rect(pedestal_rect.grow(2.0), Color(0.02, 0.035, 0.055, 0.82), true)
@@ -140,6 +154,9 @@ func _draw_winch(
 	var backing_center := bottom + Vector2(0.0, -size.y * 0.45)
 	draw_circle(backing_center, maxf(14.0, size.x * 0.3), Color(0.02, 0.04, 0.07, 0.68))
 	draw_arc(backing_center, maxf(15.0, size.x * 0.33), 0.0, TAU, 32, Color(0.72, 0.88, 1.0, 0.45), 1.8, true)
+	if not _is_rect_drawable(source_rect):
+		_draw_fallback_winch(backing_center, tint)
+		return
 	var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
 	var draw_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
 	draw_set_transform(bottom, 0.0, draw_scale)
@@ -235,17 +252,20 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 	var length := segment.length()
 	if length <= 0.01:
 		return
+	var visible_tint := tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
+	visible_tint.a = 1.0
+	var backing := visible_tint
+	backing.a = 0.4
+	draw_line(start, finish, backing, CHAIN_BACKING_WIDTH, true)
+	if not _is_rect_drawable(_chain_source_rect):
+		_draw_fallback_chain(start, finish, visible_tint)
+		return
 	var direction := segment / length
 	var tile_size: Vector2 = TextureRegionLayout.fit_height(_chain_source_rect.size, chain_tile_height)
 	var spacing: float = maxf(tile_size.y * (1.0 - chain_tile_overlap_ratio), 1.0)
 	var link_positions := calculate_chain_link_positions(start, finish, spacing)
 	var link_rotation := direction.angle() - PI * 0.5
 	var rect := Rect2(-tile_size * 0.5, tile_size)
-	var visible_tint := tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
-	visible_tint.a = 1.0
-	var backing := visible_tint
-	backing.a = 0.4
-	draw_line(start, finish, backing, CHAIN_BACKING_WIDTH, true)
 	for link_position: Vector2 in link_positions:
 		draw_set_transform(link_position, link_rotation, Vector2.ONE)
 		draw_texture_rect_region(CHAIN_TEXTURE, rect, _chain_source_rect, visible_tint)
@@ -253,6 +273,9 @@ func _draw_chain_links(start: Vector2, finish: Vector2, tint: Color) -> void:
 
 
 func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
+	if not _is_rect_drawable(_anchor_source_rect):
+		_draw_fallback_anchor(top, tint)
+		return
 	var size := _anchor_source_rect.size * object_asset_scale
 	var rect := Rect2(Vector2(-size.x * 0.5, 0.0), size)
 	draw_set_transform(top, 0.0, Vector2.ONE)
@@ -261,14 +284,47 @@ func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
 
 
 func _draw_clamp(ground: Vector2, tint: Color) -> void:
-	var size := _clamp_source_rect.size * get_clamp_visual_scale()
+	var source_size: Vector2 = _clamp_source_rect.size
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		source_size = Vector2(42.0, 34.0)
+	var size := source_size * get_clamp_visual_scale()
 	var bottom := ground + clamp_ground_offset
 	var marker_center := bottom + Vector2(0.0, -size.y * 0.34)
 	var glow := Color(tint.r, tint.g, tint.b, minf(0.3, maxf(0.16, tint.a * 0.24)))
 	draw_circle(marker_center, maxf(8.0, size.x * 0.25), glow)
 	draw_arc(marker_center, maxf(9.0, size.x * 0.31), 0.0, TAU, 28, Color(0.85, 0.96, 1.0, 0.55), 2.0, true)
+	if not _is_rect_drawable(_clamp_source_rect):
+		_draw_fallback_clamp(bottom, tint)
+		return
 	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
 	draw_texture_rect_region(CLAMP_TEXTURE, rect, _clamp_source_rect, tint)
+
+
+func _draw_fallback_winch(center: Vector2, tint: Color) -> void:
+	draw_circle(center, 15.0, tint.darkened(0.25))
+	draw_arc(center, 15.0, 0.0, TAU, 32, tint.lightened(0.15), 3.0, true)
+	draw_circle(center, 5.0, tint.darkened(0.4))
+
+
+func _draw_fallback_chain(start: Vector2, finish: Vector2, tint: Color) -> void:
+	var positions := calculate_chain_link_positions(start, finish, 10.0)
+	for point: Vector2 in positions:
+		draw_circle(point, 3.0, tint)
+
+
+func _draw_fallback_anchor(top: Vector2, tint: Color) -> void:
+	draw_colored_polygon(PackedVector2Array([
+		top + Vector2(0.0, 14.0),
+		top + Vector2(-7.0, 2.0),
+		top + Vector2(7.0, 2.0),
+	]), tint)
+	draw_circle(top + Vector2(0.0, 2.0), 4.0, tint.lightened(0.2))
+
+
+func _draw_fallback_clamp(bottom: Vector2, tint: Color) -> void:
+	var rect := Rect2(bottom + Vector2(-12.0, -18.0), Vector2(24.0, 18.0))
+	draw_rect(rect, tint, true)
+	draw_rect(rect, Color(0.85, 0.96, 1.0, 0.65), false, 2.0)
 
 
 func _get_winch_bottom(anchor_id: int) -> Vector2:
@@ -307,6 +363,10 @@ func _register_texture_source_rect(texture: Texture2D) -> void:
 func _get_texture_source_rect(texture: Texture2D) -> Rect2:
 	_register_texture_source_rect(texture)
 	return _source_rects.get(texture, Rect2())
+
+
+func _is_rect_drawable(rect: Rect2) -> bool:
+	return rect.size.x > 0.0 and rect.size.y > 0.0
 
 
 func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
