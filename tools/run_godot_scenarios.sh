@@ -19,6 +19,15 @@ if (( import_status != 0 )); then
   exit 1
 fi
 
+if grep -E -q 'SCRIPT ERROR:|Parse Error:|ERROR: Failed to load script|Compile Error:' "${import_log}"; then
+  echo "Godot project import emitted script or parse errors." >&2
+  grep -E -i 'parse error|script error|compile error|failed to load script|error:' \
+    "${import_log}" | head -n 160 || true
+  echo "--- final import output ---"
+  tail -n 120 "${import_log}"
+  exit 1
+fi
+
 mapfile -t scenario_files < <(
   find tests/unit tests/integration -type f -name '*_scenarios.gd' -print | sort
 )
