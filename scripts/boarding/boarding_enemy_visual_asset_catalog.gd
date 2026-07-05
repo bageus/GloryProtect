@@ -57,9 +57,19 @@ static func should_mirror_for_facing(facing_right: bool) -> bool:
 static func _load_texture(path: String) -> Texture2D:
 	if _frame_cache.has(path):
 		return _frame_cache[path]
-	var texture: Texture2D = load(path) as Texture2D
+	var texture: Texture2D = _load_image_texture(path)
+	if texture == null:
+		texture = load(path) as Texture2D
 	_frame_cache[path] = texture
 	return texture
+
+
+static func _load_image_texture(path: String) -> Texture2D:
+	var image := Image.new()
+	var error := image.load(path)
+	if error != OK:
+		return null
+	return ImageTexture.create_from_image(image)
 
 
 static func _normalize_state(state_id: StringName) -> StringName:
