@@ -20,13 +20,14 @@ func _run() -> void:
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
-	var visual: CombatAnchorVisualController = anchors.get_node(
-		"AnchorVisualController"
-	) as CombatAnchorVisualController
+	var visual: AnchorAssetPresentation = game.get_node(
+		"World/AnchorAssetPresentation"
+	) as AnchorAssetPresentation
 	assert(anchors != null)
 	assert(combat != null)
 	assert(catalog != null)
 	assert(visual != null)
+	assert(visual.is_configured_for_tests())
 	assert(visual.are_anchor_asset_regions_valid_for_tests())
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
 	for anchor_id: int in range(4):
