@@ -26,6 +26,7 @@ var _detached_death: bool = false
 var _enemy: BoardingEnemy
 var _melee: MeleeAttackComponent
 var _asset_source_rect_cache: Dictionary = {}
+var _asset_sprite: Sprite2D
 
 @onready var _health: HealthComponent = get_node(health_path)
 @onready var _controller: BoardingEnemyController = get_node(controller_path)
@@ -33,6 +34,7 @@ var _asset_source_rect_cache: Dictionary = {}
 
 func _ready() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_create_asset_sprite()
 	_enemy = get_parent() as BoardingEnemy
 	_melee = get_node("../MeleeAttackComponent") as MeleeAttackComponent
 	if _enemy != null:
@@ -41,12 +43,14 @@ func _ready() -> void:
 	_health.health_changed.connect(_on_health_changed)
 	_animation.set_facing_right(false)
 	_animation.play(&"idle", _get_frame_count(&"idle"), idle_frame_rate)
+	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
 	if _detached_death:
 		_animation.tick(delta)
+		_sync_asset_sprite(_animation.get_frame_index())
 		if _animation.is_finished():
 			queue_free()
 		else:
@@ -57,6 +61,7 @@ func _process(delta: float) -> void:
 	_animation.face_delta(movement_delta, 0.05)
 	var next_state: StringName = _resolve_presentation_state(movement_delta)
 	_update_animation(next_state, delta)
+	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
@@ -73,6 +78,7 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 			_get_frame_rate(_presentation_state_id),
 			_presentation_state_id not in [&"attack", &"jump", &"landing", &"death"]
 		)
+		_sync_asset_sprite(_animation.get_frame_index())
 		queue_redraw()
 
 
@@ -90,6 +96,7 @@ func detach_for_death() -> void:
 	_enemy = null
 	_melee = null
 	_animation.play(&"death", _get_frame_count(&"death"), death_frame_rate, false, true)
+	_sync_asset_sprite(_animation.get_frame_index())
 	queue_redraw()
 
 
@@ -137,6 +144,10 @@ func get_asset_state_for_tests(state_id: StringName) -> StringName:
 	return _resolve_asset_state(state_id)
 
 
+func is_using_asset_sprite_for_tests() -> bool:
+	return _asset_sprite != null and _asset_sprite.visible and _asset_sprite.texture != null
+
+
 func is_asset_mirrored_for_tests() -> bool:
 	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
 
@@ -157,6 +168,7 @@ func get_behavior_presentation_state_for_tests(state_id: StringName, movement_de
 
 func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 	_animation.set_facing_right(facing_right)
+	_sync_asset_sprite(_animation.get_frame_index())
 
 
 func _resolve_presentation_state(movement_delta: float) -> StringName:
@@ -284,33 +296,61 @@ func _get_attack_progress() -> float:
 
 func _draw() -> void:
 	var frame: int = _animation.get_frame_index()
-	if not _draw_asset_actor(frame):
+	if not is_using_asset_sprite_for_tests():
 		_draw_procedural_actor(frame)
 	if not _detached_death:
 		_draw_health_bar()
 
 
-func _draw_asset_actor(frame: int) -> bool:
+func _create_asset_sprite() -> void:
+	if _asset_sprite != null:
+		return
+	_asset_sprite = Sprite2D.new()
+	_asset_sprite.name = "ReplacementAssetSprite"
+	_asset_sprite.centered = true
+	_asset_sprite.region_enabled = true
+	_asset_sprite.visible = false
+	_asset_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_asset_sprite.z_index = 1
+	add_child(_asset_sprite)
+
+
+func _sync_asset_sprite(frame: int) -> bool:
+	if _asset_sprite == null:
+		return false
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
 	if asset_state == &"":
+		_clear_asset_sprite()
 		return false
 	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, asset_state)
 	if frames.is_empty():
+		_clear_asset_sprite()
 		return false
 	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size(), asset_state)]
 	if texture == null:
+		_clear_asset_sprite()
 		return false
 	var source_rect: Rect2 = _get_asset_source_rect(texture)
 	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		_clear_asset_sprite()
 		return false
 	var display_size := Vector2(atlas_asset_height * source_rect.size.x / source_rect.size.y, atlas_asset_height)
 	var feet := Vector2(0.0, _body_radius + 4.0)
-	var destination := Rect2(feet - Vector2(display_size.x * 0.5, display_size.y), display_size)
-	var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
-	draw_texture_rect_region(texture, destination, source_rect)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	_asset_sprite.texture = texture
+	_asset_sprite.region_enabled = true
+	_asset_sprite.region_rect = source_rect
+	_asset_sprite.flip_h = is_asset_mirrored_for_tests()
+	_asset_sprite.position = feet - Vector2(0.0, display_size.y * 0.5)
+	_asset_sprite.scale = Vector2(display_size.x / source_rect.size.x, display_size.y / source_rect.size.y)
+	_asset_sprite.visible = true
 	return true
+
+
+func _clear_asset_sprite() -> void:
+	if _asset_sprite == null:
+		return
+	_asset_sprite.visible = false
+	_asset_sprite.texture = null
 
 
 func _resolve_asset_state(state_id: StringName) -> StringName:
