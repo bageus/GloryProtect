@@ -125,12 +125,27 @@ func has_replacement_asset_for_tests(state_id: StringName) -> bool:
 	return get_asset_frame_count_for_tests(state_id) > 0
 
 
+func has_current_replacement_asset_for_tests() -> bool:
+	return get_current_asset_state_for_tests() != &""
+
+
+func get_current_asset_state_for_tests() -> StringName:
+	return _resolve_asset_state(_presentation_state_id)
+
+
+func get_asset_state_for_tests(state_id: StringName) -> StringName:
+	return _resolve_asset_state(state_id)
+
+
 func is_asset_mirrored_for_tests() -> bool:
 	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, _presentation_state_id)
+	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
+	if asset_state == &"":
+		return Rect2()
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, asset_state)
 	if frames.is_empty():
 		return Rect2()
 	return _get_asset_source_rect(frames[0])
@@ -217,9 +232,11 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 
 
 func _get_frame_count(state_id: StringName) -> int:
-	var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id)
-	if asset_count > 0:
-		return _get_logical_frame_count_for_assets(state_id, asset_count)
+	var asset_state: StringName = _resolve_asset_state(state_id)
+	if asset_state != &"":
+		var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, asset_state)
+		if asset_count > 0:
+			return _get_logical_frame_count_for_assets(asset_state, asset_count)
 	match state_id:
 		&"death", &"landing":
 			return 4
@@ -274,10 +291,13 @@ func _draw() -> void:
 
 
 func _draw_asset_actor(frame: int) -> bool:
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, _presentation_state_id)
+	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
+	if asset_state == &"":
+		return false
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, asset_state)
 	if frames.is_empty():
 		return false
-	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size())]
+	var texture: Texture2D = frames[_get_asset_frame_index(frame, frames.size(), asset_state)]
 	if texture == null:
 		return false
 	var source_rect: Rect2 = _get_asset_source_rect(texture)
@@ -293,10 +313,40 @@ func _draw_asset_actor(frame: int) -> bool:
 	return true
 
 
-func _get_asset_frame_index(logical_frame: int, asset_count: int) -> int:
+func _resolve_asset_state(state_id: StringName) -> StringName:
+	var candidates: Array[StringName] = []
+	_append_candidate(candidates, state_id)
+	match state_id:
+		&"waiting", &"waiting_without_path":
+			_append_candidate(candidates, &"idle")
+		&"running_to_rope", &"running_to_anchor":
+			_append_candidate(candidates, &"run")
+		&"attacking", &"arming":
+			_append_candidate(candidates, &"attack")
+		&"dead":
+			_append_candidate(candidates, &"death")
+		&"boarded":
+			_append_candidate(candidates, &"run")
+		_:
+			pass
+	_append_candidate(candidates, &"idle")
+	_append_candidate(candidates, &"run")
+	for candidate: StringName in candidates:
+		if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, candidate) > 0:
+			return candidate
+	return &""
+
+
+func _append_candidate(candidates: Array[StringName], state_id: StringName) -> void:
+	if state_id == &"" or state_id in candidates:
+		return
+	candidates.append(state_id)
+
+
+func _get_asset_frame_index(logical_frame: int, asset_count: int, asset_state: StringName) -> int:
 	if asset_count <= 1:
 		return 0
-	var logical_count: int = max(_get_frame_count(_presentation_state_id), 1)
+	var logical_count: int = max(_get_frame_count(asset_state), 1)
 	if logical_count <= 1:
 		return 0
 	var progress: float = float(clampi(logical_frame, 0, logical_count - 1)) / float(logical_count - 1)
@@ -420,7 +470,8 @@ func _draw_health_bar() -> void:
 	var width: float = maxf(24.0, _body_radius * 2.0)
 	var height: float = 4.0
 	var top_y: float = -_body_radius - 12.0
-	if has_replacement_asset_for_tests(_presentation_state_id):
+	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
+	if asset_state != &"":
 		top_y = _body_radius + 4.0 - atlas_asset_height - 8.0
 	var background := Rect2(Vector2(-width * 0.5, top_y), Vector2(width, height))
 	draw_rect(background, Color(0.15, 0.08, 0.08), true)
