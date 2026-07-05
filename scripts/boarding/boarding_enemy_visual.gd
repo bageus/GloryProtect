@@ -155,7 +155,9 @@ func should_draw_procedural_for_tests() -> bool:
 
 
 func is_asset_mirrored_for_tests() -> bool:
-	return false
+	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(
+		_animation.is_facing_right()
+	)
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
