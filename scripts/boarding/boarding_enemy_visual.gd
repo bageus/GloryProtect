@@ -1,6 +1,8 @@
 class_name BoardingEnemyVisual
 extends Node2D
 
+const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
+
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("BoardingEnemyController") var controller_path: NodePath
 @export_group("Animation")
@@ -121,7 +123,7 @@ func is_detached_death() -> bool:
 
 
 func get_asset_frame_count_for_tests(state_id: StringName) -> int:
-	return BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, state_id)
+	return _get_effective_asset_frame_count(state_id)
 
 
 func get_asset_frame_paths_for_tests(state_id: StringName) -> PackedStringArray:
@@ -140,6 +142,10 @@ func get_current_asset_state_for_tests() -> StringName:
 	return _resolve_asset_state(_presentation_state_id)
 
 
+func get_current_asset_archetype_id_for_tests() -> StringName:
+	return _resolve_asset_archetype_id(get_current_asset_state_for_tests())
+
+
 func get_asset_state_for_tests(state_id: StringName) -> StringName:
 	return _resolve_asset_state(state_id)
 
@@ -149,7 +155,8 @@ func is_using_asset_sprite_for_tests() -> bool:
 
 
 func should_draw_procedural_for_tests() -> bool:
-	return get_current_asset_state_for_tests() == &"" and not is_using_asset_sprite_for_tests()
+	var asset_state: StringName = get_current_asset_state_for_tests()
+	return asset_state == &"" and not is_using_asset_sprite_for_tests()
 
 
 func is_asset_mirrored_for_tests() -> bool:
@@ -160,7 +167,10 @@ func get_current_asset_source_rect_for_tests() -> Rect2:
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
 	if asset_state == &"":
 		return Rect2()
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, asset_state)
+	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
+	if asset_archetype_id == &"":
+		return Rect2()
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(asset_archetype_id, asset_state)
 	if frames.is_empty():
 		return Rect2()
 	return _get_asset_source_rect(frames[0])
@@ -250,7 +260,7 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 func _get_frame_count(state_id: StringName) -> int:
 	var asset_state: StringName = _resolve_asset_state(state_id)
 	if asset_state != &"":
-		var asset_count: int = BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, asset_state)
+		var asset_count: int = _get_effective_asset_frame_count(asset_state)
 		if asset_count > 0:
 			return _get_logical_frame_count_for_assets(asset_state, asset_count)
 	match state_id:
@@ -302,7 +312,7 @@ func _draw() -> void:
 	var frame: int = _animation.get_frame_index()
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
 	var sprite_ready: bool = _sync_asset_sprite(frame)
-	if asset_state == &"" and not sprite_ready:
+	if asset_state == &"" and _resolve_asset_archetype_id(asset_state) == &"" and not sprite_ready:
 		_draw_procedural_actor(frame)
 	if not _detached_death:
 		_draw_health_bar()
@@ -328,7 +338,11 @@ func _sync_asset_sprite(frame: int) -> bool:
 	if asset_state == &"":
 		_clear_asset_sprite()
 		return false
-	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(_archetype_id, asset_state)
+	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
+	if asset_archetype_id == &"":
+		_clear_asset_sprite()
+		return false
+	var frames: Array[Texture2D] = BoardingEnemyVisualAssetCatalog.get_frames(asset_archetype_id, asset_state)
 	if frames.is_empty():
 		_clear_asset_sprite()
 		return false
@@ -378,9 +392,26 @@ func _resolve_asset_state(state_id: StringName) -> StringName:
 	_append_candidate(candidates, &"idle")
 	_append_candidate(candidates, &"run")
 	for candidate: StringName in candidates:
-		if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, candidate) > 0:
+		if _get_effective_asset_frame_count(candidate) > 0:
 			return candidate
 	return &""
+
+
+func _resolve_asset_archetype_id(asset_state: StringName) -> StringName:
+	if asset_state == &"":
+		return &""
+	if BoardingEnemyVisualAssetCatalog.get_frame_count(_archetype_id, asset_state) > 0:
+		return _archetype_id
+	if BoardingEnemyVisualAssetCatalog.get_frame_count(FALLBACK_ASSET_ARCHETYPE_ID, asset_state) > 0:
+		return FALLBACK_ASSET_ARCHETYPE_ID
+	return &""
+
+
+func _get_effective_asset_frame_count(asset_state: StringName) -> int:
+	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
+	if asset_archetype_id == &"":
+		return 0
+	return BoardingEnemyVisualAssetCatalog.get_frame_count(asset_archetype_id, asset_state)
 
 
 func _append_candidate(candidates: Array[StringName], state_id: StringName) -> void:
