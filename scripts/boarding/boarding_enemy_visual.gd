@@ -3,132 +3,6 @@ extends Node2D
 
 const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
 
-const BASE_IDLE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/idle/asset_enemy_base_idle_01.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/idle/asset_enemy_base_idle_02.png"),
-]
-const BASE_RUN_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/run/asset_enemy_base_run_01.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/run/asset_enemy_base_run_02.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/run/asset_enemy_base_run_03.png"),
-]
-const BASE_DIE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/die/asset_enemy_base_die_01.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/die/asset_enemy_base_die_02.png"),
-]
-const BASE_JUMP_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/jump/asset_enemy_base_jump_01.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/jump/asset_enemy_base_jump_02.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/jump/asset_enemy_base_jump_03.png"),
-]
-const BASE_FELL_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/fell/asset_enemy_base_fell_01.png"),
-]
-const BASE_CLIMB_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/climb/asset_enemy_base_climb_01.png"),
-]
-const BASE_ATTACK_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/base_enemy/attack_meal/asset_enemy_base_attack_01.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/attack_meal/asset_enemy_base_attack_02.png"),
-	preload("res://visual/enemies/Enemy1/base_enemy/attack_meal/asset_enemy_base_attack_03.png"),
-]
-
-const FLY_IDLE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fly_enemy/idle/asset_enemy_fly_idle_01.png"),
-]
-const FLY_FLY_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fly_enemy/fly/asset_enemy_fly_01.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/fly/asset_enemy_fly_02.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/fly/asset_enemy_fly_03.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/fly/asset_enemy_fly_04.png"),
-]
-const FLY_FELL_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fly_enemy/fell/asset_enemy_fly_fell_01.png"),
-]
-const FLY_DIE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fly_enemy/die/asset_enemy_fly_die_01.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/die/asset_enemy_fly_die_02.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/die/asset_enemy_fly_die_03.png"),
-]
-const FLY_ATTACK_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fly_enemy/attack_meal/asset_enemy_fly_attack_01.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/attack_meal/asset_enemy_fly_attack_02.png"),
-	preload("res://visual/enemies/Enemy1/fly_enemy/attack_meal/asset_enemy_fly_attack_03.png"),
-]
-
-const FAST_IDLE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/idle/asset_enemy_fast_idle_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/idle/asset_enemy_fast_idle_02.png"),
-]
-const FAST_JUMP_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/jump/asset_enemy_fast_jump_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/jump/asset_enemy_fast_jump_02.png"),
-]
-const FAST_RUN_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/run/asset_enemy_fast_run_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/run/asset_enemy_fast_run_02.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/run/asset_enemy_fast_run_03.png"),
-]
-const FAST_FELL_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/fell/asset_enemy_fast_fell_01.png"),
-]
-const FAST_DIE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/die/asset_enemy_fast_die_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/die/asset_enemy_fast_die_02.png"),
-]
-const FAST_CLIMB_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/climb/asset_enemy_fast_climb_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/climb/asset_enemy_fast_climb_02.png"),
-]
-const FAST_ATTACK_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/fast_enemy/attack_meal/asset_enemy_fast_attack_01.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/attack_meal/asset_enemy_fast_attack_02.png"),
-	preload("res://visual/enemies/Enemy1/fast_enemy/attack_meal/asset_enemy_fast_attack_03.png"),
-]
-
-const HEAVY_IDLE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/idle/asset_enemy_heavy_idle_01.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/idle/asset_enemy_heavy_idle_02.png"),
-]
-const HEAVY_RUN_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/run/asset_enemy_heavy_run_01.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/run/asset_enemy_heavy_run_02.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/run/asset_enemy_heavy_run_03.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/run/asset_enemy_heavy_run_04.png"),
-]
-const HEAVY_FELL_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/fell/asset_enemy_heavy_fell_01.png"),
-]
-const HEAVY_DIE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/die/asset_enemy_heavy_die_01.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/die/asset_enemy_heavy_die_02.png"),
-]
-const HEAVY_CLIMB_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/climb/asset_enemy_heavy_climb_01.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/climb/asset_enemy_heavy_climb_02.png"),
-]
-const HEAVY_ATTACK_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/heavy_enemy/attack_meal/asset_enemy_heavy_attack_01.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/attack_meal/asset_enemy_heavy_attack_02.png"),
-	preload("res://visual/enemies/Enemy1/heavy_enemy/attack_meal/asset_enemy_heavy_attack_03.png"),
-]
-
-const BOMB_IDLE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/bomb_enemy/idle/asset_enemy_bomb_idle_01.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/idle/asset_enemy_bomb_idle_02.png"),
-]
-const BOMB_RUN_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/bomb_enemy/run/asset_enemy_bomb_run_01.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/run/asset_enemy_bomb_run_02.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/run/asset_enemy_bomb_run_03.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/run/asset_enemy_bomb_run_04.png"),
-]
-const BOMB_DIE_TEXTURES: Array[Texture2D] = [
-	preload("res://visual/enemies/Enemy1/bomb_enemy/die/asset_enemy_bomb_die_01.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/die/asset_enemy_bomb_die_02.png"),
-	preload("res://visual/enemies/Enemy1/bomb_enemy/die/asset_enemy_bomb_die_03.png"),
-]
-
 @export_node_path("HealthComponent") var health_path: NodePath
 @export_node_path("BoardingEnemyController") var controller_path: NodePath
 @export_group("Animation")
@@ -185,8 +59,7 @@ func _process(delta: float) -> void:
 	var movement_delta: float = global_position.x - _last_global_x
 	_last_global_x = global_position.x
 	_animation.face_delta(movement_delta, 0.05)
-	var next_state: StringName = _resolve_presentation_state(movement_delta)
-	_update_animation(next_state, delta)
+	_update_animation(_resolve_presentation_state(movement_delta), delta)
 	queue_redraw()
 
 
@@ -248,7 +121,7 @@ func get_asset_frame_count_for_tests(state_id: StringName) -> int:
 
 
 func get_asset_frame_paths_for_tests(state_id: StringName) -> PackedStringArray:
-	if _get_direct_frame_count(_archetype_id, state_id) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(_archetype_id, state_id) > 0:
 		return BoardingEnemyVisualAssetCatalog.get_frame_paths(_archetype_id, state_id)
 	return BoardingEnemyVisualAssetCatalog.get_frame_paths(FALLBACK_ASSET_ARCHETYPE_ID, state_id)
 
@@ -282,14 +155,17 @@ func should_draw_procedural_for_tests() -> bool:
 
 
 func is_asset_mirrored_for_tests() -> bool:
-	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
+	return _animation.is_facing_right()
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
 	return _get_current_source_rect()
 
 
-func get_behavior_presentation_state_for_tests(state_id: StringName, movement_delta: float = 0.0) -> StringName:
+func get_behavior_presentation_state_for_tests(
+	state_id: StringName,
+	movement_delta: float = 0.0
+) -> StringName:
 	return _resolve_behavior_presentation_state(state_id, movement_delta)
 
 
@@ -323,7 +199,10 @@ func _resolve_presentation_state(movement_delta: float) -> StringName:
 			return &"idle"
 
 
-static func _resolve_behavior_presentation_state(state_id: StringName, movement_delta: float) -> StringName:
+static func _resolve_behavior_presentation_state(
+	state_id: StringName,
+	movement_delta: float
+) -> StringName:
 	match state_id:
 		&"flying":
 			return &"flying"
@@ -429,10 +308,7 @@ func _draw() -> void:
 	var source_rect: Rect2 = _get_current_source_rect()
 	var asset_size: Vector2 = _fit_asset_size(source_rect.size)
 	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
-	var asset_rect := Rect2(
-		feet - Vector2(asset_size.x * 0.5, asset_size.y),
-		asset_size
-	)
+	var asset_rect := Rect2(feet - Vector2(asset_size.x * 0.5, asset_size.y), asset_size)
 	if texture != null:
 		var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
@@ -444,12 +320,10 @@ func _draw() -> void:
 
 func _get_current_texture() -> Texture2D:
 	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
-	if asset_state == &"":
-		return null
 	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
-	if asset_archetype_id == &"":
+	if asset_state == &"" or asset_archetype_id == &"":
 		return null
-	var frames: Array[Texture2D] = _get_direct_frames(asset_archetype_id, asset_state)
+	var frames: Array[Texture2D] = BoardingEnemyVisualTextureBank.get_frames(asset_archetype_id, asset_state)
 	if frames.is_empty():
 		return null
 	return frames[_get_asset_frame_index(_animation.get_frame_index(), frames.size(), asset_state)]
@@ -498,9 +372,9 @@ func _resolve_asset_state(state_id: StringName) -> StringName:
 func _resolve_asset_archetype_id(asset_state: StringName) -> StringName:
 	if asset_state == &"":
 		return &""
-	if _get_direct_frame_count(_archetype_id, asset_state) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(_archetype_id, asset_state) > 0:
 		return _archetype_id
-	if _get_direct_frame_count(FALLBACK_ASSET_ARCHETYPE_ID, asset_state) > 0:
+	if BoardingEnemyVisualTextureBank.get_frame_count(FALLBACK_ASSET_ARCHETYPE_ID, asset_state) > 0:
 		return FALLBACK_ASSET_ARCHETYPE_ID
 	return &""
 
@@ -509,124 +383,7 @@ func _get_effective_asset_frame_count(asset_state: StringName) -> int:
 	var asset_archetype_id: StringName = _resolve_asset_archetype_id(asset_state)
 	if asset_archetype_id == &"":
 		return 0
-	return _get_direct_frame_count(asset_archetype_id, asset_state)
-
-
-func _get_direct_frame_count(archetype_id: StringName, state_id: StringName) -> int:
-	return _get_direct_frames(archetype_id, state_id).size()
-
-
-func _get_direct_frames(archetype_id: StringName, state_id: StringName) -> Array[Texture2D]:
-	var state: StringName = _normalize_asset_state(state_id)
-	match archetype_id:
-		&"basic":
-			return _get_base_frames(state)
-		&"flyer":
-			return _get_fly_frames(state)
-		&"runner":
-			return _get_fast_frames(state)
-		&"brute":
-			return _get_heavy_frames(state)
-		&"rope_saboteur", &"bomb_enemy":
-			return _get_bomb_frames(state)
-		_:
-			return []
-
-
-func _get_base_frames(state: StringName) -> Array[Texture2D]:
-	match state:
-		&"idle":
-			return BASE_IDLE_TEXTURES
-		&"run":
-			return BASE_RUN_TEXTURES
-		&"die":
-			return BASE_DIE_TEXTURES
-		&"jump":
-			return BASE_JUMP_TEXTURES
-		&"fell":
-			return BASE_FELL_TEXTURES
-		&"climb":
-			return BASE_CLIMB_TEXTURES
-		&"attack":
-			return BASE_ATTACK_TEXTURES
-		_:
-			return []
-
-
-func _get_fly_frames(state: StringName) -> Array[Texture2D]:
-	match state:
-		&"idle":
-			return FLY_IDLE_TEXTURES
-		&"flying", &"run":
-			return FLY_FLY_TEXTURES
-		&"fell":
-			return FLY_FELL_TEXTURES
-		&"die":
-			return FLY_DIE_TEXTURES
-		&"attack":
-			return FLY_ATTACK_TEXTURES
-		_:
-			return []
-
-
-func _get_fast_frames(state: StringName) -> Array[Texture2D]:
-	match state:
-		&"idle":
-			return FAST_IDLE_TEXTURES
-		&"jump":
-			return FAST_JUMP_TEXTURES
-		&"run":
-			return FAST_RUN_TEXTURES
-		&"fell":
-			return FAST_FELL_TEXTURES
-		&"die":
-			return FAST_DIE_TEXTURES
-		&"climb":
-			return FAST_CLIMB_TEXTURES
-		&"attack":
-			return FAST_ATTACK_TEXTURES
-		_:
-			return []
-
-
-func _get_heavy_frames(state: StringName) -> Array[Texture2D]:
-	match state:
-		&"idle":
-			return HEAVY_IDLE_TEXTURES
-		&"run":
-			return HEAVY_RUN_TEXTURES
-		&"fell":
-			return HEAVY_FELL_TEXTURES
-		&"die":
-			return HEAVY_DIE_TEXTURES
-		&"climb":
-			return HEAVY_CLIMB_TEXTURES
-		&"attack":
-			return HEAVY_ATTACK_TEXTURES
-		_:
-			return []
-
-
-func _get_bomb_frames(state: StringName) -> Array[Texture2D]:
-	match state:
-		&"idle":
-			return BOMB_IDLE_TEXTURES
-		&"run":
-			return BOMB_RUN_TEXTURES
-		&"die", &"attack":
-			return BOMB_DIE_TEXTURES
-		_:
-			return []
-
-
-func _normalize_asset_state(state_id: StringName) -> StringName:
-	match state_id:
-		&"death":
-			return &"die"
-		&"landing":
-			return &"fell"
-		_:
-			return state_id
+	return BoardingEnemyVisualTextureBank.get_frame_count(asset_archetype_id, asset_state)
 
 
 func _append_candidate(candidates: Array[StringName], state_id: StringName) -> void:
@@ -661,10 +418,7 @@ func _draw_health_bar(asset_rect: Rect2) -> void:
 	var segment_width := 8.0
 	var segment_height := 4.0
 	var gap := 2.0
-	var total_width := (
-		float(_health.max_health) * segment_width
-		+ float(_health.max_health - 1) * gap
-	)
+	var total_width := float(_health.max_health) * segment_width + float(_health.max_health - 1) * gap
 	var start_x := asset_rect.get_center().x - total_width * 0.5
 	var y := asset_rect.position.y - 8.0
 	for index: int in range(_health.max_health):
