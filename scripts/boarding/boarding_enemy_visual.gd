@@ -155,7 +155,9 @@ func should_draw_procedural_for_tests() -> bool:
 
 
 func is_asset_mirrored_for_tests() -> bool:
-	return _animation.is_facing_right()
+	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(
+		_animation.is_facing_right()
+	)
 
 
 func get_current_asset_source_rect_for_tests() -> Rect2:
@@ -313,10 +315,7 @@ func _draw() -> void:
 	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
 	var asset_rect := Rect2(feet - Vector2(asset_size.x * 0.5, asset_size.y), asset_size)
 	if texture != null:
-		var facing_scale: float = -1.0 if is_asset_mirrored_for_tests() else 1.0
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2(facing_scale, 1.0))
 		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	if not _detached_death:
 		_draw_health_bar(asset_rect)
 
