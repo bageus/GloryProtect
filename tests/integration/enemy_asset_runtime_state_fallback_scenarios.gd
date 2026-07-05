@@ -36,6 +36,7 @@ func _assert_visual_asset_fallback(
 	assert(visual.get_current_asset_state_for_tests() != &"")
 	assert(visual.has_replacement_asset_for_tests(visual.get_current_asset_state_for_tests()))
 	assert(visual.is_using_asset_sprite_for_tests())
+	assert(not visual.should_draw_procedural_for_tests())
 	assert(visual.get_asset_state_for_tests(&"unmapped_runtime_state") == &"idle")
 	assert(visual.get_asset_state_for_tests(&"waiting") == &"idle")
 	assert(visual.get_asset_state_for_tests(&"running_to_rope") == &"run")

@@ -148,6 +148,10 @@ func is_using_asset_sprite_for_tests() -> bool:
 	return _asset_sprite != null and _asset_sprite.visible and _asset_sprite.texture != null
 
 
+func should_draw_procedural_for_tests() -> bool:
+	return get_current_asset_state_for_tests() == &"" and not is_using_asset_sprite_for_tests()
+
+
 func is_asset_mirrored_for_tests() -> bool:
 	return BoardingEnemyVisualAssetCatalog.should_mirror_for_facing(_animation.is_facing_right())
 
@@ -296,7 +300,9 @@ func _get_attack_progress() -> float:
 
 func _draw() -> void:
 	var frame: int = _animation.get_frame_index()
-	if not is_using_asset_sprite_for_tests():
+	var asset_state: StringName = _resolve_asset_state(_presentation_state_id)
+	var sprite_ready: bool = _sync_asset_sprite(frame)
+	if asset_state == &"" and not sprite_ready:
 		_draw_procedural_actor(frame)
 	if not _detached_death:
 		_draw_health_bar()
