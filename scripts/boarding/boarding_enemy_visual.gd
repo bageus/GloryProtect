@@ -16,6 +16,7 @@ const FALLBACK_ASSET_ARCHETYPE_ID := &"basic"
 @export_range(32.0, 160.0, 1.0) var atlas_asset_height: float = 88.0
 @export_range(32.0, 160.0, 1.0) var atlas_asset_max_width: float = 96.0
 @export_range(0.0, 1.0, 0.01) var asset_alpha_crop_threshold: float = 0.08
+@export_range(100.0, 900.0, 10.0) var fall_detach_speed: float = 520.0
 @export var asset_offset: Vector2 = Vector2.ZERO
 
 var _body_radius: float = 12.0
@@ -27,6 +28,8 @@ var _presentation_state_id: StringName = &"idle"
 var _behavior_state_id: StringName = &""
 var _last_global_x: float = 0.0
 var _detached_death: bool = false
+var _detached_fall: bool = false
+var _fall_target_y: float = 0.0
 var _enemy: BoardingEnemy
 var _melee: MeleeAttackComponent
 var _asset_source_rect_cache: Dictionary = {}
@@ -49,6 +52,18 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if _detached_fall:
+		_animation.tick(delta)
+		global_position.y = move_toward(
+			global_position.y,
+			_fall_target_y,
+			fall_detach_speed * delta
+		)
+		if absf(global_position.y - _fall_target_y) <= 0.5:
+			queue_free()
+		else:
+			queue_redraw()
+		return
 	if _detached_death:
 		_animation.tick(delta)
 		if _animation.is_finished():
@@ -80,19 +95,25 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 
 
 func detach_for_death() -> void:
-	if _detached_death:
+	if _detached_death or _detached_fall:
 		return
 	_detached_death = true
 	_presentation_state_id = &"death"
 	_behavior_state_id = &""
-	var target_parent: Node = get_parent().get_parent() if get_parent() != null else null
-	if target_parent != null:
-		reparent(target_parent, true)
-	_controller = null
-	_health = null
-	_enemy = null
-	_melee = null
+	_detach_from_enemy_parent()
 	_animation.play(&"death", _get_frame_count(&"death"), death_frame_rate, false, true)
+	queue_redraw()
+
+
+func detach_for_fall(landing_y: float) -> void:
+	if _detached_death or _detached_fall:
+		return
+	_detached_fall = true
+	_fall_target_y = landing_y
+	_presentation_state_id = &"landing"
+	_behavior_state_id = &""
+	_detach_from_enemy_parent()
+	_animation.play(&"landing", _get_frame_count(&"landing"), flying_frame_rate, true, true)
 	queue_redraw()
 
 
@@ -114,6 +135,10 @@ func is_facing_right() -> bool:
 
 func is_detached_death() -> bool:
 	return _detached_death
+
+
+func is_detached_fall_for_tests() -> bool:
+	return _detached_fall
 
 
 func get_asset_frame_count_for_tests(state_id: StringName) -> int:
@@ -170,7 +195,11 @@ func get_current_asset_texture_size_for_tests() -> Vector2:
 
 
 func get_current_asset_draw_size_for_tests() -> Vector2:
-	return _fit_asset_size(_get_current_source_rect().size)
+	return _get_asset_draw_size(_get_current_source_rect().size)
+
+
+func get_current_asset_scale_multiplier_for_tests() -> float:
+	return _get_asset_scale_multiplier()
 
 
 func get_behavior_presentation_state_for_tests(
@@ -182,6 +211,17 @@ func get_behavior_presentation_state_for_tests(
 
 func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 	_animation.set_facing_right(facing_right)
+	queue_redraw()
+
+
+func debug_force_presentation_state_for_tests(state_id: StringName) -> void:
+	_presentation_state_id = state_id
+	_animation.play(
+		state_id,
+		_get_frame_count(state_id),
+		_get_frame_rate(state_id),
+		state_id not in [&"attack", &"jump", &"landing", &"death"]
+	)
 	queue_redraw()
 
 
@@ -221,7 +261,7 @@ static func _resolve_behavior_presentation_state(
 		&"flying":
 			return &"flying"
 		&"landing":
-			return &"landing"
+			return &"flying"
 		&"attacking", &"arming":
 			return &"attack"
 		&"boarded":
@@ -320,13 +360,26 @@ func _get_attack_progress() -> float:
 func _draw() -> void:
 	var texture: Texture2D = _get_current_texture()
 	var source_rect: Rect2 = _get_current_source_rect()
-	var asset_size: Vector2 = _fit_asset_size(source_rect.size)
+	var asset_size: Vector2 = _get_asset_draw_size(source_rect.size)
 	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
 	var asset_rect := Rect2(feet - Vector2(asset_size.x * 0.5, asset_size.y), asset_size)
 	if texture != null:
-		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
-	if not _detached_death:
+		_draw_asset_texture(texture, asset_rect, source_rect)
+	if not _detached_death and not _detached_fall:
 		_draw_health_bar(asset_rect)
+
+
+func _draw_asset_texture(texture: Texture2D, asset_rect: Rect2, source_rect: Rect2) -> void:
+	if not is_asset_mirrored_for_tests():
+		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
+		return
+	var mirrored_rect := Rect2(
+		Vector2(-asset_rect.position.x - asset_rect.size.x, asset_rect.position.y),
+		asset_rect.size
+	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1.0, 1.0))
+	draw_texture_rect_region(texture, mirrored_rect, source_rect, Color.WHITE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _get_current_texture() -> Texture2D:
@@ -345,6 +398,18 @@ func _get_current_source_rect() -> Rect2:
 	if texture == null:
 		return Rect2(Vector2.ZERO, Vector2(atlas_asset_max_width, atlas_asset_height))
 	return _get_asset_source_rect(texture)
+
+
+func _get_asset_draw_size(source_size: Vector2) -> Vector2:
+	return _fit_asset_size(source_size) * _get_asset_scale_multiplier()
+
+
+func _get_asset_scale_multiplier() -> float:
+	match _archetype_id:
+		&"rope_saboteur", &"bomb_enemy":
+			return 0.7
+		_:
+			return 1.0
 
 
 func _fit_asset_size(source_size: Vector2) -> Vector2:
@@ -447,6 +512,16 @@ func _draw_health_bar(asset_rect: Rect2) -> void:
 			fill = Color(0.35, 0.95, 0.48)
 		draw_rect(rect, fill, true)
 		draw_rect(rect, Color(0.75, 0.85, 0.9), false, 1.0)
+
+
+func _detach_from_enemy_parent() -> void:
+	var target_parent: Node = get_parent().get_parent() if get_parent() != null else null
+	if target_parent != null:
+		reparent(target_parent, true)
+	_controller = null
+	_health = null
+	_enemy = null
+	_melee = null
 
 
 func _on_enemy_visual_state_changed(_enemy_id: int, state_id: StringName) -> void:

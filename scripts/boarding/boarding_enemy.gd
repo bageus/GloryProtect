@@ -19,6 +19,7 @@ var _stun_remaining: float = 0.0
 var _damage_mark_remaining: float = 0.0
 var _damage_mark_multiplier: float = 1.0
 var _game_flow: GameFlowController
+var _fall_landing_y: float = 0.0
 
 @onready var health: HealthComponent = get_node(health_path)
 @onready var melee: MeleeAttackComponent = get_node(melee_path)
@@ -65,6 +66,7 @@ func configure(
 	assert(profile.is_valid(), "BoardingEnemy archetype is invalid")
 	archetype = profile
 	_game_flow = game_flow
+	_fall_landing_y = orbs.catalog.ground_y - balance.ground_vertical_offset
 	_stun_remaining = 0.0
 	_damage_mark_remaining = 0.0
 	_damage_mark_multiplier = 1.0
@@ -124,7 +126,7 @@ func apply_damage_mark(duration_seconds: float, damage_multiplier: float) -> boo
 func knock_down_from_anchor(reason: StringName = &"shooter_anchor_knockdown") -> bool:
 	if _dead or not health.is_alive() or not is_counted_as_climbing():
 		return false
-	kill(reason)
+	_kill_internal(reason, true)
 	return true
 
 
@@ -160,6 +162,10 @@ func get_target_domain() -> int:
 
 
 func kill(reason: StringName) -> void:
+	_kill_internal(reason, false)
+
+
+func _kill_internal(reason: StringName, use_fall_visual: bool) -> void:
 	if _dead:
 		return
 	_dead = true
@@ -171,7 +177,10 @@ func kill(reason: StringName) -> void:
 		behavior.stop()
 	controller.stop()
 	melee.cancel()
-	visual.detach_for_death()
+	if use_fall_visual:
+		visual.detach_for_fall(_fall_landing_y)
+	else:
+		visual.detach_for_death()
 	visible = false
 	died.emit(enemy_id, reason)
 	call_deferred("queue_free")

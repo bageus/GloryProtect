@@ -100,8 +100,7 @@ func _test_anchor_hunter_on_post(
 	_finish_ranged_sequence(defender)
 	assert(target.health.current_health < health_before)
 	assert(target.health.is_alive())
-	_assert_fifth_anchor_volley_knockdown(defender, crew, target)
-	_cleanup_enemy(target)
+	await _assert_fifth_anchor_volley_knockdown(defender, crew, target)
 	await process_frame
 
 
@@ -215,6 +214,7 @@ func _assert_fifth_anchor_volley_knockdown(
 ) -> void:
 	assert(target.is_counted_as_climbing())
 	assert(crew.get_shooter_upgrades().anchor_knockdown_fifth)
+	var fall_visual: BoardingEnemyVisual = target.visual
 	var resolver := ShooterCombatResolver.new()
 	resolver.configure(defender.shooter_combat.specialization_balance)
 	assert(resolver.resolve_volley_finished(
@@ -223,6 +223,13 @@ func _assert_fifth_anchor_volley_knockdown(
 		5
 	))
 	assert(not target.visible)
+	assert(fall_visual.is_detached_fall_for_tests())
+	assert(fall_visual.get_presentation_state_id() == &"landing")
+	for _frame: int in range(120):
+		if not is_instance_valid(fall_visual):
+			return
+		await physics_frame
+	assert(false, "Falling knockdown visual did not disappear after landing")
 
 
 func _cleanup_enemy(enemy: BoardingEnemy) -> void:
