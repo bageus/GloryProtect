@@ -69,6 +69,15 @@ func is_diagnostics_visible() -> bool:
 	return _diagnostics_visible
 
 
+func show_diagnostics_for_tests() -> void:
+	_diagnostics_visible = true
+	_refresh_diagnostics()
+
+
+func get_diagnostics_text_for_tests() -> String:
+	return _diagnostics_label.text
+
+
 func get_rendered_card_count() -> int:
 	return _cards_container.get_child_count()
 
@@ -414,18 +423,155 @@ func _refresh_diagnostics() -> void:
 	_diagnostics_label.visible = _diagnostics_visible
 	if not _diagnostics_visible:
 		return
+	_diagnostics_label.text = _build_upgrade_tree_diagnostics()
+
+
+func _build_upgrade_tree_diagnostics() -> String:
 	var lines := PackedStringArray([
-		"ДИАГНОСТИКА ДОСТУПНОСТИ",
+		"ДЕРЕВО УЛУЧШЕНИЙ ТЕСТОВОГО РЕЖИМА",
+		"✓ взято  ● доступно  ○ закрыто",
+		"Базовые открытия показаны корнями веток: турель, пост лекаря, стрелок и т.д.",
 	])
+	var branch_ids: Array[StringName] = []
+	var by_branch: Dictionary = {}
 	for definition: UpgradeDefinition in _upgrades.get_all_card_definitions():
-		var reason: StringName = _upgrades.get_card_unavailability_reason(
-			definition.card_id
+		if definition == null:
+			continue
+		var branch_id: StringName = definition.branch_id
+		if not by_branch.has(branch_id):
+			by_branch[branch_id] = []
+			branch_ids.append(branch_id)
+		var branch_definitions: Array = by_branch[branch_id]
+		branch_definitions.append(definition)
+		by_branch[branch_id] = branch_definitions
+	for branch_id: StringName in branch_ids:
+		_append_branch_tree(lines, branch_id, by_branch[branch_id])
+	return "\n".join(lines)
+
+
+func _append_branch_tree(
+	lines: PackedStringArray,
+	branch_id: StringName,
+	definitions: Array
+) -> void:
+	lines.append("")
+	lines.append("[%s]" % UpgradeCardFormatter.get_branch_name(branch_id))
+	var by_id: Dictionary = {}
+	var children: Dictionary = {}
+	for definition: UpgradeDefinition in definitions:
+		by_id[definition.card_id] = definition
+		children[definition.card_id] = []
+	var roots: Array[UpgradeDefinition] = []
+	for definition: UpgradeDefinition in definitions:
+		var parent_id: StringName = _get_tree_parent_card_id(definition, by_id)
+		if parent_id == &"":
+			roots.append(definition)
+		else:
+			var child_list: Array = children[parent_id]
+			child_list.append(definition)
+			children[parent_id] = child_list
+	if roots.is_empty():
+		roots = definitions.duplicate()
+	for index: int in range(roots.size()):
+		_append_definition_tree(
+			lines,
+			roots[index],
+			children,
+			"",
+			index == roots.size() - 1,
+			{}
 		)
-		lines.append("%s — %s" % [
-			definition.title,
-			UpgradeCardFormatter.get_diagnostic_text(reason),
+
+
+func _append_definition_tree(
+	lines: PackedStringArray,
+	definition: UpgradeDefinition,
+	children: Dictionary,
+	indent: String,
+	is_last: bool,
+	visited: Dictionary
+) -> void:
+	if definition == null or visited.has(definition.card_id):
+		return
+	visited[definition.card_id] = true
+	var connector := "└─ " if is_last else "├─ "
+	var type_name: String = UpgradeCardFormatter.get_type_name(definition.card_type)
+	var reason: StringName = _upgrades.get_card_unavailability_reason(definition.card_id)
+	lines.append("%s%s%s %s [%s] — %s%s" % [
+		indent,
+		connector,
+		_get_tree_status_symbol(definition, reason),
+		definition.title,
+		type_name,
+		UpgradeCardFormatter.get_diagnostic_text(reason),
+		_get_compact_requirement_text(definition),
+	])
+	var child_list: Array = children.get(definition.card_id, [])
+	var next_indent: String = indent + ("   " if is_last else "│  ")
+	for index: int in range(child_list.size()):
+		_append_definition_tree(
+			lines,
+			child_list[index],
+			children,
+			next_indent,
+			index == child_list.size() - 1,
+			visited
+		)
+
+
+func _get_tree_parent_card_id(
+	definition: UpgradeDefinition,
+	by_id: Dictionary
+) -> StringName:
+	for prerequisite_id: StringName in definition.prerequisite_card_ids:
+		if by_id.has(prerequisite_id):
+			return prerequisite_id
+	if definition.required_repeat_card_id != &"" and by_id.has(definition.required_repeat_card_id):
+		return definition.required_repeat_card_id
+	if definition.required_specialization_id != &"" and by_id.has(definition.required_specialization_id):
+		return definition.required_specialization_id
+	return &""
+
+
+func _get_tree_status_symbol(
+	definition: UpgradeDefinition,
+	reason: StringName
+) -> String:
+	if _upgrades.get_runtime().has_card(definition.card_id):
+		return "✓"
+	return "●" if reason == &"" else "○"
+
+
+func _get_compact_requirement_text(definition: UpgradeDefinition) -> String:
+	var requirements := PackedStringArray()
+	if not definition.prerequisite_card_ids.is_empty():
+		requirements.append("после %s" % _join_card_titles(definition.prerequisite_card_ids))
+	if definition.required_repeat_count > 0:
+		requirements.append("нужно %s ×%d" % [
+			_get_card_title(definition.required_repeat_card_id),
+			definition.required_repeat_count,
 		])
-	_diagnostics_label.text = "\n".join(lines)
+	if definition.required_specialization_id != &"":
+		requirements.append("спец. %s" % _get_card_title(definition.required_specialization_id))
+	if definition.required_specialized_branch_id != &"":
+		requirements.append("нужна специализация ветки %s" % UpgradeCardFormatter.get_branch_name(definition.required_specialized_branch_id))
+	if definition.required_completed_branch_id != &"":
+		requirements.append("нужна завершённая линия %s" % UpgradeCardFormatter.get_branch_name(definition.required_completed_branch_id))
+	if definition.card_type == UpgradeDefinition.CardType.SPECIALIZATION:
+		requirements.append("событие специализации после базовой линии")
+	return "" if requirements.is_empty() else " | " + "; ".join(requirements)
+
+
+func _join_card_titles(card_ids: Array[StringName]) -> String:
+	var titles := PackedStringArray()
+	for card_id: StringName in card_ids:
+		titles.append(_get_card_title(card_id))
+	return ", ".join(titles)
+
+
+func _get_card_title(card_id: StringName) -> String:
+	var definition: UpgradeDefinition = _upgrades.catalog.get_definition(card_id)
+	return definition.title if definition != null else String(card_id)
 
 
 func _get_card_button(card_index: int) -> Button:
