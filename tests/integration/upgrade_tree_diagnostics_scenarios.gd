@@ -39,5 +39,19 @@ func _run() -> void:
 	assert(tree.contains("Улучшенный выстрел арбалета"))
 	assert(tree.contains("после Стрелок"))
 
+	var contact_preview: String = (
+		panel.get_dependency_preview_text_for_tests(&"shield_contact_basic")
+	)
+	assert(contact_preview.contains("Дальше по цепочке"))
+	assert(contact_preview.contains("   └─ ○ Мега-контакт"))
+	var mega_contact_preview: String = (
+		panel.get_dependency_preview_text_for_tests(&"shield_contact_advanced")
+	)
+	assert(mega_contact_preview.contains("Требуется выше: Расширенный контакт"))
+	var turret_preview: String = (
+		panel.get_dependency_preview_text_for_tests(&"turret_post")
+	)
+	assert(turret_preview.contains("   └─ ○"))
+
 	print("Upgrade tree diagnostics scenarios passed")
 	quit()
