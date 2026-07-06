@@ -185,6 +185,17 @@ func debug_set_facing_right_for_tests(facing_right: bool) -> void:
 	queue_redraw()
 
 
+func debug_force_presentation_state_for_tests(state_id: StringName) -> void:
+	_presentation_state_id = state_id
+	_animation.play(
+		state_id,
+		_get_frame_count(state_id),
+		_get_frame_rate(state_id),
+		state_id not in [&"attack", &"jump", &"landing", &"death"]
+	)
+	queue_redraw()
+
+
 func _resolve_presentation_state(movement_delta: float) -> StringName:
 	var is_moving: bool = absf(movement_delta) > 0.05
 	if _behavior_state_id != &"":
@@ -324,9 +335,22 @@ func _draw() -> void:
 	var feet := Vector2(0.0, _body_radius + 4.0) + asset_offset
 	var asset_rect := Rect2(feet - Vector2(asset_size.x * 0.5, asset_size.y), asset_size)
 	if texture != null:
-		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
+		_draw_asset_texture(texture, asset_rect, source_rect)
 	if not _detached_death:
 		_draw_health_bar(asset_rect)
+
+
+func _draw_asset_texture(texture: Texture2D, asset_rect: Rect2, source_rect: Rect2) -> void:
+	if not is_asset_mirrored_for_tests():
+		draw_texture_rect_region(texture, asset_rect, source_rect, Color.WHITE)
+		return
+	var mirrored_rect := Rect2(
+		Vector2(-asset_rect.position.x - asset_rect.size.x, asset_rect.position.y),
+		asset_rect.size
+	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1.0, 1.0))
+	draw_texture_rect_region(texture, mirrored_rect, source_rect, Color.WHITE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _get_current_texture() -> Texture2D:
