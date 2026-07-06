@@ -158,7 +158,8 @@ func has_rendered_card_label(card_index: int, label_name: String) -> bool:
 
 func _on_offer_opened(
 	_offer_number: int,
-	_cost: int,	_card_count: int
+	_cost: int,
+	_card_count: int
 ) -> void:
 	_selection_pending = false
 	_show_current_offer()
