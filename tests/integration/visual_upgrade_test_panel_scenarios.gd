@@ -35,6 +35,18 @@ func _run() -> void:
 	assert(panel.get_item_depth_for_tests(
 		&"shield_contact_advanced"
 	) > panel.get_item_depth_for_tests(&"shield_contact_basic"))
+	assert(panel.get_item_visible_text_for_tests(
+		&"shield_contact_basic"
+	) == "Расширенный контакт")
+	assert(panel.get_item_visible_text_for_tests(
+		&"shield_contact_advanced"
+	) == "Мега-контакт")
+	assert(not panel.get_item_visible_text_for_tests(
+		&"shield_contact_basic"
+	).contains("Открывает"))
+	assert(not panel.get_item_visible_text_for_tests(
+		&"shield_contact_advanced"
+	).contains("Требуется"))
 	assert(panel.get_item_description_for_tests(
 		&"shield_contact_basic"
 	).contains("Открывает: Мега-контакт"))
