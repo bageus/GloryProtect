@@ -11,8 +11,7 @@ const VISUAL_TARGET_PREFIXES: PackedStringArray = [
 	"shooter_",
 ]
 
-const COLUMN_INFO: int = 0
-const COLUMN_TOGGLE: int = 1
+const COLUMN_UPGRADE: int = 0
 
 var _game: Node
 var _game_flow: GameFlowController
@@ -67,7 +66,12 @@ func get_item_depth_for_tests(card_id: StringName) -> int:
 
 func get_item_description_for_tests(card_id: StringName) -> String:
 	var item: TreeItem = _items.get(card_id, null)
-	return "" if item == null else item.get_text(COLUMN_INFO)
+	return "" if item == null else item.get_tooltip_text(COLUMN_UPGRADE)
+
+
+func get_item_visible_text_for_tests(card_id: StringName) -> String:
+	var item: TreeItem = _items.get(card_id, null)
+	return "" if item == null else item.get_text(COLUMN_UPGRADE)
 
 
 func get_parent_card_id_for_tests(card_id: StringName) -> StringName:
@@ -109,7 +113,7 @@ func _build_ui() -> void:
 	panel.anchor_right = 1.0
 	panel.anchor_top = 0.0
 	panel.anchor_bottom = 1.0
-	panel.offset_left = -540.0
+	panel.offset_left = -380.0
 	panel.offset_right = -8.0
 	panel.offset_top = 16.0
 	panel.offset_bottom = -16.0
@@ -135,17 +139,17 @@ func _build_ui() -> void:
 	box.add_child(title)
 
 	var note := Label.new()
-	note.text = "Карточки отключены. Улучшения включаются только в этой палитре: зависимые пункты ниже, с отступом и затемнением."
+	note.text = "Карточки отключены. Улучшения включаются только здесь. Описание — при наведении на название."
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	note.add_theme_font_size_override("font_size", 12)
 	box.add_child(note)
 
 	_tree = Tree.new()
 	_tree.hide_root = true
-	_tree.columns = 2
+	_tree.columns = 1
 	_tree.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_tree.custom_minimum_size = Vector2(500.0, 560.0)
+	_tree.custom_minimum_size = Vector2(340.0, 560.0)
 	_tree.item_edited.connect(_on_tree_item_edited)
 	box.add_child(_tree)
 
@@ -190,9 +194,8 @@ func _rebuild_tree() -> void:
 		var branch_definitions: Array = grouped[branch_id]
 		_build_dependency_maps(branch_definitions)
 		var branch_item: TreeItem = _tree.create_item(root)
-		branch_item.set_text(COLUMN_INFO, _format_branch(branch_id))
-		branch_item.set_selectable(COLUMN_INFO, false)
-		branch_item.set_selectable(COLUMN_TOGGLE, false)
+		branch_item.set_text(COLUMN_UPGRADE, _format_branch(branch_id))
+		branch_item.set_selectable(COLUMN_UPGRADE, false)
 		branch_item.collapsed = false
 		for definition: UpgradeDefinition in _get_branch_roots(branch_definitions):
 			_append_definition_item(branch_item, definition, 0)
@@ -255,13 +258,11 @@ func _append_definition_item(
 	depth: int
 ) -> void:
 	var item: TreeItem = _tree.create_item(parent_item)
-	item.set_cell_mode(COLUMN_TOGGLE, TreeItem.CELL_MODE_CHECK)
-	item.set_editable(COLUMN_TOGGLE, true)
-	item.set_text(COLUMN_INFO, _get_row_info_text(definition))
-	item.set_text(COLUMN_TOGGLE, definition.title)
-	item.set_tooltip_text(COLUMN_INFO, definition.description)
-	item.set_tooltip_text(COLUMN_TOGGLE, String(definition.card_id))
-	item.set_metadata(COLUMN_TOGGLE, definition.card_id)
+	item.set_cell_mode(COLUMN_UPGRADE, TreeItem.CELL_MODE_CHECK)
+	item.set_editable(COLUMN_UPGRADE, true)
+	item.set_text(COLUMN_UPGRADE, definition.title)
+	item.set_tooltip_text(COLUMN_UPGRADE, _get_hover_description(definition))
+	item.set_metadata(COLUMN_UPGRADE, definition.card_id)
 	_items[definition.card_id] = item
 	_ordered_ids.append(definition.card_id)
 	_item_depths[definition.card_id] = depth
@@ -275,10 +276,10 @@ func _on_tree_item_edited() -> void:
 	var item: TreeItem = _tree.get_edited()
 	if item == null:
 		return
-	var card_id: StringName = item.get_metadata(COLUMN_TOGGLE)
-	var enabled: bool = item.is_checked(COLUMN_TOGGLE)
+	var card_id: StringName = item.get_metadata(COLUMN_UPGRADE)
+	var enabled: bool = item.is_checked(COLUMN_UPGRADE)
 	if enabled and not _are_requirements_selected(_definitions.get(card_id, null)):
-		item.set_checked(COLUMN_TOGGLE, false)
+		item.set_checked(COLUMN_UPGRADE, false)
 		_sync_tree_checks()
 		return
 	_set_selected(card_id, enabled)
@@ -376,8 +377,8 @@ func _sync_tree_checks() -> void:
 			continue
 		var selected: bool = bool(_selected.get(card_id, false))
 		var available: bool = _are_requirements_selected(definition)
-		item.set_checked(COLUMN_TOGGLE, selected)
-		item.set_editable(COLUMN_TOGGLE, available)
+		item.set_checked(COLUMN_UPGRADE, selected)
+		item.set_editable(COLUMN_UPGRADE, available)
 		_dimmed_ids[card_id] = not available
 		_apply_item_visual_state(item, available, selected)
 	_applying = false
@@ -385,15 +386,12 @@ func _sync_tree_checks() -> void:
 
 func _apply_item_visual_state(item: TreeItem, available: bool, selected: bool) -> void:
 	if selected:
-		item.set_custom_color(COLUMN_INFO, Color(0.68, 0.86, 0.72, 1.0))
-		item.set_custom_color(COLUMN_TOGGLE, Color(0.92, 1.0, 0.88, 1.0))
+		item.set_custom_color(COLUMN_UPGRADE, Color(0.92, 1.0, 0.88, 1.0))
 		return
 	if available:
-		item.set_custom_color(COLUMN_INFO, Color(0.74, 0.78, 0.84, 1.0))
-		item.set_custom_color(COLUMN_TOGGLE, Color(0.92, 0.94, 0.98, 1.0))
+		item.set_custom_color(COLUMN_UPGRADE, Color(0.92, 0.94, 0.98, 1.0))
 		return
-	item.set_custom_color(COLUMN_INFO, Color(0.40, 0.43, 0.48, 0.78))
-	item.set_custom_color(COLUMN_TOGGLE, Color(0.55, 0.57, 0.62, 0.78))
+	item.set_custom_color(COLUMN_UPGRADE, Color(0.55, 0.57, 0.62, 0.78))
 
 
 func _update_feedback(applied: int, rejected: PackedStringArray) -> void:
@@ -458,18 +456,18 @@ func _get_parent_card_id(definition: UpgradeDefinition, by_id: Dictionary) -> St
 	return &""
 
 
-func _get_row_info_text(definition: UpgradeDefinition) -> String:
-	var chunks := PackedStringArray()
+func _get_hover_description(definition: UpgradeDefinition) -> String:
+	var lines := PackedStringArray([definition.title])
 	var requirement_text: String = _get_requirement_text(definition)
 	if not requirement_text.is_empty():
-		chunks.append(requirement_text)
+		lines.append(requirement_text)
 	var child_titles := _get_direct_child_titles(definition.card_id)
 	if not child_titles.is_empty():
-		chunks.append("Открывает: %s" % ", ".join(child_titles))
-	var short_description: String = _get_short_description(definition)
-	if not short_description.is_empty():
-		chunks.append(short_description)
-	return " — ".join(chunks)
+		lines.append("Открывает: %s" % ", ".join(child_titles))
+	var description: String = definition.description.strip_edges()
+	if not description.is_empty():
+		lines.append(description)
+	return "\n".join(lines)
 
 
 func _get_requirement_text(definition: UpgradeDefinition) -> String:
@@ -505,16 +503,6 @@ func _join_card_titles(card_ids: Array[StringName]) -> String:
 func _get_card_title(card_id: StringName) -> String:
 	var definition: UpgradeDefinition = _upgrade_system.catalog.get_definition(card_id)
 	return definition.title if definition != null else String(card_id)
-
-
-func _get_short_description(definition: UpgradeDefinition) -> String:
-	var description: String = definition.description.strip_edges()
-	if description.is_empty():
-		return ""
-	var period_index: int = description.find(".")
-	if period_index >= 0:
-		description = description.substr(0, period_index + 1)
-	return description
 
 
 func _format_branch(branch_id: StringName) -> String:
