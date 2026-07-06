@@ -77,6 +77,7 @@ func _test_landing_before_melee(
 	)
 	await physics_frame
 	assert(behavior.state == FlyingEnemyBehavior.State.LANDING)
+	assert(enemy.visual.get_presentation_state_id() == &"flying")
 	assert(not behavior.is_landed())
 	assert(not enemy.is_counted_as_boarded())
 	assert(target.health.current_health == health_before)
