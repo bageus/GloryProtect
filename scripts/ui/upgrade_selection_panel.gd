@@ -158,8 +158,7 @@ func has_rendered_card_label(card_index: int, label_name: String) -> bool:
 
 func _on_offer_opened(
 	_offer_number: int,
-	_cost: int,
-	_card_count: int
+	_cost: int,	_card_count: int
 ) -> void:
 	_selection_pending = false
 	_show_current_offer()
@@ -201,9 +200,7 @@ func _rebuild_card_buttons() -> void:
 	var offer_number: int = _upgrades.get_current_offer_number()
 	for card_index: int in range(_upgrades.get_card_count()):
 		var card_id: StringName = _upgrades.get_card_id(card_index)
-		var definition: UpgradeDefinition = _upgrades.get_card_definition(
-			card_index
-		)
+		var definition: UpgradeDefinition = _upgrades.get_card_definition(card_index)
 		if definition == null:
 			continue
 		var button := Button.new()
@@ -218,9 +215,7 @@ func _rebuild_card_buttons() -> void:
 		)
 		_apply_card_style(button, definition.card_type)
 		_build_card_content(button, definition)
-		button.pressed.connect(
-			_submit_card.bind(card_id, offer_number)
-		)
+		button.pressed.connect(_submit_card.bind(card_id, offer_number))
 		_cards_container.add_child(button)
 
 
@@ -315,7 +310,7 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 			var dependency_label := _make_card_label(
 				"DependencyPreviewLabel",
 				dependency_text,
-				13,
+				12,
 				Color(0.52, 0.58, 0.68, 0.82),
 				HORIZONTAL_ALIGNMENT_LEFT
 			)
@@ -461,7 +456,6 @@ func _build_dependency_preview_text(definition: UpgradeDefinition) -> String:
 	)
 	var lines := PackedStringArray()
 	if not child_definitions.is_empty():
-		lines.append("Дальше по цепочке:")
 		for child_definition: UpgradeDefinition in child_definitions:
 			lines.append("   └─ ○ %s" % child_definition.title)
 		return "\n".join(lines)
