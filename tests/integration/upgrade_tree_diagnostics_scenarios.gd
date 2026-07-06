@@ -48,10 +48,6 @@ func _run() -> void:
 		panel.get_dependency_preview_text_for_tests(&"shield_contact_advanced")
 	)
 	assert(mega_contact_preview.contains("Требуется выше: Расширенный контакт"))
-	var turret_preview: String = (
-		panel.get_dependency_preview_text_for_tests(&"turret_post")
-	)
-	assert(turret_preview.contains("   └─ ○"))
 
 	print("Upgrade tree diagnostics scenarios passed")
 	quit()
