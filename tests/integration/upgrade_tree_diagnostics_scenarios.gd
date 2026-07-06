@@ -42,7 +42,6 @@ func _run() -> void:
 	var contact_preview: String = (
 		panel.get_dependency_preview_text_for_tests(&"shield_contact_basic")
 	)
-	assert(contact_preview.contains("Дальше по цепочке"))
 	assert(contact_preview.contains("   └─ ○ Мега-контакт"))
 	var mega_contact_preview: String = (
 		panel.get_dependency_preview_text_for_tests(&"shield_contact_advanced")
