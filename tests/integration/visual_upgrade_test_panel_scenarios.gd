@@ -24,6 +24,33 @@ func _run() -> void:
 	assert(panel.is_test_panel_ready_for_tests())
 	assert(panel.get_toggle_count_for_tests() > 0)
 	assert(panel.is_card_ui_suppressed_for_tests())
+	flow.begin_card_selection()
+	await process_frame
+	assert(panel.is_card_ui_suppressed_for_tests())
+	assert(flow.state == GameFlowController.RunState.RUNNING)
+
+	assert(panel.get_parent_card_id_for_tests(
+		&"shield_contact_advanced"
+	) == &"shield_contact_basic")
+	assert(panel.get_item_depth_for_tests(
+		&"shield_contact_advanced"
+	) > panel.get_item_depth_for_tests(&"shield_contact_basic"))
+	assert(panel.get_item_description_for_tests(
+		&"shield_contact_basic"
+	).contains("Открывает: Мега-контакт"))
+	assert(panel.get_item_description_for_tests(
+		&"shield_contact_advanced"
+	).contains("Требуется: Расширенный контакт"))
+	assert(panel.is_item_dimmed_for_tests(&"shield_contact_advanced"))
+	assert(not panel.toggle_upgrade_for_tests(&"shield_contact_advanced", true))
+	assert(not panel.is_upgrade_selected_for_tests(&"shield_contact_advanced"))
+	assert(panel.toggle_upgrade_for_tests(&"shield_contact_basic", true))
+	assert(not panel.is_item_dimmed_for_tests(&"shield_contact_advanced"))
+	assert(panel.toggle_upgrade_for_tests(&"shield_contact_advanced", true))
+	assert(panel.is_upgrade_selected_for_tests(&"shield_contact_advanced"))
+	assert(panel.toggle_upgrade_for_tests(&"shield_contact_basic", false))
+	assert(not panel.is_upgrade_selected_for_tests(&"shield_contact_basic"))
+	assert(not panel.is_upgrade_selected_for_tests(&"shield_contact_advanced"))
 
 	var shield_core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
 	assert(not shield_core.upgrades.has_distributed_specialization())
