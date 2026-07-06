@@ -11,6 +11,7 @@ const CARD_META_GROUP_ID: StringName = &"card_group_id"
 const CARD_META_PRICE_LABEL: StringName = &"price_label"
 const CARD_META_PRICE_PANEL: StringName = &"price_panel"
 const CARD_META_TYPE_LABEL: StringName = &"type_label"
+const CARD_META_DEPENDENCY_PREVIEW_LABEL: StringName = &"dependency_preview_label"
 
 @export_node_path("UpgradeSystem") var upgrade_system_path: NodePath
 
@@ -46,6 +47,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if key_event.keycode == KEY_F9:
 		_diagnostics_visible = not _diagnostics_visible
+		_rebuild_card_buttons()
 		_refresh_diagnostics()
 		get_viewport().set_input_as_handled()
 		return
@@ -71,11 +73,16 @@ func is_diagnostics_visible() -> bool:
 
 func show_diagnostics_for_tests() -> void:
 	_diagnostics_visible = true
+	_rebuild_card_buttons()
 	_refresh_diagnostics()
 
 
 func get_diagnostics_text_for_tests() -> String:
 	return _diagnostics_label.text
+
+
+func get_dependency_preview_text_for_tests(card_id: StringName) -> String:
+	return _build_dependency_preview_text(_upgrades.catalog.get_definition(card_id))
 
 
 func get_rendered_card_count() -> int:
@@ -121,6 +128,14 @@ func get_rendered_card_type_text(card_index: int) -> String:
 
 func get_rendered_card_price_text(card_index: int) -> String:
 	var label: Label = _get_card_meta_label(card_index, CARD_META_PRICE_LABEL)
+	return "" if label == null else label.text
+
+
+func get_rendered_card_dependency_preview_text(card_index: int) -> String:
+	var label: Label = _get_card_meta_label(
+		card_index,
+		CARD_META_DEPENDENCY_PREVIEW_LABEL
+	)
 	return "" if label == null else label.text
 
 
@@ -186,9 +201,7 @@ func _rebuild_card_buttons() -> void:
 	var offer_number: int = _upgrades.get_current_offer_number()
 	for card_index: int in range(_upgrades.get_card_count()):
 		var card_id: StringName = _upgrades.get_card_id(card_index)
-		var definition: UpgradeDefinition = _upgrades.get_card_definition(
-			card_index
-		)
+		var definition: UpgradeDefinition = _upgrades.get_card_definition(card_index)
 		if definition == null:
 			continue
 		var button := Button.new()
@@ -203,9 +216,7 @@ func _rebuild_card_buttons() -> void:
 		)
 		_apply_card_style(button, definition.card_type)
 		_build_card_content(button, definition)
-		button.pressed.connect(
-			_submit_card.bind(card_id, offer_number)
-		)
+		button.pressed.connect(_submit_card.bind(card_id, offer_number))
 		_cards_container.add_child(button)
 
 
@@ -294,6 +305,18 @@ func _build_card_content(button: Button, definition: UpgradeDefinition) -> void:
 			Color(0.74, 0.82, 0.92),
 			HORIZONTAL_ALIGNMENT_CENTER
 		))
+	if _diagnostics_visible:
+		var dependency_text: String = _build_dependency_preview_text(definition)
+		if not dependency_text.is_empty():
+			var dependency_label := _make_card_label(
+				"DependencyPreviewLabel",
+				dependency_text,
+				12,
+				Color(0.52, 0.58, 0.68, 0.82),
+				HORIZONTAL_ALIGNMENT_LEFT
+			)
+			button.set_meta(CARD_META_DEPENDENCY_PREVIEW_LABEL, dependency_label)
+			content_box.add_child(dependency_label)
 
 	var price_panel := PanelContainer.new()
 	price_panel.name = "PricePanel"
@@ -424,6 +447,63 @@ func _refresh_diagnostics() -> void:
 	if not _diagnostics_visible:
 		return
 	_diagnostics_label.text = UpgradeDiagnosticsTreeFormatter.build(_upgrades)
+
+
+func _build_dependency_preview_text(definition: UpgradeDefinition) -> String:
+	if definition == null:
+		return ""
+	var child_definitions: Array[UpgradeDefinition] = _get_direct_child_definitions(
+		definition.card_id
+	)
+	var lines := PackedStringArray()
+	if not child_definitions.is_empty():
+		for child_definition: UpgradeDefinition in child_definitions:
+			lines.append("   └─ ○ %s" % child_definition.title)
+		return "\n".join(lines)
+	if not definition.prerequisite_card_ids.is_empty():
+		return "Требуется выше: %s" % _join_card_titles(
+			definition.prerequisite_card_ids
+		)
+	if definition.required_repeat_card_id != &"":
+		return "Требуется выше: %s ×%d" % [
+			_get_card_title(definition.required_repeat_card_id),
+			definition.required_repeat_count,
+		]
+	if definition.required_specialization_id != &"":
+		return "Требуется специализация: %s" % _get_card_title(
+			definition.required_specialization_id
+		)
+	return ""
+
+
+func _get_direct_child_definitions(card_id: StringName) -> Array[UpgradeDefinition]:
+	var result: Array[UpgradeDefinition] = []
+	if card_id == &"":
+		return result
+	for definition: UpgradeDefinition in _upgrades.get_all_card_definitions():
+		if definition == null:
+			continue
+		if card_id in definition.prerequisite_card_ids:
+			result.append(definition)
+			continue
+		if definition.required_repeat_card_id == card_id:
+			result.append(definition)
+			continue
+		if definition.required_specialization_id == card_id:
+			result.append(definition)
+	return result
+
+
+func _join_card_titles(card_ids: Array[StringName]) -> String:
+	var titles := PackedStringArray()
+	for card_id: StringName in card_ids:
+		titles.append(_get_card_title(card_id))
+	return ", ".join(titles)
+
+
+func _get_card_title(card_id: StringName) -> String:
+	var definition: UpgradeDefinition = _upgrades.catalog.get_definition(card_id)
+	return definition.title if definition != null else String(card_id)
 
 
 func _get_card_button(card_index: int) -> Button:
