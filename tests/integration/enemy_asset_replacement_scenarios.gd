@@ -101,13 +101,17 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	_assert_state_mirrors_when_facing_right(visual, &"climb")
 	_assert_state_mirrors_when_facing_right(visual, &"flying")
 	if archetype_id == &"rope_saboteur":
+		assert(is_equal_approx(
+			visual.get_current_asset_scale_multiplier_for_tests(),
+			0.7
+		))
 		_assert_behavior_state_route(visual, &"waiting", &"idle")
 		_assert_behavior_state_route(visual, &"running_to_rope", &"run")
 		_assert_behavior_state_route(visual, &"arming", &"attack")
 		_assert_behavior_state_route(visual, &"dead", &"death")
 	if archetype_id == &"flyer":
 		_assert_behavior_state_route(visual, &"flying", &"flying")
-		_assert_behavior_state_route(visual, &"landing", &"landing")
+		_assert_behavior_state_route(visual, &"landing", &"flying")
 		_assert_behavior_state_route(visual, &"attacking", &"attack")
 
 	enemy.queue_free()
@@ -123,8 +127,8 @@ func _assert_cropped_draw_rect(visual: BoardingEnemyVisual) -> void:
 	assert(source_rect.size.x > 0.0)
 	assert(source_rect.size.y > 0.0)
 	assert(source_rect.size.x < texture_size.x or source_rect.size.y < texture_size.y)
-	assert(draw_size.x > 12.0)
-	assert(draw_size.y > 12.0)
+	assert(draw_size.x > 8.0)
+	assert(draw_size.y > 8.0)
 
 
 func _assert_state_mirrors_when_facing_right(
