@@ -30,6 +30,9 @@ func _run() -> void:
 	assert(visual.is_configured_for_tests())
 	assert(visual.are_anchor_asset_regions_valid_for_tests())
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
+	assert(visual.object_asset_scale <= 0.12)
+	assert(visual.get_clamp_visual_scale() <= 0.13)
+	assert(visual.chain_tile_height <= 20.0)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
