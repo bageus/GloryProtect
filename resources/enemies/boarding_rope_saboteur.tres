@@ -23,4 +23,4 @@ unlock_difficulty = 0.25
 weight_at_unlock = 0.15
 weight_at_max_difficulty = 0.75
 rope_damage = 35.0
-arming_duration = 1.6
+arming_duration = 1.1
