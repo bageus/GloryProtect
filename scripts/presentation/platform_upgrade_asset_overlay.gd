@@ -54,8 +54,8 @@ const STABILITY_FLAME_3: Texture2D = preload(
 @export var platform_core_reference_offset: Vector2 = Vector2(0.0, 12.0)
 @export var core_overlay_size: Vector2 = Vector2(116.0, 116.0)
 @export var core_overlay_offset: Vector2 = Vector2.ZERO
-@export var speed_engine_size: Vector2 = Vector2(54.0, 42.0)
-@export var speed_engine_offset: Vector2 = Vector2(64.0, 36.0)
+@export var speed_engine_size: Vector2 = Vector2(64.8, 50.4)
+@export var speed_engine_offset: Vector2 = Vector2(52.0, 0.0)
 @export var control_mechanism_size: Vector2 = Vector2(58.0, 42.0)
 @export var control_mechanism_offset: Vector2 = Vector2(80.0, 40.0)
 @export_range(0.0, 16.0, 0.25) var control_active_amplitude: float = 4.0
@@ -162,6 +162,17 @@ func get_speed_engine_count_for_tests() -> int:
 	return 2 if is_speed_asset_visible() else 0
 
 
+func get_speed_engine_size_for_tests() -> Vector2:
+	return speed_engine_size
+
+
+func get_speed_engine_centers_for_tests() -> Array[Vector2]:
+	return [
+		_get_speed_asset_center(-1),
+		_get_speed_asset_center(1),
+	]
+
+
 func get_active_speed_flame_side_for_tests() -> int:
 	if not is_speed_asset_visible():
 		return 0
@@ -227,10 +238,15 @@ func _draw_speed_assets() -> void:
 		return
 	var flame_side: int = get_active_speed_flame_side_for_tests()
 	for side: int in [-1, 1]:
-		var center := Vector2(speed_engine_offset.x * float(side), speed_engine_offset.y)
+		var center: Vector2 = _get_speed_asset_center(side)
 		_draw_texture_centered(SPEED_ENGINE, center, speed_engine_size, side < 0)
 		if flame_side == side:
-			_draw_texture_centered(_get_frame(_speed_flames), center, speed_engine_size, side < 0)
+			_draw_texture_centered(
+				_get_frame(_speed_flames),
+				center,
+				speed_engine_size,
+				side < 0
+			)
 
 
 func _draw_control_mechanism() -> void:
@@ -310,6 +326,13 @@ func _get_motion_direction() -> int:
 		if absf(axis) > 0.01:
 			return int(signf(axis))
 	return 0
+
+
+func _get_speed_asset_center(side: int) -> Vector2:
+	return _get_platform_core_center() + Vector2(
+		speed_engine_offset.x * float(side),
+		speed_engine_offset.y
+	)
 
 
 func _get_platform_core_center() -> Vector2:
