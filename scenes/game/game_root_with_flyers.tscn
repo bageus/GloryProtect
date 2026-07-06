@@ -118,6 +118,9 @@ script = ExtResource("15_anchor_host")
 [node name="AnchorAssetPresentation" type="Node2D" parent="World"]
 z_index = 80
 script = ExtResource("39_anchor_assets")
+object_asset_scale = 0.12
+clamp_scale_multiplier = 1.05
+chain_tile_height = 20.0
 anchor_system_path = NodePath("../AnchorSystem")
 combat_anchor_system_path = NodePath("../CombatAnchorSystem")
 game_flow_path = NodePath("../../GameFlowController")
