@@ -69,6 +69,15 @@ func is_diagnostics_visible() -> bool:
 	return _diagnostics_visible
 
 
+func show_diagnostics_for_tests() -> void:
+	_diagnostics_visible = true
+	_refresh_diagnostics()
+
+
+func get_diagnostics_text_for_tests() -> String:
+	return _diagnostics_label.text
+
+
 func get_rendered_card_count() -> int:
 	return _cards_container.get_child_count()
 
@@ -414,18 +423,7 @@ func _refresh_diagnostics() -> void:
 	_diagnostics_label.visible = _diagnostics_visible
 	if not _diagnostics_visible:
 		return
-	var lines := PackedStringArray([
-		"ДИАГНОСТИКА ДОСТУПНОСТИ",
-	])
-	for definition: UpgradeDefinition in _upgrades.get_all_card_definitions():
-		var reason: StringName = _upgrades.get_card_unavailability_reason(
-			definition.card_id
-		)
-		lines.append("%s — %s" % [
-			definition.title,
-			UpgradeCardFormatter.get_diagnostic_text(reason),
-		])
-	_diagnostics_label.text = "\n".join(lines)
+	_diagnostics_label.text = UpgradeDiagnosticsTreeFormatter.build(_upgrades)
 
 
 func _get_card_button(card_index: int) -> Button:
