@@ -43,6 +43,24 @@ func _run_scenario() -> void:
 	var base_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
 	assert(is_equal_approx(base_beam_widths.x, visual.contact_outer_base_width))
 	assert(is_equal_approx(base_beam_widths.y, visual.contact_inner_base_width))
+	assert(visual.get_contact_edge_glow_widths_for_tests() == Vector2.ZERO)
+	var base_pulse_half_width: float = (
+		pulse_visual.get_ground_pulse_half_width_for_tests(1.0)
+	)
+	assert(is_equal_approx(
+		pulse_visual.get_ground_pulse_half_width_for_tests(
+			1.0,
+			pulse_visual.get_compact_wave_scale_for_tests()
+		),
+		base_pulse_half_width * 0.9
+	))
+	assert(is_equal_approx(
+		pulse_visual.get_ground_pulse_half_width_for_tests(
+			1.0,
+			pulse_visual.get_spread_wave_scale_for_tests()
+		),
+		base_pulse_half_width * 1.1
+	))
 
 	_apply(upgrade_system, &"shield_capacity_basic")
 	_apply(upgrade_system, &"shield_capacity_advanced")
@@ -50,12 +68,34 @@ func _run_scenario() -> void:
 	_apply(upgrade_system, &"shield_recharge_advanced")
 	_apply(upgrade_system, &"shield_contact_basic")
 	var improved_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
-	assert(improved_beam_widths.x > base_beam_widths.x)
-	assert(improved_beam_widths.y > base_beam_widths.y)
+	assert(is_equal_approx(
+		improved_beam_widths.x,
+		base_beam_widths.x * visual.enhanced_contact_visual_width_multiplier
+	))
+	assert(is_equal_approx(
+		improved_beam_widths.y,
+		base_beam_widths.y * visual.enhanced_contact_visual_width_multiplier
+	))
+	var improved_glow_widths: Vector2 = visual.get_contact_edge_glow_widths_for_tests()
+	assert(improved_glow_widths.x > improved_beam_widths.x)
+	assert(improved_glow_widths.y > improved_beam_widths.x)
+	var improved_edge_color: Color = visual.get_contact_edge_color_for_tests()
+	assert(improved_edge_color.g > improved_edge_color.b)
 	_apply(upgrade_system, &"shield_contact_advanced")
 	var mega_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
-	assert(mega_beam_widths.x > improved_beam_widths.x)
-	assert(mega_beam_widths.y > improved_beam_widths.y)
+	assert(is_equal_approx(
+		mega_beam_widths.x,
+		base_beam_widths.x * visual.mega_contact_visual_width_multiplier
+	))
+	assert(is_equal_approx(
+		mega_beam_widths.y,
+		base_beam_widths.y * visual.mega_contact_visual_width_multiplier
+	))
+	var mega_glow_widths: Vector2 = visual.get_contact_edge_glow_widths_for_tests()
+	assert(mega_glow_widths.x > mega_beam_widths.x)
+	assert(mega_glow_widths.y > mega_beam_widths.x)
+	var mega_edge_color: Color = visual.get_contact_edge_color_for_tests()
+	assert(mega_edge_color.b > mega_edge_color.g)
 	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.2))
 	assert(is_equal_approx(recharge.get_speed_multiplier(), 1.2))
 	assert(is_equal_approx(registry.get_contact_width_multiplier(), 1.2))
@@ -99,6 +139,7 @@ func _run_scenario() -> void:
 	contact.call("_set_active_orb", 2)
 	assert(waves.get_total_enemy_count() == 10)
 	assert(waves.get_enemy_count_for_section(2) == 7)
+	assert(pulse_visual.get_active_pulse_count() >= 1)
 
 	waves.reset_for_run()
 	contact.call("_set_active_orb", -1)
@@ -111,6 +152,7 @@ func _run_scenario() -> void:
 	assert(waves.get_total_enemy_count() == full_group_total)
 
 	core.reset_upgrade_runtime()
+	assert(pulse_visual.get_active_pulse_count() == 0)
 	waves.reset_for_run()
 	contact.call("_set_active_orb", -1)
 	core.set_random_seed(9)
