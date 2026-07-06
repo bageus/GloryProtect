@@ -49,8 +49,11 @@ const STABILITY_FLAME_3: Texture2D = preload(
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export_range(1, 128, 1) var minimum_z_index: int = 12
 @export var snap_visuals_to_canvas_pixels: bool = true
+@export var platform_core_reference_size: Vector2 = Vector2(92.0, 92.0)
+@export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.38
+@export var platform_core_reference_offset: Vector2 = Vector2(0.0, 12.0)
 @export var core_overlay_size: Vector2 = Vector2(116.0, 116.0)
-@export var core_overlay_offset: Vector2 = Vector2(0.0, 12.0)
+@export var core_overlay_offset: Vector2 = Vector2.ZERO
 @export var speed_engine_size: Vector2 = Vector2(54.0, 42.0)
 @export var speed_engine_offset: Vector2 = Vector2(64.0, 36.0)
 @export var control_mechanism_size: Vector2 = Vector2(58.0, 42.0)
@@ -143,6 +146,14 @@ func get_core_overlay_asset_for_tests() -> StringName:
 	return &""
 
 
+func get_platform_core_center_for_tests() -> Vector2:
+	return _get_platform_core_center()
+
+
+func get_core_overlay_center_for_tests() -> Vector2:
+	return _get_platform_core_center() + core_overlay_offset
+
+
 func is_speed_asset_visible() -> bool:
 	return _anchorless != null and _anchorless.upgrades.has_speed_specialization()
 
@@ -203,7 +214,12 @@ func _draw_core_overlay() -> void:
 			texture = CORE_SURGE_SPLASH
 	if texture == null:
 		return
-	_draw_texture_centered(texture, core_overlay_offset, core_overlay_size, false)
+	_draw_texture_centered(
+		texture,
+		_get_platform_core_center() + core_overlay_offset,
+		core_overlay_size,
+		false
+	)
 
 
 func _draw_speed_assets() -> void:
@@ -294,6 +310,18 @@ func _get_motion_direction() -> int:
 		if absf(axis) > 0.01:
 			return int(signf(axis))
 	return 0
+
+
+func _get_platform_core_center() -> Vector2:
+	if _platform == null or _platform.balance == null:
+		return platform_core_reference_offset
+	var reference_size: Vector2 = platform_core_reference_size
+	var platform_bottom: float = _platform.balance.platform_height * 0.5
+	var core_center_y: float = (
+		platform_bottom
+		+ (platform_core_protrusion_ratio - 0.5) * reference_size.y
+	)
+	return Vector2(0.0, core_center_y) + platform_core_reference_offset
 
 
 func _get_frame(frames: Array[Texture2D]) -> Texture2D:

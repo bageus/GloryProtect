@@ -15,6 +15,7 @@ func _run() -> void:
 	assert(shell.get_active_game() == null)
 	assert(_get_direct_button_texts(shell) == [
 		"Новая игра",
+		"Начать игру тест",
 		"Настройки",
 		"Выйти из игры",
 	])
@@ -77,6 +78,28 @@ func _run() -> void:
 	assert(second_game != null)
 	assert(second_game != first_game)
 	assert(not paused)
+
+	shell.show_main_menu()
+	await process_frame
+	assert(shell.get_current_screen() == AppShell.Screen.MAIN)
+	assert(_get_direct_button_texts(shell)[1] == "Начать игру тест")
+	(shell as AppShellScene).start_visual_test_game()
+	await process_frame
+	await process_frame
+	await process_frame
+	var test_game: Node2D = shell.get_active_game()
+	assert(test_game != null)
+	assert(test_game != second_game)
+	var test_flow: GameFlowController = test_game.get_node("GameFlowController")
+	assert(test_flow.start_delay_seconds == 0.0)
+	assert(test_flow.state == GameFlowController.RunState.RUNNING)
+	var test_panel: VisualUpgradeTestPanel = test_game.get_node(
+		"VisualUpgradeTestPanel"
+	) as VisualUpgradeTestPanel
+	assert(test_panel != null)
+	assert(test_panel.is_test_panel_ready_for_tests())
+	assert(test_panel.get_toggle_count_for_tests() > 0)
+	assert(test_panel.is_card_ui_suppressed_for_tests())
 
 	print("App shell menu scenarios passed")
 	quit()
