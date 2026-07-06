@@ -3,6 +3,9 @@ extends Node2D
 
 const GROUND_CORE_BASE_PATH: String = "res://visual/tiles/tile_ground_core_base.png"
 const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_normal.png"
+const CONTACT_STAGE_NORMAL: int = 0
+const CONTACT_STAGE_ENHANCED: int = 1
+const CONTACT_STAGE_MEGA: int = 2
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("GroundOrbRegistry") var registry_path: NodePath
@@ -31,8 +34,12 @@ const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_nor
 @export_group("Active Contact Beam")
 @export_range(1.0, 32.0, 0.5) var contact_outer_base_width: float = 8.0
 @export_range(1.0, 16.0, 0.5) var contact_inner_base_width: float = 2.0
-@export_range(0.0, 80.0, 0.5) var contact_outer_bonus_per_multiplier: float = 20.0
-@export_range(0.0, 40.0, 0.5) var contact_inner_bonus_per_multiplier: float = 8.0
+@export_range(1.0, 8.0, 0.25) var enhanced_contact_visual_width_multiplier: float = 3.0
+@export_range(1.0, 10.0, 0.25) var mega_contact_visual_width_multiplier: float = 5.0
+@export_range(1.0, 2.0, 0.05) var contact_edge_glow_outer_ratio: float = 1.45
+@export_range(1.0, 2.0, 0.05) var contact_edge_glow_inner_ratio: float = 1.18
+@export var enhanced_contact_edge_color: Color = Color(1.0, 0.88, 0.18, 0.34)
+@export var mega_contact_edge_color: Color = Color(1.0, 0.54, 0.88, 0.38)
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _registry: GroundOrbRegistry = get_node(registry_path)
@@ -93,11 +100,29 @@ func _draw() -> void:
 
 
 func get_contact_beam_widths_for_tests() -> Vector2:
-	var multiplier: float = _get_contact_visual_multiplier()
+	var multiplier: float = _get_contact_gameplay_multiplier()
 	return Vector2(
 		_get_outer_contact_line_width(multiplier),
 		_get_inner_contact_line_width(multiplier)
 	)
+
+
+func get_contact_edge_glow_widths_for_tests() -> Vector2:
+	var multiplier: float = _get_contact_gameplay_multiplier()
+	var stage: int = _get_contact_visual_stage(multiplier)
+	if stage == CONTACT_STAGE_NORMAL:
+		return Vector2.ZERO
+	var outer_width: float = _get_outer_contact_line_width(multiplier)
+	return Vector2(
+		outer_width * contact_edge_glow_outer_ratio,
+		outer_width * contact_edge_glow_inner_ratio
+	)
+
+
+func get_contact_edge_color_for_tests() -> Color:
+	return _get_contact_edge_color(_get_contact_visual_stage(
+		_get_contact_gameplay_multiplier()
+	))
 
 
 func _draw_ground() -> void:
@@ -241,12 +266,21 @@ func _draw_active_contact() -> void:
 		return
 	var orb_position := _registry.get_orb_world_position(orb_id)
 	var platform_orb_position := _platform.position
-	var multiplier: float = _get_contact_visual_multiplier()
+	var multiplier: float = _get_contact_gameplay_multiplier()
+	var stage: int = _get_contact_visual_stage(multiplier)
+	var outer_width: float = _get_outer_contact_line_width(multiplier)
+	if stage != CONTACT_STAGE_NORMAL:
+		_draw_contact_edge_gradient(
+			orb_position,
+			platform_orb_position,
+			outer_width,
+			_get_contact_edge_color(stage)
+		)
 	draw_line(
 		orb_position,
 		platform_orb_position,
 		Color(0.35, 0.93, 1.0, 0.7),
-		_get_outer_contact_line_width(multiplier)
+		outer_width
 	)
 	draw_line(
 		orb_position,
@@ -256,24 +290,70 @@ func _draw_active_contact() -> void:
 	)
 
 
-func _get_contact_visual_multiplier() -> float:
+func _draw_contact_edge_gradient(
+	from: Vector2,
+	to: Vector2,
+	outer_width: float,
+	edge_color: Color
+) -> void:
+	var wide_color := edge_color
+	wide_color.a *= 0.55
+	var close_color := edge_color.lightened(0.18)
+	close_color.a *= 0.75
+	draw_line(
+		from,
+		to,
+		wide_color,
+		outer_width * contact_edge_glow_outer_ratio
+	)
+	draw_line(
+		from,
+		to,
+		close_color,
+		outer_width * contact_edge_glow_inner_ratio
+	)
+
+
+func _get_contact_gameplay_multiplier() -> float:
 	if _registry.has_method("get_contact_width_multiplier"):
 		return maxf(1.0, float(_registry.call("get_contact_width_multiplier")))
 	return 1.0
 
 
+func _get_contact_visual_stage(multiplier: float) -> int:
+	if multiplier >= 1.19:
+		return CONTACT_STAGE_MEGA
+	if multiplier > 1.0:
+		return CONTACT_STAGE_ENHANCED
+	return CONTACT_STAGE_NORMAL
+
+
+func _get_contact_visual_width_multiplier(multiplier: float) -> float:
+	match _get_contact_visual_stage(multiplier):
+		CONTACT_STAGE_MEGA:
+			return mega_contact_visual_width_multiplier
+		CONTACT_STAGE_ENHANCED:
+			return enhanced_contact_visual_width_multiplier
+		_:
+			return 1.0
+
+
+func _get_contact_edge_color(stage: int) -> Color:
+	match stage:
+		CONTACT_STAGE_MEGA:
+			return mega_contact_edge_color
+		CONTACT_STAGE_ENHANCED:
+			return enhanced_contact_edge_color
+		_:
+			return Color.TRANSPARENT
+
+
 func _get_outer_contact_line_width(multiplier: float) -> float:
-	return (
-		contact_outer_base_width
-		+ maxf(0.0, multiplier - 1.0) * contact_outer_bonus_per_multiplier
-	)
+	return contact_outer_base_width * _get_contact_visual_width_multiplier(multiplier)
 
 
 func _get_inner_contact_line_width(multiplier: float) -> float:
-	return (
-		contact_inner_base_width
-		+ maxf(0.0, multiplier - 1.0) * contact_inner_bonus_per_multiplier
-	)
+	return contact_inner_base_width * _get_contact_visual_width_multiplier(multiplier)
 
 
 func _load_texture(resource_path: String) -> Texture2D:

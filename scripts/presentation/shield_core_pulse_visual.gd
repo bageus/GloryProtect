@@ -25,6 +25,9 @@ var _anchorless: AnchorlessControlSystem
 func _ready() -> void:
 	assert(style != null and style.is_valid())
 	_shield_core.surge_pulse_requested.connect(_on_surge_pulse_requested)
+	_shield_core.focused_retargeted.connect(_on_focused_retargeted)
+	_shield_core.completion_energy_shared.connect(_on_completion_energy_shared)
+	_shield_core.upgrades_changed.connect(_on_upgrades_changed)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
 	_connect_anchorless_system()
 	call_deferred("_connect_anchorless_system")
@@ -50,9 +53,9 @@ func _draw() -> void:
 		var progress: float = clampf(pulse.elapsed / style.duration, 0.0, 1.0)
 		match pulse.source:
 			ShieldCoreSystem.SurgePulseSource.GROUND_CORE:
-				_draw_ground_pulse(pulse.section_id, progress)
+				_draw_ground_pulse(pulse, progress)
 			ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE:
-				_draw_platform_pulse(pulse.section_id, progress)
+				_draw_platform_pulse(pulse, progress)
 
 
 func get_active_pulse_count() -> int:
@@ -74,6 +77,21 @@ func get_ground_lift_offset_for_tests(progress: float) -> float:
 	return -style.ground_lift_amplitude * sin(clamped * PI)
 
 
+func get_ground_pulse_half_width_for_tests(
+	progress: float,
+	diameter_multiplier: float = 1.0
+) -> float:
+	return _get_ground_pulse_half_width(progress, diameter_multiplier)
+
+
+func get_compact_wave_scale_for_tests() -> float:
+	return style.compact_wave_scale
+
+
+func get_spread_wave_scale_for_tests() -> float:
+	return style.spread_wave_scale
+
+
 func is_anchorless_connected_for_tests() -> bool:
 	return _anchorless != null
 
@@ -81,32 +99,50 @@ func is_anchorless_connected_for_tests() -> bool:
 func _connect_anchorless_system() -> void:
 	if _anchorless != null:
 		return
-	_anchorless = get_node_or_null(
-		anchorless_control_path
-	) as AnchorlessControlSystem
+	_anchorless = get_node_or_null(anchorless_control_path) as AnchorlessControlSystem
 	if _anchorless == null:
 		return
-	if not _anchorless.core_pulse_requested.is_connected(
-		_on_anchorless_core_pulse_requested
-	):
-		_anchorless.core_pulse_requested.connect(
-			_on_anchorless_core_pulse_requested
-		)
+	if not _anchorless.core_pulse_requested.is_connected(_on_anchorless_core_pulse_requested):
+		_anchorless.core_pulse_requested.connect(_on_anchorless_core_pulse_requested)
 
 
 func _on_surge_pulse_requested(section_id: int, source: int) -> void:
 	_start_pulse(section_id, source)
 
 
+func _on_focused_retargeted(section_id: int, _enemy_count: int) -> void:
+	_start_pulse(
+		section_id,
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		style.compact_wave_scale
+	)
+
+
+func _on_completion_energy_shared(
+	_source_section_id: int,
+	target_section_id: int,
+	_amount: float
+) -> void:
+	_start_pulse(
+		target_section_id,
+		ShieldCoreSystem.SurgePulseSource.GROUND_CORE,
+		style.spread_wave_scale
+	)
+
+
 func _on_anchorless_core_pulse_requested(
 	section_id: int,
 	source: int,
-	_damaged_enemy_count: int
+	_event_count: int
 ) -> void:
 	_start_pulse(section_id, source)
 
 
-func _start_pulse(section_id: int, source: int) -> void:
+func _start_pulse(
+	section_id: int,
+	source: int,
+	diameter_multiplier: float = 1.0
+) -> void:
 	if not _orbs.is_valid_orb(section_id):
 		return
 	if source not in [
@@ -114,41 +150,58 @@ func _start_pulse(section_id: int, source: int) -> void:
 		ShieldCoreSystem.SurgePulseSource.PLATFORM_CORE,
 	]:
 		return
-	_active_pulses.append(ShieldCorePulseRuntime.new(source, section_id))
+	_active_pulses.append(ShieldCorePulseRuntime.new(
+		source,
+		section_id,
+		diameter_multiplier
+	))
 	_started_counts[source] = get_started_pulse_count(source) + 1
 	pulse_started.emit(source, section_id)
 	queue_redraw()
 
 
-func _draw_ground_pulse(section_id: int, progress: float) -> void:
-	var center: Vector2 = _orbs.get_orb_world_position(section_id)
+func _draw_ground_pulse(pulse: ShieldCorePulseRuntime, progress: float) -> void:
+	var center: Vector2 = _orbs.get_orb_world_position(pulse.section_id)
 	center.y = _orbs.catalog.ground_y + style.ground_surface_offset_y
-	var half_width: float = maxf(4.0, style.ground_max_radius * _ease_out(progress))
+	var half_width: float = _get_ground_pulse_half_width(
+		progress,
+		pulse.diameter_multiplier
+	)
 	_draw_ground_surface_lift(center, half_width, progress)
 	_draw_wave(
 		center,
 		half_width,
 		progress,
 		style.ground_color,
-		section_id * 11 + 3
+		pulse.section_id * 11 + 3
 	)
 
 
-func _draw_platform_pulse(section_id: int, progress: float) -> void:
+func _draw_platform_pulse(pulse: ShieldCorePulseRuntime, progress: float) -> void:
 	var center := _platform.position + Vector2(
 		0.0,
 		-_platform.get_platform_height() * 0.5 + style.platform_surface_offset_y
 	)
 	var half_width: float = maxf(
 		4.0,
-		_platform.get_platform_width() * 0.5 * _ease_out(progress)
+		_platform.get_platform_width() * 0.5 * _ease_out(progress) * pulse.diameter_multiplier
 	)
 	_draw_wave(
 		center,
 		half_width,
 		progress,
 		style.platform_color,
-		section_id * 13 + 7
+		pulse.section_id * 13 + 7
+	)
+
+
+func _get_ground_pulse_half_width(
+	progress: float,
+	diameter_multiplier: float
+) -> float:
+	return maxf(
+		4.0,
+		style.ground_max_radius * _ease_out(progress) * diameter_multiplier
 	)
 
 
@@ -229,8 +282,21 @@ func _ease_out(value: float) -> float:
 	return 1.0 - pow(1.0 - clamped, 3.0)
 
 
+func _on_upgrades_changed() -> void:
+	if (
+		_shield_core.upgrades.has_focused_specialization()
+		or _shield_core.upgrades.has_distributed_specialization()
+		or _shield_core.upgrades.has_surge_specialization()
+	):
+		return
+	_active_pulses.clear()
+	_started_counts.clear()
+	queue_redraw()
+
+
 func _on_run_state_changed(_previous_state: int, new_state: int) -> void:
 	if new_state != GameFlowController.RunState.START_DELAY:
 		return
 	_active_pulses.clear()
+	_started_counts.clear()
 	queue_redraw()
