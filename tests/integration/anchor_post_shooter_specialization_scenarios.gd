@@ -101,7 +101,6 @@ func _test_anchor_hunter_on_post(
 	assert(target.health.current_health < health_before)
 	assert(target.health.is_alive())
 	await _assert_fifth_anchor_volley_knockdown(defender, crew, target)
-	_cleanup_enemy(target)
 	await process_frame
 
 
