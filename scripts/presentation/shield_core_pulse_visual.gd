@@ -99,17 +99,11 @@ func is_anchorless_connected_for_tests() -> bool:
 func _connect_anchorless_system() -> void:
 	if _anchorless != null:
 		return
-	_anchorless = get_node_or_null(
-		anchorless_control_path
-	) as AnchorlessControlSystem
+	_anchorless = get_node_or_null(anchorless_control_path) as AnchorlessControlSystem
 	if _anchorless == null:
 		return
-	if not _anchorless.core_pulse_requested.is_connected(
-		_on_anchorless_core_pulse_requested
-	):
-		_anchorless.core_pulse_requested.connect(
-			_on_anchorless_core_pulse_requested
-		)
+	if not _anchorless.core_pulse_requested.is_connected(_on_anchorless_core_pulse_requested):
+		_anchorless.core_pulse_requested.connect(_on_anchorless_core_pulse_requested)
 
 
 func _on_surge_pulse_requested(section_id: int, source: int) -> void:
@@ -139,7 +133,7 @@ func _on_completion_energy_shared(
 func _on_anchorless_core_pulse_requested(
 	section_id: int,
 	source: int,
-	_damaged_enemy_count: int
+	_event_count: int
 ) -> void:
 	_start_pulse(section_id, source)
 
@@ -190,10 +184,7 @@ func _draw_platform_pulse(pulse: ShieldCorePulseRuntime, progress: float) -> voi
 	)
 	var half_width: float = maxf(
 		4.0,
-		_platform.get_platform_width()
-		* 0.5
-		* _ease_out(progress)
-		* pulse.diameter_multiplier
+		_platform.get_platform_width() * 0.5 * _ease_out(progress) * pulse.diameter_multiplier
 	)
 	_draw_wave(
 		center,
@@ -299,6 +290,7 @@ func _on_upgrades_changed() -> void:
 	):
 		return
 	_active_pulses.clear()
+	_started_counts.clear()
 	queue_redraw()
 
 
@@ -306,4 +298,5 @@ func _on_run_state_changed(_previous_state: int, new_state: int) -> void:
 	if new_state != GameFlowController.RunState.START_DELAY:
 		return
 	_active_pulses.clear()
+	_started_counts.clear()
 	queue_redraw()
