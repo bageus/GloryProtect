@@ -38,7 +38,7 @@ static func _append_branch_tree(
 	for definition: UpgradeDefinition in definitions:
 		by_id[definition.card_id] = definition
 		children[definition.card_id] = []
-	var roots: Array[UpgradeDefinition] = []
+	var roots: Array = []
 	for definition: UpgradeDefinition in definitions:
 		var parent_id: StringName = _get_tree_parent_card_id(definition, by_id)
 		if parent_id == &"":
