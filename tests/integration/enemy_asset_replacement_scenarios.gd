@@ -96,10 +96,10 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	))
 	assert(visual.has_current_replacement_asset_for_tests())
 	_assert_cropped_draw_rect(visual)
-	visual.debug_set_facing_right_for_tests(false)
-	assert(not visual.is_asset_mirrored_for_tests())
-	visual.debug_set_facing_right_for_tests(true)
-	assert(visual.is_asset_mirrored_for_tests())
+	_assert_state_mirrors_when_facing_right(visual, &"run")
+	_assert_state_mirrors_when_facing_right(visual, &"attack")
+	_assert_state_mirrors_when_facing_right(visual, &"climb")
+	_assert_state_mirrors_when_facing_right(visual, &"flying")
 	if archetype_id == &"rope_saboteur":
 		_assert_behavior_state_route(visual, &"waiting", &"idle")
 		_assert_behavior_state_route(visual, &"running_to_rope", &"run")
@@ -125,6 +125,21 @@ func _assert_cropped_draw_rect(visual: BoardingEnemyVisual) -> void:
 	assert(source_rect.size.x < texture_size.x or source_rect.size.y < texture_size.y)
 	assert(draw_size.x > 12.0)
 	assert(draw_size.y > 12.0)
+
+
+func _assert_state_mirrors_when_facing_right(
+	visual: BoardingEnemyVisual,
+	state_id: StringName
+) -> void:
+	if not visual.has_replacement_asset_for_tests(state_id):
+		return
+	visual.debug_force_presentation_state_for_tests(state_id)
+	visual.debug_set_facing_right_for_tests(false)
+	assert(not visual.is_asset_mirrored_for_tests())
+	assert(visual.has_current_replacement_asset_for_tests())
+	visual.debug_set_facing_right_for_tests(true)
+	assert(visual.is_asset_mirrored_for_tests())
+	assert(visual.has_current_replacement_asset_for_tests())
 
 
 func _assert_behavior_state_route(
