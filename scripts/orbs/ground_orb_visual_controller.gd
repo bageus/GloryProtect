@@ -3,6 +3,7 @@ extends Node2D
 
 const GROUND_CORE_BASE_PATH: String = "res://visual/tiles/tile_ground_core_base.png"
 const GROUND_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_normal.png"
+const GROUND_CORE_RED_ATLAS_PATH: String = "res://visual/tiles/atlas_ground_core_red.png"
 const CONTACT_STAGE_NORMAL: int = 0
 const CONTACT_STAGE_ENHANCED: int = 1
 const CONTACT_STAGE_MEGA: int = 2
@@ -11,6 +12,9 @@ const CONTACT_STAGE_MEGA: int = 2
 @export_node_path("GroundOrbRegistry") var registry_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
+@export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath = NodePath(
+	"../ShieldCoreSystem"
+)
 @export var platform_balance: PlatformBalance
 @export var show_contact_zones: bool = false
 
@@ -47,11 +51,14 @@ const CONTACT_STAGE_MEGA: int = 2
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
 
 var _game_flow: GameFlowController
+var _shield_core: ShieldCoreSystem
 var _surface_visual := GroundSurfaceVisual.new()
 var _ground_core_base_texture: Texture2D
 var _ground_core_atlas: Texture2D
+var _ground_core_red_atlas: Texture2D
 var _ground_core_base_source_rect: Rect2
 var _ground_core_frame_regions: Array[Rect2] = []
+var _ground_core_red_frame_regions: Array[Rect2] = []
 var _ground_core_animation_elapsed: float = 0.0
 
 
@@ -60,25 +67,25 @@ func _ready() -> void:
 	_surface_visual.configure(alpha_crop_threshold)
 	_ground_core_base_texture = _load_texture(GROUND_CORE_BASE_PATH)
 	_ground_core_atlas = _load_texture(GROUND_CORE_ATLAS_PATH)
+	_ground_core_red_atlas = _load_texture(GROUND_CORE_RED_ATLAS_PATH)
 	if _ground_core_base_texture != null:
 		_ground_core_base_source_rect = TextureRegionLayout.get_alpha_bounds(
 			_ground_core_base_texture,
 			alpha_crop_threshold
 		)
-	_ground_core_frame_regions.clear()
-	if _ground_core_atlas != null:
-		_ground_core_frame_regions = (
-			TextureRegionLayout.get_auto_atlas_frame_regions(
-				_ground_core_atlas,
-				ground_core_frame_count,
-				alpha_crop_threshold
-			)
-		)
+	_ground_core_frame_regions = _build_ground_core_frame_regions(_ground_core_atlas)
+	_ground_core_red_frame_regions = _build_ground_core_frame_regions(_ground_core_red_atlas)
 	var scene_root: Node = get_tree().current_scene
 	if scene_root != null:
 		_game_flow = scene_root.get_node_or_null(
 			"GameFlowController"
 		) as GameFlowController
+	_shield_core = _resolve_shield_core_system()
+	if (
+		_shield_core != null
+		and not _shield_core.upgrades_changed.is_connected(_on_shield_core_upgrades_changed)
+	):
+		_shield_core.upgrades_changed.connect(_on_shield_core_upgrades_changed)
 	queue_redraw()
 
 
@@ -123,6 +130,14 @@ func get_contact_edge_color_for_tests() -> Color:
 	return _get_contact_edge_color(_get_contact_visual_stage(
 		_get_contact_gameplay_multiplier()
 	))
+
+
+func get_ground_core_atlas_path_for_tests() -> String:
+	return (
+		GROUND_CORE_RED_ATLAS_PATH
+		if _is_ground_core_red_enabled() and not _ground_core_red_frame_regions.is_empty()
+		else GROUND_CORE_ATLAS_PATH
+	)
 
 
 func _draw_ground() -> void:
@@ -191,20 +206,19 @@ func _draw_ground_core(
 ) -> void:
 	var texture: Texture2D = _ground_core_base_texture
 	var source_rect: Rect2 = _ground_core_base_source_rect
-	if (
-		is_charging
-		and _ground_core_atlas != null
-		and not _ground_core_frame_regions.is_empty()
-	):
-		var frame_index: int = (
-			floori(
-				_ground_core_animation_elapsed
-				* maxf(ground_core_frame_rate, 0.01)
+	if is_charging:
+		var atlas: Texture2D = _get_ground_core_atlas()
+		var frame_regions: Array[Rect2] = _get_ground_core_frame_regions()
+		if atlas != null and not frame_regions.is_empty():
+			var frame_index: int = (
+				floori(
+					_ground_core_animation_elapsed
+					* maxf(ground_core_frame_rate, 0.01)
+				)
+				% frame_regions.size()
 			)
-			% _ground_core_frame_regions.size()
-		)
-		texture = _ground_core_atlas
-		source_rect = _ground_core_frame_regions[frame_index]
+			texture = atlas
+			source_rect = frame_regions[frame_index]
 	if texture == null:
 		return
 
@@ -354,6 +368,50 @@ func _get_outer_contact_line_width(multiplier: float) -> float:
 
 func _get_inner_contact_line_width(multiplier: float) -> float:
 	return contact_inner_base_width * _get_contact_visual_width_multiplier(multiplier)
+
+
+func _resolve_shield_core_system() -> ShieldCoreSystem:
+	if not shield_core_system_path.is_empty():
+		var explicit: ShieldCoreSystem = get_node_or_null(
+			shield_core_system_path
+		) as ShieldCoreSystem
+		if explicit != null:
+			return explicit
+	return get_node_or_null("../ShieldCoreSystem") as ShieldCoreSystem
+
+
+func _is_ground_core_red_enabled() -> bool:
+	return (
+		_shield_core != null
+		and _shield_core.upgrades.recharge_bonus_ratio > 0.0
+	)
+
+
+func _get_ground_core_atlas() -> Texture2D:
+	if _is_ground_core_red_enabled() and not _ground_core_red_frame_regions.is_empty():
+		return _ground_core_red_atlas
+	return _ground_core_atlas
+
+
+func _get_ground_core_frame_regions() -> Array[Rect2]:
+	if _is_ground_core_red_enabled() and not _ground_core_red_frame_regions.is_empty():
+		return _ground_core_red_frame_regions
+	return _ground_core_frame_regions
+
+
+func _build_ground_core_frame_regions(atlas: Texture2D) -> Array[Rect2]:
+	var result: Array[Rect2] = []
+	if atlas == null:
+		return result
+	return TextureRegionLayout.get_auto_atlas_frame_regions(
+		atlas,
+		ground_core_frame_count,
+		alpha_crop_threshold
+	)
+
+
+func _on_shield_core_upgrades_changed() -> void:
+	queue_redraw()
 
 
 func _load_texture(resource_path: String) -> Texture2D:
