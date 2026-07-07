@@ -37,6 +37,7 @@ func _run() -> void:
 	assert(indicator.get_strength_brick_count() == wind.strength_level)
 	assert(indicator.get_strength_bar_rects_for_tests().size() == wind.strength_level)
 	assert(indicator.get_indicator_rect().end.y < -platform.get_platform_height() * 0.5)
+	_assert_arrow_matches_strength_bars(indicator)
 
 	wind.set_debug_state(1, 3)
 	await process_frame
@@ -46,6 +47,7 @@ func _run() -> void:
 	assert(indicator.get_strength_bar_rects_for_tests().size() == 3)
 	assert(_get_tip_x(indicator.get_arrow_points_for_tests()) > 0.0)
 	_assert_bars_are_roman_numeral_style(indicator.get_strength_bar_rects_for_tests())
+	_assert_arrow_matches_strength_bars(indicator)
 
 	wind.set_debug_state(-1, 2)
 	await process_frame
@@ -55,6 +57,7 @@ func _run() -> void:
 	assert(indicator.get_strength_bar_rects_for_tests().size() == 2)
 	assert(_get_tip_x(indicator.get_arrow_points_for_tests()) < 0.0)
 	_assert_bars_are_roman_numeral_style(indicator.get_strength_bar_rects_for_tests())
+	_assert_arrow_matches_strength_bars(indicator)
 
 	assert(placement.handle_primary_click(platform.get_cell_canvas_center(3)))
 	await process_frame
@@ -76,10 +79,18 @@ func _assert_bars_are_roman_numeral_style(rects: Array[Rect2]) -> void:
 	var previous_x: float = -INF
 	var first_center_y: float = rects[0].get_center().y
 	for rect: Rect2 in rects:
+		assert(rect.size.x >= 5.0)
 		assert(rect.size.y > rect.size.x)
 		assert(is_equal_approx(rect.get_center().y, first_center_y))
 		assert(rect.position.x > previous_x)
 		previous_x = rect.position.x
+
+
+func _assert_arrow_matches_strength_bars(indicator: PlatformWindIndicator) -> void:
+	var rects: Array[Rect2] = indicator.get_strength_bar_rects_for_tests()
+	assert(not rects.is_empty())
+	assert(is_equal_approx(indicator.get_arrow_body_height_for_tests(), rects[0].size.y))
+	assert(indicator.get_arrow_length_for_tests() <= 72.0)
 
 
 func _stabilize_world(game: Node) -> void:
