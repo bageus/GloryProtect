@@ -33,6 +33,9 @@ func _run_scenario() -> void:
 	var visual: GroundOrbVisualController = game.get_node(
 		"World/GroundOrbVisualController"
 	)
+	var platform_visual: PlatformVisualController = game.get_node(
+		"World/Platform/PlatformVisualController"
+	)
 	var minimap: StrategicMinimap = game.get_node("CanvasLayer/StrategicMinimap")
 	var waves: ShieldCoreStrategicWaveSystem = game.get_node(
 		"World/StrategicWaveSystem"
@@ -45,6 +48,12 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(base_beam_widths.x, visual.contact_outer_base_width))
 	assert(is_equal_approx(base_beam_widths.y, visual.contact_inner_base_width))
 	assert(visual.get_contact_edge_glow_widths_for_tests() == Vector2.ZERO)
+	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
+		"atlas_ground_core_normal.png"
+	))
+	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
+		"atlas_platform_core_normal.png"
+	))
 	assert(minimap.get_capacity_percent_for_tests() == 100)
 	assert(is_equal_approx(minimap.get_section_health_ratio_for_tests(0), 1.0))
 	assert(minimap.get_section_health_text_for_tests(0) == "1  100%")
@@ -86,7 +95,19 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(minimap.get_section_health_ratio_for_tests(0), 100.0 / 120.0))
 	assert(minimap.get_section_health_text_for_tests(0) == "1  83/120%")
 	_apply(upgrade_system, &"shield_recharge_basic")
+	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
+		"atlas_ground_core_red.png"
+	))
+	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
+		"atlas_platform_core_normal.png"
+	))
 	_apply(upgrade_system, &"shield_recharge_advanced")
+	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
+		"atlas_ground_core_red.png"
+	))
+	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
+		"atlas_platform_core_red.png"
+	))
 	_apply(upgrade_system, &"shield_contact_basic")
 	var improved_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
 	assert(is_equal_approx(
@@ -141,6 +162,12 @@ func _run_scenario() -> void:
 	assert(is_zero_approx(core.upgrades.capacity_bonus_ratio))
 	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.0))
 	assert(minimap.get_capacity_percent_for_tests() == 100)
+	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
+		"atlas_ground_core_normal.png"
+	))
+	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
+		"atlas_platform_core_normal.png"
+	))
 	assert(is_equal_approx(recharge.get_speed_multiplier(), 1.0))
 	assert(is_equal_approx(registry.get_contact_width_multiplier(), 1.0))
 	assert(not shield.has_emergency_reserve_been_used())
