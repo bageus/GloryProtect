@@ -1,6 +1,8 @@
 class_name PrototypeHUD
 extends Control
 
+const ANCHOR_REMOVE_ALL_ACTION_ID := &"gp_anchor_remove_all"
+
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
 @export_node_path("RunStatistics") var run_statistics_path: NodePath
@@ -77,6 +79,7 @@ extends Control
 @onready var _pause_label: Label = %PauseLabel
 
 var _placement: BuildablePlacementController
+var _instant_anchor_remove_prompt: Label
 
 
 func _ready() -> void:
@@ -88,6 +91,14 @@ func _ready() -> void:
 			buildable_placement_controller_path
 		) as BuildablePlacementController
 	_create_crew_command_panel()
+	_create_instant_anchor_remove_prompt()
+	if not AppSettings.input_bindings_changed.is_connected(
+		_update_instant_anchor_remove_prompt
+	):
+		AppSettings.input_bindings_changed.connect(
+			_update_instant_anchor_remove_prompt
+		)
+	_update_instant_anchor_remove_prompt()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -109,9 +120,23 @@ func _process(_delta: float) -> void:
 	_update_anchors_crew_and_boarding()
 	_update_buildables_medical_and_turrets()
 	_update_contact_and_shield()
+	_update_instant_anchor_remove_prompt()
 	_pause_label.visible = (
 		_game_flow.state == GameFlowController.RunState.MANUAL_PAUSE
 	)
+
+
+func is_instant_anchor_remove_prompt_visible_for_tests() -> bool:
+	return (
+		_instant_anchor_remove_prompt != null
+		and _instant_anchor_remove_prompt.visible
+	)
+
+
+func get_instant_anchor_remove_prompt_text_for_tests() -> String:
+	if _instant_anchor_remove_prompt == null:
+		return ""
+	return _instant_anchor_remove_prompt.text
 
 
 func _create_crew_command_panel() -> void:
@@ -125,6 +150,54 @@ func _create_crew_command_panel() -> void:
 		_buildable_grid
 	)
 	add_child(panel)
+
+
+func _create_instant_anchor_remove_prompt() -> void:
+	_instant_anchor_remove_prompt = Label.new()
+	_instant_anchor_remove_prompt.name = "InstantAnchorRemovePrompt"
+	_instant_anchor_remove_prompt.anchor_left = 0.5
+	_instant_anchor_remove_prompt.anchor_right = 0.5
+	_instant_anchor_remove_prompt.anchor_top = 1.0
+	_instant_anchor_remove_prompt.anchor_bottom = 1.0
+	_instant_anchor_remove_prompt.offset_left = -260.0
+	_instant_anchor_remove_prompt.offset_right = 260.0
+	_instant_anchor_remove_prompt.offset_top = -88.0
+	_instant_anchor_remove_prompt.offset_bottom = -48.0
+	_instant_anchor_remove_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_instant_anchor_remove_prompt.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_instant_anchor_remove_prompt.add_theme_font_size_override("font_size", 20)
+	_instant_anchor_remove_prompt.add_theme_color_override(
+		"font_color",
+		Color(1.0, 0.9, 0.42)
+	)
+	_instant_anchor_remove_prompt.add_theme_color_override(
+		"font_outline_color",
+		Color(0.03, 0.04, 0.08, 0.95)
+	)
+	_instant_anchor_remove_prompt.add_theme_constant_override("outline_size", 4)
+	_instant_anchor_remove_prompt.visible = false
+	_instant_anchor_remove_prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_instant_anchor_remove_prompt)
+
+
+func _update_instant_anchor_remove_prompt() -> void:
+	if _instant_anchor_remove_prompt == null:
+		return
+	var should_show: bool = _should_show_instant_anchor_remove_prompt()
+	_instant_anchor_remove_prompt.visible = should_show
+	if not should_show:
+		return
+	_instant_anchor_remove_prompt.text = "[%s] быстро снять все тросы" % (
+		AppSettings.get_binding_text(ANCHOR_REMOVE_ALL_ACTION_ID)
+	)
+
+
+func _should_show_instant_anchor_remove_prompt() -> bool:
+	return (
+		_game_flow.is_world_simulation_active()
+		and _anchors.is_instant_remove_all_enabled()
+		and _anchors.get_active_path_count() > 0
+	)
 
 
 func _update_run_state() -> void:
