@@ -41,6 +41,9 @@ const STABILITY_FLAME_3: Texture2D = preload(
 	"res://visual/objects/platform/core/control_stability/overlay_stability_control_03.png"
 )
 
+const SPEED_ENGINE_BASE_SIZE: Vector2 = Vector2(64.8, 50.4)
+const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
+
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
 @export_node_path("AnchorlessControlSystem") var anchorless_control_system_path: NodePath
@@ -54,8 +57,8 @@ const STABILITY_FLAME_3: Texture2D = preload(
 @export var platform_core_reference_offset: Vector2 = Vector2(0.0, 12.0)
 @export var core_overlay_size: Vector2 = Vector2(116.0, 116.0)
 @export var core_overlay_offset: Vector2 = Vector2.ZERO
-@export var speed_engine_size: Vector2 = Vector2(64.8, 50.4)
-@export var speed_engine_offset: Vector2 = Vector2(52.0, 0.0)
+@export var speed_engine_size: Vector2 = Vector2(74.52, 57.96)
+@export var speed_engine_offset: Vector2 = Vector2(68.0, 0.0)
 @export var control_mechanism_size: Vector2 = Vector2(58.0, 42.0)
 @export var control_mechanism_offset: Vector2 = Vector2(80.0, 40.0)
 @export_range(0.0, 16.0, 0.25) var control_active_amplitude: float = 4.0
@@ -162,8 +165,24 @@ func get_speed_engine_count_for_tests() -> int:
 	return 2 if is_speed_asset_visible() else 0
 
 
+func get_speed_engine_base_size_for_tests() -> Vector2:
+	return SPEED_ENGINE_BASE_SIZE
+
+
+func get_speed_engine_scale_multiplier_for_tests() -> float:
+	return SPEED_ENGINE_SCALE_MULTIPLIER
+
+
 func get_speed_engine_size_for_tests() -> Vector2:
 	return speed_engine_size
+
+
+func get_speed_flame_size_for_tests() -> Vector2:
+	return speed_engine_size
+
+
+func get_speed_engine_offset_for_tests() -> Vector2:
+	return speed_engine_offset
 
 
 func get_speed_engine_centers_for_tests() -> Array[Vector2]:
