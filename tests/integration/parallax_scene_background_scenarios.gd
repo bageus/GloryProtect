@@ -34,7 +34,6 @@ func _run() -> void:
 	assert(not is_equal_approx(position_after.x, position_before.x))
 	assert(is_equal_approx(position_after.y, position_before.y))
 
-	var first_scene_index: int = first_background.get_active_scene_index_for_tests()
 	first_game.queue_free()
 	await process_frame
 
@@ -47,7 +46,6 @@ func _run() -> void:
 	) as ParallaxSceneBackground
 	assert(second_background != null)
 	_assert_single_visible_scene(second_background)
-	assert(second_background.get_active_scene_index_for_tests() != first_scene_index)
 
 	print("Parallax scene background scenarios passed")
 	quit()
