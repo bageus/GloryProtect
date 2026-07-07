@@ -16,15 +16,10 @@ func set_capacity_multiplier(value: float) -> void:
 	var next_multiplier := maxf(1.0, value)
 	if is_equal_approx(_capacity_multiplier, next_multiplier):
 		return
-	var previous_max := get_effective_max_health()
-	var percents := PackedFloat32Array()
-	percents.resize(get_section_count())
-	for section_id: int in range(get_section_count()):
-		percents[section_id] = _health[section_id] / previous_max
 	_capacity_multiplier = next_multiplier
 	var next_max := get_effective_max_health()
 	for section_id: int in range(get_section_count()):
-		_health[section_id] = percents[section_id] * next_max
+		_health[section_id] = clampf(_health[section_id], 0.0, next_max)
 		_update_critical_state(section_id)
 		section_changed.emit(section_id, _health[section_id], next_max, get_display_health_percent(section_id))
 
