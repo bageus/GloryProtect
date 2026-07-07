@@ -33,6 +33,7 @@ func _run_scenario() -> void:
 	var visual: GroundOrbVisualController = game.get_node(
 		"World/GroundOrbVisualController"
 	)
+	var minimap: StrategicMinimap = game.get_node("CanvasLayer/StrategicMinimap")
 	var waves: ShieldCoreStrategicWaveSystem = game.get_node(
 		"World/StrategicWaveSystem"
 	)
@@ -44,9 +45,14 @@ func _run_scenario() -> void:
 	assert(is_equal_approx(base_beam_widths.x, visual.contact_outer_base_width))
 	assert(is_equal_approx(base_beam_widths.y, visual.contact_inner_base_width))
 	assert(visual.get_contact_edge_glow_widths_for_tests() == Vector2.ZERO)
+	assert(minimap.get_capacity_percent_for_tests() == 100)
+	assert(is_equal_approx(minimap.get_section_health_ratio_for_tests(0), 1.0))
+	assert(minimap.get_section_health_text_for_tests(0) == "1  100%")
 	var base_pulse_half_width: float = (
 		pulse_visual.get_ground_pulse_half_width_for_tests(1.0)
 	)
+	assert(is_equal_approx(pulse_visual.get_compact_wave_scale_for_tests(), 0.9))
+	assert(is_equal_approx(pulse_visual.get_spread_wave_scale_for_tests(), 1.1))
 	assert(is_equal_approx(
 		pulse_visual.get_ground_pulse_half_width_for_tests(
 			1.0,
@@ -63,7 +69,22 @@ func _run_scenario() -> void:
 	))
 
 	_apply(upgrade_system, &"shield_capacity_basic")
+	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.1))
+	assert(is_equal_approx(shield.get_health(0), shield.balance.max_health))
+	assert(is_equal_approx(shield.get_health_percent(0), 100.0 / 110.0 * 100.0))
+	assert(minimap.get_capacity_percent_for_tests() == 110)
+	assert(is_equal_approx(
+		minimap.get_section_health_ratio_for_tests(0),
+		shield.get_health_percent(0) / 100.0
+	))
+	assert(minimap.get_section_health_text_for_tests(0) == "1  91/110%")
 	_apply(upgrade_system, &"shield_capacity_advanced")
+	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.2))
+	assert(is_equal_approx(shield.get_health(0), shield.balance.max_health))
+	assert(is_equal_approx(shield.get_health_percent(0), 100.0 / 120.0 * 100.0))
+	assert(minimap.get_capacity_percent_for_tests() == 120)
+	assert(is_equal_approx(minimap.get_section_health_ratio_for_tests(0), 100.0 / 120.0))
+	assert(minimap.get_section_health_text_for_tests(0) == "1  83/120%")
 	_apply(upgrade_system, &"shield_recharge_basic")
 	_apply(upgrade_system, &"shield_recharge_advanced")
 	_apply(upgrade_system, &"shield_contact_basic")
@@ -119,6 +140,7 @@ func _run_scenario() -> void:
 	core.reset_upgrade_runtime()
 	assert(is_zero_approx(core.upgrades.capacity_bonus_ratio))
 	assert(is_equal_approx(shield.get_capacity_multiplier(), 1.0))
+	assert(minimap.get_capacity_percent_for_tests() == 100)
 	assert(is_equal_approx(recharge.get_speed_multiplier(), 1.0))
 	assert(is_equal_approx(registry.get_contact_width_multiplier(), 1.0))
 	assert(not shield.has_emergency_reserve_been_used())
