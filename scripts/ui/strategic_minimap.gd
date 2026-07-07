@@ -3,6 +3,7 @@ extends Control
 
 const MAP_WIDTH_RATIO: float = 5.0 / 6.0
 const SHIELD_BAR_HEIGHT: float = 14.0
+const CAPACITY_TICK_HEIGHT: float = 4.0
 const CORE_BULGE_RADIUS: float = 5.2
 const MAP_BOTTOM_RESERVED: float = 20.0
 
@@ -114,6 +115,18 @@ func get_core_marker_position(section_id: int) -> Vector2:
 	return _get_core_marker_position(section_id, margin_x, shield_bar_y, lane_width)
 
 
+func get_section_health_ratio_for_tests(section_id: int) -> float:
+	return _get_section_health_ratio(section_id)
+
+
+func get_section_health_text_for_tests(section_id: int) -> String:
+	return _get_section_health_text(section_id)
+
+
+func get_capacity_percent_for_tests() -> int:
+	return _get_capacity_percent()
+
+
 func get_active_energy_wave_count() -> int:
 	return _energy_waves.size()
 
@@ -164,27 +177,57 @@ func _draw_section_lanes(
 		draw_rect(lane_rect, lane_fill, true)
 		if section_id > 0:
 			draw_line(Vector2(lane_x, lane_top), Vector2(lane_x, lane_bottom), Color(0.18, 0.26, 0.36, 0.8), 1.0)
-		var health_percent: float = _shield.get_health_percent(section_id)
-		var health_ratio: float = clampf(health_percent / 100.0, 0.0, 1.0)
+		var health_ratio: float = _get_section_health_ratio(section_id)
 		var health_color: Color = _get_health_color(section_id)
 		var bar_rect := Rect2(
 			Vector2(lane_x + 6.0, shield_bar_y),
 			Vector2(maxf(1.0, lane_width - 12.0), SHIELD_BAR_HEIGHT)
 		)
 		draw_rect(bar_rect, Color(0.09, 0.11, 0.15, 0.96), true)
+		_draw_capacity_bonus_marks(bar_rect)
 		draw_rect(Rect2(bar_rect.position, Vector2(bar_rect.size.x * health_ratio, bar_rect.size.y)), health_color, true)
 		_draw_core_bulge(section_id, bar_rect, health_color)
 		draw_rect(bar_rect, Color(0.55, 0.68, 0.82, 0.9), false, 1.0)
-		var text := "%d  %d%%" % [section_id + 1, roundi(health_percent)]
-		var text_width: float = maxf(18.0, bar_rect.size.x * 0.46)
+		var text := _get_section_health_text(section_id)
 		draw_string(
 			ThemeDB.fallback_font,
 			bar_rect.position + Vector2(2.0, 11.0),
 			text,
 			HORIZONTAL_ALIGNMENT_LEFT,
-			text_width,
-			10,
+			bar_rect.size.x,
+			9,
 			Color.WHITE
+		)
+
+
+func _draw_capacity_bonus_marks(bar_rect: Rect2) -> void:
+	var capacity_multiplier: float = _get_capacity_multiplier()
+	if capacity_multiplier <= 1.001:
+		return
+	var base_end_x: float = bar_rect.position.x + bar_rect.size.x / capacity_multiplier
+	var extra_rect := Rect2(
+		Vector2(base_end_x, bar_rect.position.y),
+		Vector2(bar_rect.end.x - base_end_x, bar_rect.size.y)
+	)
+	draw_rect(extra_rect, Color(0.26, 0.58, 0.96, 0.2), true)
+	draw_line(
+		Vector2(base_end_x, bar_rect.position.y),
+		Vector2(base_end_x, bar_rect.end.y),
+		Color(0.75, 0.96, 1.0, 0.78),
+		1.3
+	)
+	var bonus_ticks: int = maxi(1, roundi((capacity_multiplier - 1.0) * 10.0))
+	for tick_index: int in range(bonus_ticks):
+		var tick_x: float = lerpf(
+			base_end_x,
+			bar_rect.end.x,
+			float(tick_index + 1) / float(bonus_ticks)
+		)
+		draw_line(
+			Vector2(tick_x, bar_rect.position.y - CAPACITY_TICK_HEIGHT),
+			Vector2(tick_x, bar_rect.position.y + 2.0),
+			Color(0.86, 0.98, 1.0, 0.9),
+			1.2
 		)
 
 
@@ -295,6 +338,31 @@ func _on_strategic_enemy_impacted(section_id: int, _damage: float) -> void:
 	while _energy_waves.size() > 12:
 		_energy_waves.remove_at(0)
 	queue_redraw()
+
+
+func _get_section_health_ratio(section_id: int) -> float:
+	if not _shield.is_valid_section(section_id):
+		return 0.0
+	return clampf(_shield.get_health_percent(section_id) / 100.0, 0.0, 1.0)
+
+
+func _get_section_health_text(section_id: int) -> String:
+	if not _shield.is_valid_section(section_id):
+		return ""
+	var health_percent: int = roundi(_shield.get_health_percent(section_id))
+	var capacity_percent: int = _get_capacity_percent()
+	if capacity_percent > 100:
+		return "%d  %d/%d%%" % [section_id + 1, health_percent, capacity_percent]
+	return "%d  %d%%" % [section_id + 1, health_percent]
+
+
+func _get_capacity_percent() -> int:
+	return roundi(_get_capacity_multiplier() * 100.0)
+
+
+func _get_capacity_multiplier() -> float:
+	var base_max: float = maxf(0.001, _shield.balance.max_health)
+	return maxf(1.0, _shield.get_max_health() / base_max)
 
 
 func _get_health_color(section_id: int) -> Color:
