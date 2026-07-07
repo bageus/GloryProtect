@@ -72,19 +72,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not key_event.pressed or key_event.echo:
 		return
 
-	match key_event.keycode:
-		KEY_1:
-			toggle_anchor(0)
-		KEY_2:
-			toggle_anchor(1)
-		KEY_3:
-			toggle_anchor(2)
-		KEY_4:
-			toggle_anchor(3)
-		KEY_R:
-			request_remove_all()
-		_:
-			return
+	if key_event.is_action_pressed(&"gp_anchor_1"):
+		toggle_anchor(0)
+	elif key_event.is_action_pressed(&"gp_anchor_2"):
+		toggle_anchor(1)
+	elif key_event.is_action_pressed(&"gp_anchor_3"):
+		toggle_anchor(2)
+	elif key_event.is_action_pressed(&"gp_anchor_4"):
+		toggle_anchor(3)
+	elif key_event.is_action_pressed(&"gp_anchor_remove_all"):
+		request_remove_all()
+	else:
+		return
 	get_viewport().set_input_as_handled()
 
 
@@ -152,6 +151,10 @@ func get_active_path_count() -> int:
 		if anchor.is_holding():
 			count += 1
 	return count
+
+
+func is_instant_remove_all_enabled() -> bool:
+	return _commands.is_instant_remove_all_enabled()
 
 
 func is_path_available(anchor_id: int) -> bool:
