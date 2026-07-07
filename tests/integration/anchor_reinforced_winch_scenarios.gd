@@ -71,21 +71,21 @@ func _assert_one_winch_per_side_until_mega() -> void:
 	)
 
 	commands.toggle(0)
-	assert(operations.requested == PackedInt32Array([0]))
+	_assert_requested_anchor_ids(operations.requested, [0])
 	assert(store.get_anchor(0).state == AnchorRuntime.State.QUEUED)
 
 	commands.toggle(1)
-	assert(operations.requested == PackedInt32Array([0]))
-	assert(rejected[-1] == &"second_winch_locked")
+	_assert_requested_anchor_ids(operations.requested, [0])
+	assert(rejected[rejected.size() - 1] == &"second_winch_locked")
 	assert(store.get_anchor(1).state == AnchorRuntime.State.STOWED)
 
 	commands.toggle(2)
-	assert(operations.requested == PackedInt32Array([0, 2]))
+	_assert_requested_anchor_ids(operations.requested, [0, 2])
 	assert(store.get_anchor(2).state == AnchorRuntime.State.QUEUED)
 
 	commands.set_second_winch_pair_enabled(true)
 	commands.toggle(1)
-	assert(operations.requested == PackedInt32Array([0, 2, 1]))
+	_assert_requested_anchor_ids(operations.requested, [0, 2, 1])
 	assert(store.get_anchor(1).state == AnchorRuntime.State.QUEUED)
 
 
@@ -151,7 +151,17 @@ func _assert_upgrade_runtime_and_catalog_contract() -> void:
 	assert(reinforced_card.effect.target_id == CombatAnchorUpgradeRuntime.REINFORCED_WIND_THRESHOLD)
 	assert(mega_card.title == "Мега закрепление")
 	assert(mega_card.effect.target_id == CombatAnchorUpgradeRuntime.SECOND_WINCH_PAIR)
-	assert(mega_card.prerequisite_card_ids == Array[StringName]([&"anchor_overload_basic"]))
+	assert(mega_card.prerequisite_card_ids.size() == 1)
+	assert(mega_card.prerequisite_card_ids[0] == &"anchor_overload_basic")
+
+
+func _assert_requested_anchor_ids(
+	actual: PackedInt32Array,
+	expected: Array[int]
+) -> void:
+	assert(actual.size() == expected.size())
+	for index: int in range(expected.size()):
+		assert(actual[index] == expected[index])
 
 
 func _make_store_with_attached_anchor() -> AnchorRuntimeStore:
