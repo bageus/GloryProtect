@@ -22,6 +22,8 @@ const CAPTAIN_RIGHT_TEXTURE: Texture2D = preload(
 	"res://visual/defenders/captain_platform/asset_captain_right.png"
 )
 
+const TURBO_RECHARGE_RED_THRESHOLD: float = 0.19
+
 enum PortalState {
 	IDLE,
 	FLASH,
@@ -31,6 +33,9 @@ enum PortalState {
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
+@export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath = NodePath(
+	"../../ShieldCoreSystem"
+)
 @export var balance: PlatformBalance
 @export var crew_balance: CrewBalance
 
@@ -63,6 +68,7 @@ enum PortalState {
 @onready var _steering_input: SteeringInputProvider = get_node(steering_input_path)
 
 var _game_flow: GameFlowController
+var _shield_core: ShieldCoreSystem
 var _surface_visual := PlatformSurfaceVisual.new()
 var _portal_source_rect: Rect2
 var _portal_spawn1_source_rect: Rect2
@@ -113,6 +119,12 @@ func _ready() -> void:
 		_game_flow = scene_root.get_node_or_null(
 			"GameFlowController"
 		) as GameFlowController
+	_shield_core = _resolve_shield_core_system()
+	if (
+		_shield_core != null
+		and not _shield_core.upgrades_changed.is_connected(_on_shield_core_upgrades_changed)
+	):
+		_shield_core.upgrades_changed.connect(_on_shield_core_upgrades_changed)
 	_steering_input.driver_availability_changed.connect(_on_visual_state_changed)
 	_apply_canvas_pixel_snap()
 	queue_redraw()
@@ -144,8 +156,14 @@ func is_portal_busy() -> bool:
 	return _portal_state != PortalState.IDLE or not _portal_queue.is_empty()
 
 
+func get_platform_core_atlas_path_for_tests() -> String:
+	_surface_visual.set_platform_core_red_enabled(_is_platform_core_red_enabled())
+	return _surface_visual.get_platform_core_atlas_path_for_tests()
+
+
 func _draw() -> void:
 	var platform_width: float = _platform.get_platform_width()
+	_surface_visual.set_platform_core_red_enabled(_is_platform_core_red_enabled())
 	_surface_visual.draw_body(
 		self,
 		platform_width,
@@ -343,5 +361,26 @@ func _set_portal_state(new_state: PortalState) -> void:
 	queue_redraw()
 
 
+func _resolve_shield_core_system() -> ShieldCoreSystem:
+	if not shield_core_system_path.is_empty():
+		var explicit: ShieldCoreSystem = get_node_or_null(
+			shield_core_system_path
+		) as ShieldCoreSystem
+		if explicit != null:
+			return explicit
+	return get_node_or_null("../../ShieldCoreSystem") as ShieldCoreSystem
+
+
+func _is_platform_core_red_enabled() -> bool:
+	return (
+		_shield_core != null
+		and _shield_core.upgrades.recharge_bonus_ratio >= TURBO_RECHARGE_RED_THRESHOLD
+	)
+
+
 func _on_visual_state_changed(_is_available: bool) -> void:
+	queue_redraw()
+
+
+func _on_shield_core_upgrades_changed() -> void:
 	queue_redraw()
