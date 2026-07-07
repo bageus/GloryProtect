@@ -8,38 +8,41 @@ func _init() -> void:
 
 
 func _run() -> void:
-	var game: Node2D = GAME_SCENE.instantiate() as Node2D
-	root.add_child(game)
-	await process_frame
-	await process_frame
-	_disable_spawners(game)
-	var flow: GameFlowController = game.get_node("GameFlowController")
-	flow.state = GameFlowController.RunState.RUNNING
-	paused = false
+	await _assert_station_defender_retaliates_when_attacked()
+	await _assert_replacement_defender_interrupts_queue_when_attacked()
+	await _assert_defender_can_pass_enemy_already_in_melee()
+	print("Defender attack queue scenarios passed")
+	quit()
 
+
+func _assert_station_defender_retaliates_when_attacked() -> void:
+	var game: Node2D = await _make_running_game()
 	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
 	var spawner: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
-	var resolver: BoardingMovementResolver = game.get_node(
-		"World/BoardingMovementResolver"
-	)
-
 	var driver: Defender = crew.get_defender(0)
 	assert(driver != null)
-	var driver_enemy: BoardingEnemy = _spawn_boarded_enemy(
+	var attacker: BoardingEnemy = _spawn_boarded_enemy(
 		spawner,
 		driver.position.x + 8.0
 	)
-	driver.health.apply_damage(1, &"melee", driver_enemy)
+	driver.health.apply_damage(1, &"melee", attacker)
 	await physics_frame
-	assert(driver.combat.get_retaliation_target_for_tests() == driver_enemy)
+	assert(driver.combat.get_retaliation_target_for_tests() == attacker)
 	assert(driver.melee.is_attacking())
 	assert(driver.is_combat_action_active())
+	game.queue_free()
+	await process_frame
 
-	var replacement: Defender = crew.add_defender(driver.position.x - 96.0)
+
+func _assert_replacement_defender_interrupts_queue_when_attacked() -> void:
+	var game: Node2D = await _make_running_game()
+	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var spawner: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+	var replacement: Defender = crew.add_defender(-120.0)
 	await process_frame
 	await process_frame
 	assert(replacement != null)
-	replacement.move_to(driver.position.x + 160.0)
+	replacement.move_to(160.0)
 	var attacker: BoardingEnemy = _spawn_boarded_enemy(
 		spawner,
 		replacement.position.x - 8.0
@@ -48,8 +51,18 @@ func _run() -> void:
 	await physics_frame
 	assert(replacement.combat.get_retaliation_target_for_tests() == attacker)
 	assert(replacement.melee.is_attacking())
+	game.queue_free()
+	await process_frame
 
-	var passer: Defender = crew.add_defender(driver.position.x - 160.0)
+
+func _assert_defender_can_pass_enemy_already_in_melee() -> void:
+	var game: Node2D = await _make_running_game()
+	var crew: CrewManager = game.get_node("World/Platform/CrewManager")
+	var spawner: BoardingSpawnDirector = game.get_node("World/BoardingSpawnDirector")
+	var resolver: BoardingMovementResolver = game.get_node(
+		"World/BoardingMovementResolver"
+	)
+	var passer: Defender = crew.add_defender(-160.0)
 	await process_frame
 	await process_frame
 	assert(passer != null)
@@ -57,10 +70,11 @@ func _run() -> void:
 		spawner,
 		passer.position.x + 40.0
 	)
+	var target_x: float = busy_enemy.controller.get_platform_occupancy_x() + 64.0
 	var blocked_x: float = resolver.resolve_defender_platform_x(
 		passer,
 		passer.position.x,
-		busy_enemy.controller.get_platform_occupancy_x() + 64.0
+		target_x
 	)
 	assert(blocked_x <= busy_enemy.controller.get_platform_occupancy_x())
 	busy_enemy.controller.state = BoardingEnemyController.State.FIGHTING
@@ -68,12 +82,23 @@ func _run() -> void:
 	var pass_x: float = resolver.resolve_defender_platform_x(
 		passer,
 		passer.position.x,
-		busy_enemy.controller.get_platform_occupancy_x() + 64.0
+		target_x
 	)
 	assert(pass_x > busy_enemy.controller.get_platform_occupancy_x())
+	game.queue_free()
+	await process_frame
 
-	print("Defender attack queue scenarios passed")
-	quit()
+
+func _make_running_game() -> Node2D:
+	var game: Node2D = GAME_SCENE.instantiate() as Node2D
+	root.add_child(game)
+	await process_frame
+	await process_frame
+	_disable_spawners(game)
+	var flow: GameFlowController = game.get_node("GameFlowController")
+	flow.state = GameFlowController.RunState.RUNNING
+	paused = false
+	return game
 
 
 func _spawn_boarded_enemy(
