@@ -10,6 +10,7 @@ var _geometry: AnchorGeometry
 var _operations: AnchorOperationQueue
 var _is_operator_available: Callable
 var _instant_remove_all_enabled: bool = false
+var _second_winch_pair_enabled: bool = false
 
 
 func configure(
@@ -30,6 +31,14 @@ func set_instant_remove_all_enabled(enabled: bool) -> void:
 
 func is_instant_remove_all_enabled() -> bool:
 	return _instant_remove_all_enabled
+
+
+func set_second_winch_pair_enabled(enabled: bool) -> void:
+	_second_winch_pair_enabled = enabled
+
+
+func is_second_winch_pair_enabled() -> bool:
+	return _second_winch_pair_enabled
 
 
 func toggle(anchor_id: int) -> void:
@@ -73,6 +82,9 @@ func operator_availability_changed(side: int, is_available: bool) -> void:
 
 
 func _request_install(anchor: AnchorRuntime) -> void:
+	if not _can_install_anchor_on_side(anchor):
+		command_rejected.emit(anchor.anchor_id, &"second_winch_locked")
+		return
 	var orb_id := _geometry.get_current_installation_orb_id()
 	if orb_id < 0:
 		command_rejected.emit(anchor.anchor_id, &"outside_installation_zone")
@@ -97,6 +109,17 @@ func _request_remove(anchor: AnchorRuntime) -> void:
 	anchor_detaching.emit(anchor.anchor_id)
 	_store.set_stowed(anchor.anchor_id)
 	anchor_removed.emit(anchor.anchor_id)
+
+
+func _can_install_anchor_on_side(anchor: AnchorRuntime) -> bool:
+	if _second_winch_pair_enabled:
+		return true
+	for other: AnchorRuntime in _store.get_all():
+		if other.anchor_id == anchor.anchor_id or other.side != anchor.side:
+			continue
+		if other.state != AnchorRuntime.State.STOWED:
+			return false
+	return true
 
 
 func _operator_available(side: int) -> bool:

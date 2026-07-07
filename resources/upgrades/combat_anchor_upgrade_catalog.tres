@@ -6,31 +6,29 @@
 
 [sub_resource type="Resource" id="EffectOverloadBasic"]
 script = ExtResource("3_effect")
-effect_type = 4
-target_id = &"anchor_overload_bonus_seconds"
-scalar_value = 1.0
+effect_type = 3
+target_id = &"anchor_reinforced_wind_threshold"
 
 [sub_resource type="Resource" id="CardOverloadBasic"]
 script = ExtResource("2_definition")
 card_id = &"anchor_overload_basic"
 branch_id = &"anchors"
-title = "Усиленный якорь"
-description = "Окно перегрузки одиночного якоря увеличено на 1 секунду. Прочность троса не изменяется."
+title = "Усиленное закрепление"
+description = "Трос начинает рваться только при силе ветра 3 вместо 2. Количество лебёдок не меняется."
 card_type = 1
 effect = SubResource("EffectOverloadBasic")
 
 [sub_resource type="Resource" id="EffectOverloadAdvanced"]
 script = ExtResource("3_effect")
-effect_type = 4
-target_id = &"anchor_overload_bonus_seconds"
-scalar_value = 1.0
+effect_type = 3
+target_id = &"anchor_second_winch_pair"
 
 [sub_resource type="Resource" id="CardOverloadAdvanced"]
 script = ExtResource("2_definition")
 card_id = &"anchor_overload_advanced"
 branch_id = &"anchors"
-title = "Мега-якорь"
-description = "Окно перегрузки одиночного якоря дополнительно увеличено на 1 секунду."
+title = "Мега закрепление"
+description = "Открывает вторую лебёдку с каждой стороны платформы."
 card_type = 2
 prerequisite_card_ids = Array[StringName]([&"anchor_overload_basic"])
 effect = SubResource("EffectOverloadAdvanced")

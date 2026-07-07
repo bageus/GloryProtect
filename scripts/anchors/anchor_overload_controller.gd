@@ -9,6 +9,7 @@ var _constraints: AnchorConstraintProvider
 var _balance: AnchorBalance
 var _wind: WindSystem
 var _duration_bonus_seconds: float = 0.0
+var _wind_strength_threshold: int = 2
 
 
 func configure(
@@ -25,6 +26,14 @@ func configure(
 
 func set_duration_bonus(seconds: float) -> void:
 	_duration_bonus_seconds = maxf(0.0, seconds)
+
+
+func set_wind_strength_threshold(strength_level: int) -> void:
+	_wind_strength_threshold = maxi(1, strength_level)
+
+
+func get_wind_strength_threshold() -> int:
+	return _wind_strength_threshold
 
 
 func get_effective_duration() -> float:
@@ -64,7 +73,7 @@ func _update_side(side: int, delta: float) -> void:
 
 
 func _should_overload(anchor: AnchorRuntime) -> bool:
-	if _wind.strength_level != 3:
+	if _wind.strength_level < _wind_strength_threshold:
 		return false
 
 	# Tension is geometry-based. A right anchor can be loaded by wind to the

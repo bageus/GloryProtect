@@ -92,11 +92,16 @@ func _sync_anchor_modifiers() -> void:
 	var second_anchor_multiplier: float = 1.0
 	if upgrades.strong_second_install_enabled:
 		second_anchor_multiplier = balance.second_anchor_install_speed_multiplier
+	var overload_threshold: int = (
+		3 if upgrades.reinforced_wind_threshold_enabled else 2
+	)
 	_anchors.set_combat_anchor_modifiers(
 		overload_bonus,
 		upgrades.install_speed_bonus_ratio,
 		second_anchor_multiplier,
-		upgrades.instant_remove_all_enabled
+		upgrades.instant_remove_all_enabled,
+		overload_threshold,
+		upgrades.second_winch_pair_enabled
 	)
 
 

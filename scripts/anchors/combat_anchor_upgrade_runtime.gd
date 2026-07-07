@@ -5,6 +5,8 @@ const STRONG: StringName = &"anchor_specialization_strong"
 const ELECTRIC: StringName = &"anchor_specialization_electric"
 const TRAP: StringName = &"anchor_specialization_trap"
 
+const REINFORCED_WIND_THRESHOLD: StringName = &"anchor_reinforced_wind_threshold"
+const SECOND_WINCH_PAIR: StringName = &"anchor_second_winch_pair"
 const OVERLOAD_BONUS_SECONDS: StringName = &"anchor_overload_bonus_seconds"
 const PERIODIC_ELECTRIC: StringName = &"anchor_periodic_electric"
 const PERIODIC_ELECTRIC_ADVANCED: StringName = &"anchor_periodic_electric_advanced"
@@ -17,6 +19,8 @@ const TRAP_ATTACH_EXPLOSION: StringName = &"anchor_trap_attach_explosion"
 
 var overload_bonus_seconds: float = 0.0
 var install_speed_bonus_ratio: float = 0.0
+var reinforced_wind_threshold_enabled: bool = false
+var second_winch_pair_enabled: bool = false
 var periodic_electric_enabled: bool = false
 var periodic_electric_advanced: bool = false
 var instant_remove_all_enabled: bool = false
@@ -30,6 +34,8 @@ var trap_attach_explosion_enabled: bool = false
 func reset() -> void:
 	overload_bonus_seconds = 0.0
 	install_speed_bonus_ratio = 0.0
+	reinforced_wind_threshold_enabled = false
+	second_winch_pair_enabled = false
 	periodic_electric_enabled = false
 	periodic_electric_advanced = false
 	instant_remove_all_enabled = false
@@ -68,6 +74,12 @@ func apply_flag(target_id: StringName) -> bool:
 	if not _can_apply_flag(target_id):
 		return false
 	match target_id:
+		REINFORCED_WIND_THRESHOLD:
+			reinforced_wind_threshold_enabled = true
+			return true
+		SECOND_WINCH_PAIR:
+			second_winch_pair_enabled = true
+			return true
 		PERIODIC_ELECTRIC:
 			periodic_electric_enabled = true
 			return true
@@ -118,6 +130,10 @@ func _can_apply_scalar(target_id: StringName, value: float) -> bool:
 
 func _can_apply_flag(target_id: StringName) -> bool:
 	match target_id:
+		REINFORCED_WIND_THRESHOLD:
+			return not reinforced_wind_threshold_enabled
+		SECOND_WINCH_PAIR:
+			return reinforced_wind_threshold_enabled and not second_winch_pair_enabled
 		PERIODIC_ELECTRIC:
 			return not periodic_electric_enabled
 		PERIODIC_ELECTRIC_ADVANCED:

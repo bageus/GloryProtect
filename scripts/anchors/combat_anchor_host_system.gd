@@ -61,22 +61,30 @@ func set_combat_anchor_modifiers(
 	overload_bonus_seconds: float,
 	install_speed_bonus_ratio: float,
 	second_anchor_speed_multiplier: float,
-	instant_remove_all_enabled: bool
+	instant_remove_all_enabled: bool,
+	overload_wind_threshold: int = 2,
+	second_winch_pair_enabled: bool = false
 ) -> void:
 	_overload.set_duration_bonus(overload_bonus_seconds)
+	_overload.set_wind_strength_threshold(overload_wind_threshold)
 	_operations.set_install_speed_modifiers(
 		install_speed_bonus_ratio,
 		second_anchor_speed_multiplier
 	)
 	_commands.set_instant_remove_all_enabled(instant_remove_all_enabled)
+	_commands.set_second_winch_pair_enabled(second_winch_pair_enabled)
 
 
 func reset_combat_anchor_modifiers() -> void:
-	set_combat_anchor_modifiers(0.0, 0.0, 1.0, false)
+	set_combat_anchor_modifiers(0.0, 0.0, 1.0, false, 2, false)
 
 
 func get_effective_overload_duration() -> float:
 	return _overload.get_effective_duration()
+
+
+func get_overload_wind_threshold() -> int:
+	return _overload.get_wind_strength_threshold()
 
 
 func get_effective_install_duration(anchor_id: int) -> float:
@@ -85,6 +93,10 @@ func get_effective_install_duration(anchor_id: int) -> float:
 
 func is_instant_remove_all_enabled() -> bool:
 	return _commands.is_instant_remove_all_enabled()
+
+
+func is_second_winch_pair_enabled() -> bool:
+	return _commands.is_second_winch_pair_enabled()
 
 
 func get_platform_attachment_world(anchor_id: int) -> Vector2:
