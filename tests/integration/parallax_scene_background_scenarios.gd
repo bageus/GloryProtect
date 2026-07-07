@@ -8,38 +8,54 @@ func _init() -> void:
 
 
 func _run() -> void:
-	var game: Node2D = GAME_SCENE.instantiate() as Node2D
-	root.add_child(game)
+	var first_game: Node2D = GAME_SCENE.instantiate() as Node2D
+	root.add_child(first_game)
 	await process_frame
 	await process_frame
 
-	var background := game.get_node(
+	var first_background := first_game.get_node(
 		"ParallaxSceneBackground"
 	) as ParallaxSceneBackground
-	var platform := game.get_node("World/Platform") as PlatformController
-	assert(background != null)
-	assert(platform != null)
+	var first_platform := first_game.get_node("World/Platform") as PlatformController
+	assert(first_background != null)
+	assert(first_platform != null)
+	_assert_single_visible_scene(first_background)
 
-	var far_before: Vector2 = background.get_far_layer_position()
-	var near_before: Vector2 = background.get_near_layer_position()
-	assert(is_equal_approx(background.get_near_layer_vertical_offset(), 1.0))
-	assert(is_equal_approx(
-		near_before.y - far_before.y,
-		background.get_near_layer_vertical_offset()
-	))
-
-	var platform_y_before: float = platform.position.y
-	platform.position.x += 128.0
+	var position_before: Vector2 = (
+		first_background.get_active_scene_position_for_tests()
+	)
+	var platform_y_before: float = first_platform.position.y
+	first_platform.position.x += 128.0
 	await process_frame
-	var far_after: Vector2 = background.get_far_layer_position()
-	var near_after: Vector2 = background.get_near_layer_position()
-	assert(is_equal_approx(platform.position.y, platform_y_before))
-	assert(is_equal_approx(
-		near_after.y - far_after.y,
-		background.get_near_layer_vertical_offset()
-	))
-	assert(not is_equal_approx(near_after.x, near_before.x))
-	assert(not is_equal_approx(far_after.x, far_before.x))
+	var position_after: Vector2 = (
+		first_background.get_active_scene_position_for_tests()
+	)
+	assert(is_equal_approx(first_platform.position.y, platform_y_before))
+	assert(not is_equal_approx(position_after.x, position_before.x))
+	assert(is_equal_approx(position_after.y, position_before.y))
+
+	first_game.queue_free()
+	await process_frame
+
+	var second_game: Node2D = GAME_SCENE.instantiate() as Node2D
+	root.add_child(second_game)
+	await process_frame
+	await process_frame
+	var second_background := second_game.get_node(
+		"ParallaxSceneBackground"
+	) as ParallaxSceneBackground
+	assert(second_background != null)
+	_assert_single_visible_scene(second_background)
 
 	print("Parallax scene background scenarios passed")
 	quit()
+
+
+func _assert_single_visible_scene(background: ParallaxSceneBackground) -> void:
+	assert(background.get_visible_scene_layer_count_for_tests() == 1)
+	assert(is_equal_approx(
+		background.get_scene_layer_alpha_for_tests(
+			background.get_active_scene_index_for_tests()
+		),
+		1.0
+	))
