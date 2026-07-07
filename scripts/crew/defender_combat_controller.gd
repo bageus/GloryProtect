@@ -10,6 +10,7 @@ var _roles: CrewRoleManager
 var _enemies: BoardingEnemyRegistry
 var _melee: MeleeAttackComponent
 var _locked_enemy: BoardingEnemy
+var _retaliation_target: BoardingEnemy
 var _completed_hits: int = 0
 var _double_attack_follow_up_active: bool = false
 var _resolver := MeleeDefenderCombatResolver.new()
@@ -47,14 +48,16 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_melee.tick(delta)
+	if _melee.is_attacking():
+		_defender.movement.pause()
+		return
+	if _update_retaliation_combat():
+		return
+
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
 		_defender.defender_id
 	)
 	if assignment == null:
-		return
-
-	if _melee.is_attacking():
-		_defender.movement.pause()
 		return
 
 	if assignment.state == CrewAssignmentRuntime.State.MOVING:
@@ -84,7 +87,6 @@ func _physics_process(delta: float) -> void:
 		_defender.movement.pause()
 		_try_start_attack(target)
 		return
-
 	if (
 		assignment.state == CrewAssignmentRuntime.State.ACTIVE
 		and assignment.current_role == CrewRole.Id.FREE_FIGHTER
@@ -99,6 +101,9 @@ func is_action_active() -> bool:
 	if not _configured or _melee == null:
 		return false
 	if _melee.is_attacking():
+		return true
+	var retaliation: BoardingEnemy = _get_retaliation_target()
+	if retaliation != null:
 		return true
 
 	var assignment: CrewAssignmentRuntime = _roles.get_assignment(
@@ -115,6 +120,7 @@ func is_action_active() -> bool:
 
 func cancel() -> void:
 	_locked_enemy = null
+	_retaliation_target = null
 	_double_attack_follow_up_active = false
 	if _melee != null:
 		_melee.cancel()
@@ -122,6 +128,14 @@ func cancel() -> void:
 
 func get_completed_hit_count() -> int:
 	return _completed_hits
+
+
+func get_retaliation_target_for_tests() -> BoardingEnemy:
+	return _get_retaliation_target()
+
+
+func debug_set_retaliation_target_for_tests(target: BoardingEnemy) -> void:
+	_retaliation_target = target
 
 
 static func is_local_x_on_forward_path(
@@ -141,6 +155,36 @@ static func is_local_x_on_forward_path(
 	return absf(offset) <= absf(travel) + epsilon
 
 
+func _update_retaliation_combat() -> bool:
+	var target: BoardingEnemy = _get_retaliation_target()
+	if target == null:
+		return false
+	var distance: float = absf(
+		target.global_position.x - _defender.global_position.x
+	)
+	if distance <= _balance.defender_attack_range:
+		_defender.movement.pause()
+		_try_start_attack(target)
+		return true
+	var target_local_x: float = (
+		target.global_position.x - _platform.global_position.x
+	)
+	_defender.movement.move_to(target_local_x)
+	return true
+
+
+func _get_retaliation_target() -> BoardingEnemy:
+	if _retaliation_target == null:
+		return null
+	if not is_instance_valid(_retaliation_target):
+		_retaliation_target = null
+		return null
+	if not _retaliation_target.health.is_alive():
+		_retaliation_target = null
+		return null
+	return _retaliation_target
+
+
 func _update_moving_assignment_combat() -> void:
 	var target: BoardingEnemy = _get_moving_assignment_target()
 	if target == null:
@@ -152,6 +196,13 @@ func _update_moving_assignment_combat() -> void:
 
 
 func _get_moving_assignment_target() -> BoardingEnemy:
+	var immediate: BoardingEnemy = _enemies.get_nearest_boarded_enemy(
+		_defender.global_position,
+		_balance.defender_attack_range
+	)
+	if immediate != null:
+		return immediate
+
 	var current_local_x: float = _defender.position.x
 	var destination_local_x: float = _defender.movement.get_target_x()
 	var selected: BoardingEnemy = null
@@ -239,6 +290,7 @@ func _on_damage_received(
 	var attacker: BoardingEnemy = source_node as BoardingEnemy
 	if attacker == null:
 		return
+	_retaliation_target = attacker
 	var upgrades: MeleeDefenderUpgradeRuntime = (
 		_defender.get_melee_upgrades()
 	)
