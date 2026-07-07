@@ -66,7 +66,7 @@ static func _normalize_state(state_id: StringName) -> StringName:
 	match state_id:
 		&"death":
 			return &"die"
-		&"landing":
+		&"fall":
 			return &"fell"
 		&"distance_attack":
 			return &"attack_distance"

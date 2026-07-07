@@ -89,7 +89,13 @@ func configure(archetype: BoardingEnemyArchetype) -> void:
 			_presentation_state_id,
 			_get_frame_count(_presentation_state_id),
 			_get_frame_rate(_presentation_state_id),
-			_presentation_state_id not in [&"attack", &"jump", &"landing", &"death"]
+			_presentation_state_id not in [
+				&"attack",
+				&"jump",
+				&"landing",
+				&"fall",
+				&"death",
+			]
 		)
 		queue_redraw()
 
@@ -110,10 +116,10 @@ func detach_for_fall(landing_y: float) -> void:
 		return
 	_detached_fall = true
 	_fall_target_y = landing_y
-	_presentation_state_id = &"landing"
+	_presentation_state_id = &"fall"
 	_behavior_state_id = &""
 	_detach_from_enemy_parent()
-	_animation.play(&"landing", _get_frame_count(&"landing"), flying_frame_rate, true, true)
+	_animation.play(&"fall", _get_frame_count(&"fall"), flying_frame_rate, true, true)
 	queue_redraw()
 
 
@@ -220,7 +226,7 @@ func debug_force_presentation_state_for_tests(state_id: StringName) -> void:
 		state_id,
 		_get_frame_count(state_id),
 		_get_frame_rate(state_id),
-		state_id not in [&"attack", &"jump", &"landing", &"death"]
+		state_id not in [&"attack", &"jump", &"landing", &"fall", &"death"]
 	)
 	queue_redraw()
 
@@ -298,6 +304,9 @@ func _update_animation(state_id: StringName, delta: float) -> void:
 		&"landing":
 			_animation.play(&"landing", frame_count, flying_frame_rate, false)
 			_animation.tick(delta)
+		&"fall":
+			_animation.play(&"fall", frame_count, flying_frame_rate)
+			_animation.tick(delta)
 		&"death":
 			_animation.play(&"death", frame_count, death_frame_rate, false)
 			_animation.tick(delta)
@@ -313,7 +322,7 @@ func _get_frame_count(state_id: StringName) -> int:
 		if asset_count > 0:
 			return _get_logical_frame_count_for_assets(asset_state, asset_count)
 	match state_id:
-		&"death", &"landing":
+		&"death", &"landing", &"fall":
 			return 4
 		&"climb":
 			return 3
@@ -325,7 +334,7 @@ func _get_logical_frame_count_for_assets(state_id: StringName, asset_count: int)
 	match state_id:
 		&"attack":
 			return max(asset_count, 6)
-		&"death", &"landing":
+		&"death", &"fall":
 			return max(asset_count, 4)
 		&"climb":
 			return max(asset_count, 3)
@@ -343,7 +352,7 @@ func _get_frame_rate(state_id: StringName) -> float:
 			return climb_frame_rate
 		&"jump":
 			return jump_frame_rate
-		&"flying", &"landing":
+		&"flying", &"landing", &"fall":
 			return flying_frame_rate
 		&"death":
 			return death_frame_rate
@@ -425,6 +434,10 @@ func _resolve_asset_state(state_id: StringName) -> StringName:
 	var candidates: Array[StringName] = []
 	_append_candidate(candidates, state_id)
 	match state_id:
+		&"fall":
+			_append_candidate(candidates, &"fell")
+		&"landing":
+			_append_candidate(candidates, &"flying")
 		&"waiting", &"waiting_without_path":
 			_append_candidate(candidates, &"idle")
 		&"running_to_rope", &"running_to_anchor":

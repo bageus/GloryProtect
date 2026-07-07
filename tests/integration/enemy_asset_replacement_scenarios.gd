@@ -18,6 +18,7 @@ func _run() -> void:
 	_assert_catalog_counts()
 	for archetype_id: StringName in ARCHETYPES.keys():
 		await _assert_visual_for_archetype(archetype_id)
+	await _assert_detached_rope_fall_uses_fall_asset()
 	print("Enemy asset replacement scenarios passed")
 	quit()
 
@@ -27,37 +28,54 @@ func _assert_catalog_counts() -> void:
 	_assert_count(&"basic", &"run", 3)
 	_assert_count(&"basic", &"death", 2)
 	_assert_count(&"basic", &"jump", 3)
-	_assert_count(&"basic", &"landing", 1)
+	_assert_count(&"basic", &"fall", 1)
+	_assert_count(&"basic", &"landing", 0)
 	_assert_count(&"basic", &"climb", 1)
 	_assert_count(&"basic", &"attack", 3)
 	_assert_count(&"basic", &"distance_attack", 4)
 	_assert_count(&"flyer", &"idle", 1)
 	_assert_count(&"flyer", &"flying", 4)
-	_assert_count(&"flyer", &"landing", 1)
+	_assert_count(&"flyer", &"fall", 1)
+	_assert_count(&"flyer", &"landing", 0)
 	_assert_count(&"flyer", &"death", 3)
 	_assert_count(&"flyer", &"attack", 3)
 	_assert_count(&"runner", &"idle", 2)
 	_assert_count(&"runner", &"jump", 2)
 	_assert_count(&"runner", &"run", 3)
-	_assert_count(&"runner", &"landing", 1)
+	_assert_count(&"runner", &"fall", 1)
+	_assert_count(&"runner", &"landing", 0)
 	_assert_count(&"runner", &"death", 2)
 	_assert_count(&"runner", &"climb", 2)
 	_assert_count(&"runner", &"attack", 3)
 	_assert_count(&"brute", &"idle", 2)
 	_assert_count(&"brute", &"run", 4)
-	_assert_count(&"brute", &"landing", 1)
+	_assert_count(&"brute", &"fall", 1)
+	_assert_count(&"brute", &"landing", 0)
 	_assert_count(&"brute", &"death", 2)
 	_assert_count(&"brute", &"climb", 2)
 	_assert_count(&"brute", &"attack", 3)
 	_assert_count(&"rope_saboteur", &"idle", 2)
 	_assert_count(&"rope_saboteur", &"run", 4)
+	_assert_count(&"rope_saboteur", &"fall", 0)
+	_assert_count(&"rope_saboteur", &"landing", 0)
 	_assert_count(&"rope_saboteur", &"death", 3)
 	_assert_count(&"rope_saboteur", &"attack", 3)
 	_assert_count(&"bomb_enemy", &"idle", 2)
 	_assert_count(&"bomb_enemy", &"run", 4)
+	_assert_count(&"bomb_enemy", &"fall", 0)
+	_assert_count(&"bomb_enemy", &"landing", 0)
 	_assert_count(&"bomb_enemy", &"death", 3)
 	_assert_count(&"bomb_enemy", &"attack", 3)
 
+	var base_fall_paths: PackedStringArray = (
+		BoardingEnemyVisualAssetCatalog.get_frame_paths(
+			&"basic",
+			&"fall"
+		)
+	)
+	assert(base_fall_paths[0].ends_with(
+		"fell/asset_enemy_base_fell_01.png"
+	))
 	var base_attack_paths: PackedStringArray = (
 		BoardingEnemyVisualAssetCatalog.get_frame_paths(
 			&"basic",
@@ -100,6 +118,7 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	_assert_state_mirrors_when_facing_right(visual, &"attack")
 	_assert_state_mirrors_when_facing_right(visual, &"climb")
 	_assert_state_mirrors_when_facing_right(visual, &"flying")
+	_assert_state_mirrors_when_facing_right(visual, &"fall")
 	if archetype_id == &"rope_saboteur":
 		assert(is_equal_approx(
 			visual.get_current_asset_scale_multiplier_for_tests(),
@@ -109,11 +128,41 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 		_assert_behavior_state_route(visual, &"running_to_rope", &"run")
 		_assert_behavior_state_route(visual, &"arming", &"attack")
 		_assert_behavior_state_route(visual, &"dead", &"death")
+		assert(visual.has_replacement_asset_for_tests(&"fall"))
+		assert(visual.get_asset_frame_paths_for_tests(&"fall")[0].contains(
+			"base_enemy/fell"
+		))
 	if archetype_id == &"flyer":
 		_assert_behavior_state_route(visual, &"flying", &"flying")
 		_assert_behavior_state_route(visual, &"landing", &"flying")
 		_assert_behavior_state_route(visual, &"attacking", &"attack")
+		visual.debug_force_presentation_state_for_tests(&"landing")
+		assert(visual.get_current_asset_state_for_tests() == &"flying")
+		visual.debug_force_presentation_state_for_tests(&"fall")
+		assert(visual.get_current_asset_state_for_tests() == &"fall")
 
+	var current_parent: Node = visual.get_parent()
+	if current_parent != enemy:
+		visual.reparent(enemy, true)
+	enemy.queue_free()
+	await process_frame
+
+
+func _assert_detached_rope_fall_uses_fall_asset() -> void:
+	var enemy: BoardingEnemy = ENEMY_SCENE.instantiate() as BoardingEnemy
+	root.add_child(enemy)
+	await process_frame
+	var visual: BoardingEnemyVisual = enemy.visual
+	var archetype: BoardingEnemyArchetype = load(ARCHETYPES[&"runner"])
+	visual.configure(archetype)
+	await process_frame
+	visual.detach_for_fall(visual.global_position.y + 96.0)
+	await process_frame
+	assert(visual.is_detached_fall_for_tests())
+	assert(visual.get_presentation_state_id() == &"fall")
+	assert(visual.get_current_asset_state_for_tests() == &"fall")
+	assert(visual.has_current_replacement_asset_for_tests())
+	visual.queue_free()
 	enemy.queue_free()
 	await process_frame
 
