@@ -13,12 +13,20 @@ enum Screen {
 	SETTINGS_CONTROLS,
 }
 
+enum GameSceneMode {
+	NONE,
+	NORMAL,
+	VISUAL_TEST,
+}
+
 var _active_game: Node2D
 var _game_flow: GameFlowController
 var _screen: int = Screen.MAIN
 var _settings_return_screen: int = Screen.MAIN
 var _waiting_action: StringName = &""
 var _waiting_button: Button
+var _active_scene_mode: int = GameSceneMode.NONE
+var _spawn_generation: int = 0
 
 var _game_host: Node
 var _menu_layer: CanvasLayer
@@ -64,17 +72,10 @@ func start_new_game() -> void:
 
 
 func restart_active_run() -> void:
-	get_tree().paused = false
-	_waiting_action = &""
-	_waiting_button = null
-	if _active_game != null and is_instance_valid(_active_game):
-		_game_host.remove_child(_active_game)
-		_active_game.queue_free()
-	_active_game = null
-	_game_flow = null
-	_screen = Screen.NONE
-	_set_overlay_visible(false)
-	call_deferred("_spawn_game")
+	var scene_mode: int = _active_scene_mode
+	if scene_mode == GameSceneMode.NONE:
+		scene_mode = GameSceneMode.NORMAL
+	_begin_game_spawn(scene_mode)
 
 
 func show_main_menu() -> void:
@@ -96,14 +97,68 @@ func is_waiting_for_binding() -> bool:
 	return _waiting_action != &""
 
 
+func get_active_scene_mode_for_tests() -> int:
+	return _active_scene_mode
+
+
+func get_game_host_child_count_for_tests() -> int:
+	return 0 if _game_host == null else _game_host.get_child_count()
+
+
 func _spawn_game() -> void:
-	_active_game = GAME_SCENE.instantiate() as Node2D
+	_begin_game_spawn(GameSceneMode.NORMAL)
+
+
+func _begin_game_spawn(scene_mode: int) -> void:
+	get_tree().paused = false
+	_waiting_action = &""
+	_waiting_button = null
+	_spawn_generation += 1
+	var request_id: int = _spawn_generation
+	_clear_active_game()
+	_game_flow = null
+	_active_scene_mode = GameSceneMode.NONE
+	_screen = Screen.NONE
+	_set_overlay_visible(false)
+	call_deferred("_spawn_game_for_request", request_id, scene_mode)
+
+
+func _spawn_game_for_request(request_id: int, scene_mode: int) -> void:
+	if request_id != _spawn_generation:
+		return
+	_clear_active_game()
+	var scene: PackedScene = _get_game_scene(scene_mode)
+	_active_game = scene.instantiate() as Node2D
+	_prepare_game_instance(scene_mode, _active_game)
 	_game_host.add_child(_active_game)
 	_game_flow = _active_game.get_node("GameFlowController") as GameFlowController
 	_game_flow.restart_requested.connect(_on_restart_requested)
 	_game_flow.run_state_changed.connect(_on_run_state_changed)
+	_active_scene_mode = scene_mode
 	_screen = Screen.NONE
 	_set_overlay_visible(false)
+	_after_game_spawned(scene_mode)
+
+
+func _clear_active_game() -> void:
+	_active_game = null
+	if _game_host == null:
+		return
+	for child: Node in _game_host.get_children():
+		_game_host.remove_child(child)
+		child.queue_free()
+
+
+func _get_game_scene(_scene_mode: int) -> PackedScene:
+	return GAME_SCENE
+
+
+func _prepare_game_instance(_scene_mode: int, _game: Node2D) -> void:
+	pass
+
+
+func _after_game_spawned(_scene_mode: int) -> void:
+	pass
 
 
 func _open_pause_menu() -> void:
