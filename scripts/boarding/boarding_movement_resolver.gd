@@ -240,12 +240,14 @@ func resolve_enemy_platform_x(
 
 
 func resolve_defender_platform_x(
-	_defender: Defender,
+	defender: Defender,
 	current_x: float,
 	desired_x: float
 ) -> float:
 	var resolved_x: float = _clamp_defender_to_platform(desired_x)
 	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
+		if _can_defender_pass_enemy(defender, enemy):
+			continue
 		resolved_x = _clamp_step_against_obstacle(
 			current_x,
 			resolved_x,
@@ -253,6 +255,13 @@ func resolve_defender_platform_x(
 			get_enemy_defender_gap(enemy)
 		)
 	return resolved_x
+
+
+func can_defender_pass_enemy_for_tests(
+	defender: Defender,
+	enemy: BoardingEnemy
+) -> bool:
+	return _can_defender_pass_enemy(defender, enemy)
 
 
 func is_defender_platform_obstacle(defender: Defender) -> bool:
@@ -291,6 +300,17 @@ func _resolve_role_manager() -> CrewRoleManager:
 	if role_manager_path.is_empty():
 		return null
 	return get_node_or_null(role_manager_path) as CrewRoleManager
+
+
+func _can_defender_pass_enemy(
+	defender: Defender,
+	enemy: BoardingEnemy
+) -> bool:
+	if defender == null or not defender.health.is_alive():
+		return false
+	if enemy == null or not enemy.health.is_alive():
+		return false
+	return enemy.get_state() == BoardingEnemyController.State.FIGHTING
 
 
 func _is_fixed_station_operator(assignment: CrewAssignmentRuntime) -> bool:
