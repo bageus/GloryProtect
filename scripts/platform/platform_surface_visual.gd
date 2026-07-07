@@ -4,13 +4,17 @@ extends RefCounted
 const PLATFORM_TILE_PATH: String = "res://visual/tiles/tile_platform_base.png"
 const PLATFORM_BORDER_PATH: String = "res://visual/tiles/tile_platform_border.png"
 const PLATFORM_CORE_ATLAS_PATH: String = "res://visual/tiles/atlas_platform_core_normal.png"
+const PLATFORM_CORE_RED_ATLAS_PATH: String = "res://visual/tiles/atlas_platform_core_red.png"
 
 var _platform_tile_texture: Texture2D
 var _platform_border_texture: Texture2D
 var _platform_core_atlas: Texture2D
+var _platform_core_red_atlas: Texture2D
 var _platform_tile_source_rect: Rect2
 var _platform_border_source_rect: Rect2
 var _platform_core_frame_regions: Array[Rect2] = []
+var _platform_core_red_frame_regions: Array[Rect2] = []
+var _platform_core_red_enabled: bool = false
 var _animation_elapsed: float = 0.0
 
 
@@ -21,6 +25,7 @@ func configure(
 	_platform_tile_texture = _load_texture(PLATFORM_TILE_PATH)
 	_platform_border_texture = _load_texture(PLATFORM_BORDER_PATH)
 	_platform_core_atlas = _load_texture(PLATFORM_CORE_ATLAS_PATH)
+	_platform_core_red_atlas = _load_texture(PLATFORM_CORE_RED_ATLAS_PATH)
 	if _platform_tile_texture != null:
 		_platform_tile_source_rect = TextureRegionLayout.get_alpha_bounds(
 			_platform_tile_texture,
@@ -31,19 +36,32 @@ func configure(
 			_platform_border_texture,
 			alpha_crop_threshold
 		)
-	_platform_core_frame_regions.clear()
-	if _platform_core_atlas != null:
-		_platform_core_frame_regions = (
-			TextureRegionLayout.get_auto_atlas_frame_regions(
-				_platform_core_atlas,
-				atlas_frame_count,
-				alpha_crop_threshold
-			)
-		)
+	_platform_core_frame_regions = _build_atlas_frame_regions(
+		_platform_core_atlas,
+		atlas_frame_count,
+		alpha_crop_threshold
+	)
+	_platform_core_red_frame_regions = _build_atlas_frame_regions(
+		_platform_core_red_atlas,
+		atlas_frame_count,
+		alpha_crop_threshold
+	)
 
 
 func advance(delta: float) -> void:
 	_animation_elapsed += maxf(0.0, delta)
+
+
+func set_platform_core_red_enabled(enabled: bool) -> void:
+	_platform_core_red_enabled = enabled
+
+
+func get_platform_core_atlas_path_for_tests() -> String:
+	return (
+		PLATFORM_CORE_RED_ATLAS_PATH
+		if _platform_core_red_enabled and not _platform_core_red_frame_regions.is_empty()
+		else PLATFORM_CORE_ATLAS_PATH
+	)
 
 
 func draw_body(
@@ -84,13 +102,15 @@ func draw_core(
 	frame_rate: float,
 	driver_available: bool
 ) -> void:
-	if _platform_core_atlas == null or _platform_core_frame_regions.is_empty():
+	var atlas: Texture2D = _get_platform_core_atlas()
+	var frame_regions: Array[Rect2] = _get_platform_core_frame_regions()
+	if atlas == null or frame_regions.is_empty():
 		return
 	var frame_index: int = (
 		floori(_animation_elapsed * maxf(frame_rate, 0.01))
-		% _platform_core_frame_regions.size()
+		% frame_regions.size()
 	)
-	var source_rect: Rect2 = _platform_core_frame_regions[frame_index]
+	var source_rect: Rect2 = frame_regions[frame_index]
 	var core_size: Vector2 = TextureRegionLayout.fit_inside(
 		source_rect.size,
 		maximum_size
@@ -106,7 +126,7 @@ func draw_core(
 	if not driver_available:
 		core_tint = Color(0.42, 0.46, 0.5, 1.0)
 	canvas.draw_texture_rect_region(
-		_platform_core_atlas,
+		atlas,
 		core_rect,
 		source_rect,
 		core_tint
@@ -163,6 +183,32 @@ func _draw_mirrored_border(canvas: CanvasItem, destination: Rect2) -> void:
 		_platform_border_source_rect
 	)
 	canvas.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _build_atlas_frame_regions(
+	atlas: Texture2D,
+	atlas_frame_count: int,
+	alpha_crop_threshold: float
+) -> Array[Rect2]:
+	if atlas == null:
+		return []
+	return TextureRegionLayout.get_auto_atlas_frame_regions(
+		atlas,
+		atlas_frame_count,
+		alpha_crop_threshold
+	)
+
+
+func _get_platform_core_atlas() -> Texture2D:
+	if _platform_core_red_enabled and not _platform_core_red_frame_regions.is_empty():
+		return _platform_core_red_atlas
+	return _platform_core_atlas
+
+
+func _get_platform_core_frame_regions() -> Array[Rect2]:
+	if _platform_core_red_enabled and not _platform_core_red_frame_regions.is_empty():
+		return _platform_core_red_frame_regions
+	return _platform_core_frame_regions
 
 
 func _load_texture(resource_path: String) -> Texture2D:
