@@ -51,7 +51,8 @@ func get_scene_layer_alpha_for_tests(scene_index: int) -> float:
 
 
 func get_active_scene_position_for_tests() -> Vector2:
-	return _get_active_layer().position
+	var layer_sprite: Sprite2D = _get_active_layer()
+	return Vector2.ZERO if layer_sprite == null else layer_sprite.position
 
 
 func _select_scene_for_run() -> void:
@@ -97,4 +98,6 @@ func _update_layer_positions() -> void:
 
 
 func _get_active_layer() -> Sprite2D:
+	if _scene_layers.is_empty():
+		return null
 	return _scene_layers[_active_scene_index]
