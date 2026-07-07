@@ -13,6 +13,7 @@ func _run() -> void:
 	await process_frame
 	assert(shell.get_current_screen() == AppShell.Screen.MAIN)
 	assert(shell.get_active_game() == null)
+	assert(shell.get_game_host_child_count_for_tests() == 0)
 	assert(_get_direct_button_texts(shell) == [
 		"Новая игра",
 		"Начать игру тест",
@@ -25,6 +26,8 @@ func _run() -> void:
 	await process_frame
 	var first_game: Node2D = shell.get_active_game()
 	assert(first_game != null)
+	assert(shell.get_game_host_child_count_for_tests() == 1)
+	assert(shell.get_active_scene_mode_for_tests() == AppShell.GameSceneMode.NORMAL)
 	var flow := first_game.get_node("GameFlowController") as GameFlowController
 	assert(flow.state in [
 		GameFlowController.RunState.START_DELAY,
@@ -77,6 +80,8 @@ func _run() -> void:
 	var second_game: Node2D = shell.get_active_game()
 	assert(second_game != null)
 	assert(second_game != first_game)
+	assert(shell.get_game_host_child_count_for_tests() == 1)
+	assert(shell.get_active_scene_mode_for_tests() == AppShell.GameSceneMode.NORMAL)
 	assert(not paused)
 
 	shell.show_main_menu()
@@ -90,6 +95,8 @@ func _run() -> void:
 	var test_game: Node2D = shell.get_active_game()
 	assert(test_game != null)
 	assert(test_game != second_game)
+	assert(shell.get_game_host_child_count_for_tests() == 1)
+	assert(shell.get_active_scene_mode_for_tests() == AppShell.GameSceneMode.VISUAL_TEST)
 	var test_flow: GameFlowController = test_game.get_node("GameFlowController")
 	assert(test_flow.start_delay_seconds == 0.0)
 	assert(test_flow.state == GameFlowController.RunState.RUNNING)
@@ -100,6 +107,18 @@ func _run() -> void:
 	assert(test_panel.is_test_panel_ready_for_tests())
 	assert(test_panel.get_toggle_count_for_tests() > 0)
 	assert(test_panel.is_card_ui_suppressed_for_tests())
+
+	shell.restart_active_run()
+	(shell as AppShellScene).start_visual_test_game()
+	await process_frame
+	await process_frame
+	await process_frame
+	var isolated_game: Node2D = shell.get_active_game()
+	assert(isolated_game != null)
+	assert(isolated_game != test_game)
+	assert(shell.get_game_host_child_count_for_tests() == 1)
+	assert(shell.get_active_scene_mode_for_tests() == AppShell.GameSceneMode.VISUAL_TEST)
+	assert(isolated_game.get_node_or_null("VisualUpgradeTestPanel") != null)
 
 	print("App shell menu scenarios passed")
 	quit()
