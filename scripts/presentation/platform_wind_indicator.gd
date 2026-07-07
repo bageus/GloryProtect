@@ -4,8 +4,8 @@ extends Node2D
 @export_node_path("WindSystem") var wind_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export var indicator_offset: Vector2 = Vector2(0.0, -176.0)
-@export var arrow_size: Vector2 = Vector2(86.0, 28.0)
-@export var strength_bar_size: Vector2 = Vector2(3.0, 18.0)
+@export var arrow_size: Vector2 = Vector2(72.0, 28.0)
+@export var strength_bar_size: Vector2 = Vector2(5.0, 18.0)
 @export_range(1.0, 12.0, 0.5) var strength_bar_gap: float = 4.0
 @export_range(0.0, 1.0, 0.05) var fill_alpha: float = 0.74
 @export_range(0.0, 1.0, 0.05) var border_alpha: float = 0.74
@@ -59,6 +59,14 @@ func get_arrow_points_for_tests() -> PackedVector2Array:
 	return _build_arrow_points()
 
 
+func get_arrow_body_height_for_tests() -> float:
+	return _get_arrow_body_height()
+
+
+func get_arrow_length_for_tests() -> float:
+	return arrow_size.x
+
+
 func get_strength_brick_rects_for_tests() -> Array[Rect2]:
 	return _build_strength_bar_rects()
 
@@ -81,7 +89,7 @@ func _draw_strength_bars() -> void:
 	var border := Color(0.78, 0.94, 1.0, border_alpha)
 	for bar_rect: Rect2 in _build_strength_bar_rects():
 		draw_rect(bar_rect, fill, true)
-		draw_rect(bar_rect, border, false, 1.2)
+		draw_rect(bar_rect, border, false, 1.8)
 
 
 func _on_wind_state_changed(
@@ -100,30 +108,32 @@ func _apply_wind_state(direction: int, strength_level: int) -> void:
 
 func _build_arrow_points() -> PackedVector2Array:
 	var half: Vector2 = arrow_size * 0.5
-	var head_width: float = minf(20.0, arrow_size.x * 0.3)
-	var tail_indent: float = minf(7.0, arrow_size.y * 0.24)
+	var head_width: float = minf(16.0, arrow_size.x * 0.28)
+	var body_half_height: float = _get_arrow_body_height() * 0.5
 	var left: float = indicator_offset.x - half.x
 	var right: float = indicator_offset.x + half.x
 	var top: float = indicator_offset.y - half.y
 	var bottom: float = indicator_offset.y + half.y
+	var body_top: float = indicator_offset.y - body_half_height
+	var body_bottom: float = indicator_offset.y + body_half_height
 	var mid_y: float = indicator_offset.y
 	var points := PackedVector2Array()
 	if _direction > 0:
-		points.append(Vector2(left, top + tail_indent))
-		points.append(Vector2(right - head_width, top + tail_indent))
+		points.append(Vector2(left, body_top))
+		points.append(Vector2(right - head_width, body_top))
 		points.append(Vector2(right - head_width, top))
 		points.append(Vector2(right, mid_y))
 		points.append(Vector2(right - head_width, bottom))
-		points.append(Vector2(right - head_width, bottom - tail_indent))
-		points.append(Vector2(left, bottom - tail_indent))
+		points.append(Vector2(right - head_width, body_bottom))
+		points.append(Vector2(left, body_bottom))
 	else:
-		points.append(Vector2(right, top + tail_indent))
-		points.append(Vector2(left + head_width, top + tail_indent))
+		points.append(Vector2(right, body_top))
+		points.append(Vector2(left + head_width, body_top))
 		points.append(Vector2(left + head_width, top))
 		points.append(Vector2(left, mid_y))
 		points.append(Vector2(left + head_width, bottom))
-		points.append(Vector2(left + head_width, bottom - tail_indent))
-		points.append(Vector2(right, bottom - tail_indent))
+		points.append(Vector2(left + head_width, body_bottom))
+		points.append(Vector2(right, body_bottom))
 	return points
 
 
@@ -144,3 +154,7 @@ func _build_strength_bar_rects() -> Array[Rect2]:
 			strength_bar_size
 		))
 	return result
+
+
+func _get_arrow_body_height() -> float:
+	return minf(strength_bar_size.y, arrow_size.y)
