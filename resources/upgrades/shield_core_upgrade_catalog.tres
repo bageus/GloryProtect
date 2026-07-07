@@ -15,7 +15,7 @@ script = ExtResource("2_definition")
 card_id = &"shield_capacity_basic"
 branch_id = &"shield_core"
 title = "Улучшенная защита щита"
-description = "Эффективная ёмкость каждой секции увеличена на 10%. Отображаемая шкала остаётся в диапазоне 0–100%."
+description = "Максимальная ёмкость каждой секции увеличена на 10%. В шкале появляется дополнительный запас, а текущий заряд пересчитывается от нового максимума."
 card_type = 1
 effect = SubResource("EffectCapacityBasic")
 
@@ -30,7 +30,7 @@ script = ExtResource("2_definition")
 card_id = &"shield_capacity_advanced"
 branch_id = &"shield_core"
 title = "Мощная защита щита"
-description = "Эффективная ёмкость каждой секции дополнительно увеличена на 10%."
+description = "Максимальная ёмкость каждой секции дополнительно увеличена на 10%."
 card_type = 2
 prerequisite_card_ids = Array[StringName]([&"shield_capacity_basic"])
 effect = SubResource("EffectCapacityAdvanced")
