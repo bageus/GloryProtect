@@ -3,26 +3,19 @@ extends AppShell
 
 
 func start_visual_test_game() -> void:
-	get_tree().paused = false
-	_waiting_action = &""
-	_waiting_button = null
-	if _active_game != null and is_instance_valid(_active_game):
-		_game_host.remove_child(_active_game)
-		_active_game.queue_free()
-	_active_game = null
-	_game_flow = null
-	_screen = Screen.NONE
-	_set_overlay_visible(false)
-	call_deferred("_spawn_visual_test_game")
+	_begin_game_spawn(GameSceneMode.VISUAL_TEST)
 
 
-func _spawn_visual_test_game() -> void:
-	_active_game = GAME_SCENE.instantiate() as Node2D
-	_game_flow = _active_game.get_node("GameFlowController") as GameFlowController
-	_game_flow.start_delay_seconds = 0.0
-	_game_host.add_child(_active_game)
-	_game_flow.restart_requested.connect(_on_restart_requested)
-	_game_flow.run_state_changed.connect(_on_run_state_changed)
+func _prepare_game_instance(scene_mode: int, game: Node2D) -> void:
+	if scene_mode != GameSceneMode.VISUAL_TEST:
+		return
+	var flow: GameFlowController = game.get_node("GameFlowController") as GameFlowController
+	flow.start_delay_seconds = 0.0
+
+
+func _after_game_spawned(scene_mode: int) -> void:
+	if scene_mode != GameSceneMode.VISUAL_TEST:
+		return
 	_game_flow.start_delay_remaining = 0.0
 	_game_flow.call_deferred("_set_state", GameFlowController.RunState.RUNNING)
 	_attach_visual_test_panel.call_deferred()
@@ -30,6 +23,11 @@ func _spawn_visual_test_game() -> void:
 
 func _attach_visual_test_panel() -> void:
 	if _active_game == null or not is_instance_valid(_active_game):
+		return
+	if _active_scene_mode != GameSceneMode.VISUAL_TEST:
+		return
+	var existing: Node = _active_game.get_node_or_null("VisualUpgradeTestPanel")
+	if existing != null:
 		return
 	var panel := VisualUpgradeTestPanel.new()
 	panel.name = "VisualUpgradeTestPanel"
