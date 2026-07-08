@@ -28,10 +28,13 @@ func _assert_scene_hides_overlay(scene: PackedScene) -> void:
 	var hud: PrototypeHUD = game.get_node("CanvasLayer/PrototypeHUD") as PrototypeHUD
 	assert(hud != null)
 	assert(hud.has_node("CrewCommandPanel"))
+	assert(hud.get_node("CrewCommandPanel").visible)
 	assert(hud.get_node_or_null("TelemetryPanel/Margin/VBox/BuildableLabel") != null)
 	assert(hud.get_node_or_null("TelemetryPanel/Margin/VBox/TurretLabel") != null)
 	assert(not hud.is_telemetry_overlay_visible_for_tests())
 	assert(not hud.is_instant_anchor_remove_prompt_visible_for_tests())
+	if hud is PrototypeHUDPolished:
+		await _assert_polished_context_can_open(game, hud as PrototypeHUDPolished)
 
 	var event := InputEventKey.new()
 	event.keycode = KEY_F10
@@ -48,6 +51,20 @@ func _assert_scene_hides_overlay(scene: PackedScene) -> void:
 		assert(not hud.is_telemetry_overlay_visible_for_tests())
 	game.queue_free()
 	await process_frame
+
+
+func _assert_polished_context_can_open(
+	game: Node,
+	hud: PrototypeHUDPolished
+) -> void:
+	assert(hud.is_crew_command_panel_visible_for_tests())
+	var placement: BuildablePlacementController = game.get_node(
+		"BuildablePlacementController"
+	) as BuildablePlacementController
+	assert(placement != null)
+	assert(placement.select_empty_cell(2))
+	await process_frame
+	assert(hud.is_crew_context_visible_for_tests())
 
 
 func _disable_spawners(game: Node) -> void:
