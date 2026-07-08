@@ -49,6 +49,7 @@ func _create_visual_controller() -> void:
 		self,
 		combat_anchors
 	)
+	_create_platform_winch_visual(combat_anchors)
 
 
 func set_combat_anchor_modifiers(
