@@ -28,6 +28,7 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 @export var stowed_chain_length := 20.0
 @export_range(0.0, 30.0, 1.0) var winch_embed_depth := 0.0
 @export var winch_chain_exit_offset := Vector2.ZERO
+@export var draw_winch_posts := false
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
@@ -77,7 +78,8 @@ func _draw() -> void:
 		return
 	for anchor: AnchorRuntime in _store.get_all():
 		_draw_anchor(anchor)
-	_draw_winch_posts()
+	if draw_winch_posts:
+		_draw_winch_posts()
 
 
 func get_winch_visual_bottom(anchor_id: int) -> Vector2:
