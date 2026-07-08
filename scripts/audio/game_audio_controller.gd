@@ -45,6 +45,9 @@ const WINCH_DISCONNECT_STREAM: AudioStream = preload(
 const BOOM_BUG_STREAM: AudioStream = preload(
 	"res://audio/boom_bug.ogg"
 )
+const BOOM_WINCH_STREAM: AudioStream = preload(
+	"res://audio/boom_winch.ogg"
+)
 
 const SOUND_SHIELD_CHARGE: StringName = &"shield_charge"
 const SOUND_SHIELD_ALERT: StringName = &"shield_alert"
@@ -60,6 +63,7 @@ const SOUND_TURRET_ATTACK: StringName = &"turret_attack"
 const SOUND_WINCH_CONNECT: StringName = &"winch_connect"
 const SOUND_WINCH_DISCONNECT: StringName = &"winch_disconnect"
 const SOUND_BOOM_BUG: StringName = &"boom_bug"
+const SOUND_BOOM_WINCH: StringName = &"boom_winch"
 
 const SOUND_IDS: Array[StringName] = [
 	SOUND_SHIELD_CHARGE,
@@ -76,6 +80,7 @@ const SOUND_IDS: Array[StringName] = [
 	SOUND_WINCH_CONNECT,
 	SOUND_WINCH_DISCONNECT,
 	SOUND_BOOM_BUG,
+	SOUND_BOOM_WINCH,
 ]
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
@@ -85,6 +90,7 @@ const SOUND_IDS: Array[StringName] = [
 @export_node_path("MedicalStationSystem") var medical_system_path: NodePath
 @export_node_path("TurretSystem") var turret_system_path: NodePath
 @export_node_path("AnchorSystem") var anchor_system_path: NodePath
+@export_node_path("CombatAnchorSystem") var combat_anchor_system_path: NodePath
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("OrbContactSystem") var contact_system_path: NodePath
 @export_node_path("ShieldSystem") var shield_system_path: NodePath
@@ -115,6 +121,7 @@ var _loop_players: Dictionary[StringName, AudioStreamPlayer] = {}
 @onready var _medical: MedicalStationSystem = get_node(medical_system_path)
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
 @onready var _anchors: AnchorSystem = get_node(anchor_system_path)
+@onready var _combat_anchors: CombatAnchorSystem = _get_optional_combat_anchor_system()
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
@@ -198,6 +205,12 @@ func _make_loop_stream(source: AudioStream) -> AudioStream:
 	return result
 
 
+func _get_optional_combat_anchor_system() -> CombatAnchorSystem:
+	if combat_anchor_system_path.is_empty():
+		return null
+	return get_node_or_null(combat_anchor_system_path) as CombatAnchorSystem
+
+
 func _connect_system_signals() -> void:
 	_crew.defender_spawned.connect(_on_defender_spawned)
 	_crew.defender_replaced.connect(_on_defender_spawned)
@@ -210,6 +223,8 @@ func _connect_system_signals() -> void:
 	_anchors.anchor_attached.connect(_on_anchor_attached)
 	_anchors.anchor_removed.connect(_on_anchor_removed)
 	_anchors.anchor_broken.connect(_on_anchor_broken)
+	if _combat_anchors != null:
+		_combat_anchors.trap_triggered.connect(_on_anchor_trap_triggered)
 	_shield_core.completion_energy_shared.connect(
 		_on_completion_energy_shared
 	)
@@ -439,6 +454,18 @@ func _on_anchor_removed(_anchor_id: int) -> void:
 
 func _on_anchor_broken(_anchor_id: int) -> void:
 	_play_one_shot(SOUND_WINCH_DISCONNECT, WINCH_DISCONNECT_STREAM)
+
+
+func _on_anchor_trap_triggered(
+	_anchor_id: int,
+	_world_position: Vector2,
+	_radius: float,
+	_damaged_enemy_count: int,
+	source_id: StringName
+) -> void:
+	if source_id not in [&"anchor_trap_attach", &"anchor_trap_remove"]:
+		return
+	_play_one_shot(SOUND_BOOM_WINCH, BOOM_WINCH_STREAM)
 
 
 func _on_completion_energy_shared(
