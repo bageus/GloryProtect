@@ -1,7 +1,7 @@
 class_name ShieldCorePulseVisualStyle
 extends Resource
 
-const FOCUSED_VISUAL_SCALE: float = 0.9
+const FOCUSED_VISUAL_SCALE: float = 0.75
 const DISTRIBUTED_VISUAL_SCALE: float = 1.1
 
 @export_range(0.05, 2.0, 0.05) var duration: float = 0.65
