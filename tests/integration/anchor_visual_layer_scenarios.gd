@@ -36,7 +36,7 @@ func _run() -> void:
 		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests(0) == &"trap")
+	assert(visual.get_winch_asset_id_for_tests(0) == &"specialization_2")
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 

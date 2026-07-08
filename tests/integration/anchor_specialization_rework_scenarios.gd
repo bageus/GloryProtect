@@ -65,7 +65,7 @@ func _run() -> void:
 		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests() == &"trap")
+	assert(visual.get_winch_asset_id_for_tests() == &"specialization_2")
 	audio.set_audio_enabled(true)
 	assert(audio.get_trigger_count(GameAudioController.SOUND_BOOM_WINCH) == 0)
 	combat.trap_triggered.emit(
