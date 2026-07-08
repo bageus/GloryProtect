@@ -60,7 +60,9 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export var speed_engine_size: Vector2 = Vector2(74.52, 57.96)
 @export var speed_engine_offset: Vector2 = Vector2(68.0, 0.0)
 @export var control_mechanism_size: Vector2 = Vector2(58.0, 42.0)
-@export var control_mechanism_offset: Vector2 = Vector2(80.0, 40.0)
+@export var control_active_size: Vector2 = Vector2(34.0, 26.0)
+@export var control_mechanism_surface_offset: Vector2 = Vector2(118.0, 5.0)
+@export_range(-16.0, 16.0, 0.25) var control_active_gap: float = -2.0
 @export_range(0.0, 16.0, 0.25) var control_active_amplitude: float = 4.0
 @export_range(1.0, 18.0, 0.25) var control_active_speed: float = 5.0
 @export var stability_unit_size: Vector2 = Vector2(44.0, 36.0)
@@ -211,6 +213,14 @@ func is_control_mechanism_visible() -> bool:
 	)
 
 
+func get_control_base_center_for_tests() -> Vector2:
+	return _get_control_base_center()
+
+
+func get_control_active_center_for_tests() -> Vector2:
+	return _get_control_active_center()
+
+
 func is_stability_asset_visible() -> bool:
 	return (
 		_anchorless != null
@@ -271,16 +281,16 @@ func _draw_speed_assets() -> void:
 func _draw_control_mechanism() -> void:
 	if not is_control_mechanism_visible():
 		return
-	var base_center := Vector2(control_mechanism_offset.x, control_mechanism_offset.y)
-	_draw_texture_centered(CONTROL_BASE, base_center, control_mechanism_size, false)
-	var active_offset := Vector2(
-		sin(_elapsed * control_active_speed) * control_active_amplitude,
-		0.0
+	_draw_texture_centered(
+		CONTROL_BASE,
+		_get_control_base_center(),
+		control_mechanism_size,
+		false
 	)
 	_draw_texture_centered(
 		CONTROL_ACTIVE,
-		base_center + active_offset,
-		control_mechanism_size,
+		_get_control_active_center(),
+		control_active_size,
 		false
 	)
 
@@ -352,6 +362,37 @@ func _get_speed_asset_center(side: int) -> Vector2:
 		speed_engine_offset.x * float(side),
 		speed_engine_offset.y
 	)
+
+
+func _get_control_base_center() -> Vector2:
+	return Vector2(
+		control_mechanism_surface_offset.x,
+		_get_platform_surface_y()
+			+ control_mechanism_surface_offset.y
+			- control_mechanism_size.y * 0.5
+	)
+
+
+func _get_control_active_center() -> Vector2:
+	return _get_control_base_center() + _get_control_active_rest_offset() + Vector2(
+		sin(_elapsed * control_active_speed) * control_active_amplitude,
+		0.0
+	)
+
+
+func _get_control_active_rest_offset() -> Vector2:
+	return Vector2(
+		control_mechanism_size.x * 0.5
+			+ control_active_size.x * 0.5
+			+ control_active_gap,
+		(control_mechanism_size.y - control_active_size.y) * 0.5
+	)
+
+
+func _get_platform_surface_y() -> float:
+	if _platform == null or _platform.balance == null:
+		return -29.0
+	return -_platform.balance.platform_height * 0.5
 
 
 func _get_platform_core_center() -> Vector2:
