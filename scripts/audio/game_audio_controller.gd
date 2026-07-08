@@ -42,6 +42,9 @@ const WINCH_CONNECT_STREAM: AudioStream = preload(
 const WINCH_DISCONNECT_STREAM: AudioStream = preload(
 	"res://audio/winck_disconnect.ogg"
 )
+const BOOM_BUG_STREAM: AudioStream = preload(
+	"res://audio/boom_bug.ogg"
+)
 
 const SOUND_SHIELD_CHARGE: StringName = &"shield_charge"
 const SOUND_SHIELD_ALERT: StringName = &"shield_alert"
@@ -56,6 +59,7 @@ const SOUND_PORTAL: StringName = &"portal"
 const SOUND_TURRET_ATTACK: StringName = &"turret_attack"
 const SOUND_WINCH_CONNECT: StringName = &"winch_connect"
 const SOUND_WINCH_DISCONNECT: StringName = &"winch_disconnect"
+const SOUND_BOOM_BUG: StringName = &"boom_bug"
 
 const SOUND_IDS: Array[StringName] = [
 	SOUND_SHIELD_CHARGE,
@@ -71,6 +75,7 @@ const SOUND_IDS: Array[StringName] = [
 	SOUND_TURRET_ATTACK,
 	SOUND_WINCH_CONNECT,
 	SOUND_WINCH_DISCONNECT,
+	SOUND_BOOM_BUG,
 ]
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
@@ -90,6 +95,8 @@ const SOUND_IDS: Array[StringName] = [
 @export_range(-40.0, 6.0, 0.5) var one_shot_volume_db: float = -3.0
 @export_range(-40.0, 6.0, 0.5) var loop_volume_db: float = -8.0
 @export_range(0.1, 20.0, 0.1) var movement_velocity_threshold: float = 3.0
+@export_range(1, 6, 1) var boom_bug_max_concurrent: int = 2
+@export_range(-18.0, 0.0, 0.5) var boom_bug_stack_volume_step_db: float = -6.0
 
 var _healing_active: bool = false
 var _trigger_counts: Dictionary[StringName, int] = {}
@@ -155,6 +162,10 @@ func get_effective_sound_volume(sound_id: StringName) -> float:
 
 func get_loaded_sound_ids() -> Array[StringName]:
 	return SOUND_IDS.duplicate()
+
+
+func get_active_one_shot_count_for_tests(sound_id: StringName) -> int:
+	return _get_active_one_shot_count(sound_id)
 
 
 func refresh_audio_state_for_tests() -> void:
@@ -277,17 +288,57 @@ func _has_critical_shield_section() -> bool:
 
 
 func _play_one_shot(sound_id: StringName, stream: AudioStream) -> void:
+	_play_one_shot_with_volume_offset(sound_id, stream, 0.0)
+
+
+func _play_limited_one_shot(
+	sound_id: StringName,
+	stream: AudioStream,
+	max_concurrent: int,
+	stack_volume_step_db: float
+) -> void:
+	if not enabled or stream == null:
+		return
+	var active_count: int = _get_active_one_shot_count(sound_id)
+	if active_count >= max_concurrent:
+		return
+	_play_one_shot_with_volume_offset(
+		sound_id,
+		stream,
+		stack_volume_step_db * float(active_count)
+	)
+
+
+func _play_one_shot_with_volume_offset(
+	sound_id: StringName,
+	stream: AudioStream,
+	volume_offset_db: float
+) -> void:
 	if not enabled or stream == null:
 		return
 	var player := AudioStreamPlayer.new()
 	player.name = "OneShot%s" % String(sound_id).to_pascal_case()
 	player.stream = stream
 	player.bus = String(AppSettingsService.EFFECTS_BUS)
-	player.volume_db = _get_sound_volume_db(sound_id, one_shot_volume_db)
+	player.volume_db = _get_sound_volume_db(sound_id, one_shot_volume_db) + volume_offset_db
+	player.set_meta(&"sound_id", sound_id)
 	player.finished.connect(player.queue_free)
 	add_child(player)
 	player.play()
 	_record_trigger(sound_id)
+
+
+func _get_active_one_shot_count(sound_id: StringName) -> int:
+	var count: int = 0
+	for child: Node in get_children():
+		var player: AudioStreamPlayer = child as AudioStreamPlayer
+		if player == null or _loop_players.values().has(player):
+			continue
+		if not player.has_meta(&"sound_id"):
+			continue
+		if player.get_meta(&"sound_id") == sound_id:
+			count += 1
+	return count
 
 
 func _get_sound_volume_db(sound_id: StringName, base_db: float) -> float:
@@ -342,7 +393,14 @@ func _on_defender_died(_defender_id: int) -> void:
 	_play_one_shot(SOUND_DEFENDER_DIE, DEFENDER_DIE_STREAM)
 
 
-func _on_enemy_removed(_enemy_id: int, _reason: StringName) -> void:
+func _on_enemy_removed(_enemy_id: int, reason: StringName) -> void:
+	if reason == &"rope_sabotage":
+		_play_limited_one_shot(
+			SOUND_BOOM_BUG,
+			BOOM_BUG_STREAM,
+			boom_bug_max_concurrent,
+			boom_bug_stack_volume_step_db
+		)
 	_play_one_shot(SOUND_MONSTER_DIE, MONSTER_DIE_STREAM)
 
 
