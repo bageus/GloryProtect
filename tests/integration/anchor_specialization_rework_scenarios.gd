@@ -19,14 +19,13 @@ func _run() -> void:
 
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
-	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
-	var visual: CombatAnchorVisualController = anchors.get_node(
-		"AnchorVisualController"
-	) as CombatAnchorVisualController
+	var winch_visual: PlatformAnchorWinchVisual = game.get_node(
+		"World/Platform/PlatformAnchorWinchVisual"
+	) as PlatformAnchorWinchVisual
 	var audio: GameAudioController = game.get_node("GameAudioController")
 	assert(catalog != null)
 	assert(combat != null)
-	assert(visual != null)
+	assert(winch_visual != null)
 	assert(audio != null)
 
 	assert(is_equal_approx(combat.get_endpoint_pulse_radius_for_tests(), 240.0))
@@ -34,26 +33,27 @@ func _run() -> void:
 	assert(is_equal_approx(combat.get_trap_explosion_radius_for_tests(), 240.0))
 	assert(is_equal_approx(combat.get_trap_knockback_distance_for_tests(), 300.0))
 	assert(audio.get_loaded_sound_ids().has(GameAudioController.SOUND_BOOM_WINCH))
-	assert(visual.get_winch_asset_id_for_tests() == &"base")
+	assert(winch_visual.get_visible_winch_count_for_tests() == 4)
+	assert(winch_visual.get_winch_asset_id_for_tests() == &"base")
 
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.STRONG).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests() == &"strong")
+	assert(winch_visual.get_winch_asset_id_for_tests() == &"strong")
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.STRONG_SECOND_INSTALL).effect
 	))
 	assert(combat.is_pair_install_fall_chance_enabled_for_tests())
 	combat.reset_upgrade_runtime()
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests() == &"base")
+	assert(winch_visual.get_winch_asset_id_for_tests() == &"base")
 
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.ELECTRIC).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests() == &"specialization_2")
+	assert(winch_visual.get_winch_asset_id_for_tests() == &"specialization_2")
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.ELECTRIC_DROP).effect
 	))
@@ -65,7 +65,7 @@ func _run() -> void:
 		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests() == &"specialization_2")
+	assert(winch_visual.get_winch_asset_id_for_tests() == &"trap")
 	audio.set_audio_enabled(true)
 	assert(audio.get_trigger_count(GameAudioController.SOUND_BOOM_WINCH) == 0)
 	combat.trap_triggered.emit(
