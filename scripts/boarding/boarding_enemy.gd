@@ -139,6 +139,12 @@ func apply_platform_knockback(distance: float, source_world_x: float) -> void:
 	controller.force_board_at(controller.get_platform_local_x() + direction * distance)
 
 
+func apply_ground_knockback(distance: float, source_world_x: float) -> void:
+	if distance <= 0.0 or behavior != null or not is_counted_as_ground():
+		return
+	controller.apply_ground_knockback(distance, source_world_x)
+
+
 func is_stunned() -> bool:
 	return _stun_remaining > 0.0
 

@@ -4,6 +4,7 @@ extends Node
 signal upgrades_changed
 signal periodic_pulse(anchor_id: int, damaged_enemy_count: int)
 signal endpoint_pulse(anchor_id: int, damaged_enemy_count: int)
+signal dropping_pulse(anchor_id: int, dropped_enemy_count: int)
 signal enemy_dropped(anchor_id: int, enemy_id: int, source_id: StringName)
 signal trap_triggered(
 	anchor_id: int,
@@ -22,6 +23,7 @@ signal trap_triggered(
 
 var upgrades := CombatAnchorUpgradeRuntime.new()
 var _periodic_elapsed := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
+var _drop_elapsed := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
 var _climbing_state: Dictionary[int, bool] = {}
 var _rng := RandomNumberGenerator.new()
 
@@ -44,7 +46,9 @@ func _physics_process(delta: float) -> void:
 	if not _game_flow.is_world_simulation_active():
 		return
 	_track_climbing_entries()
-	_tick_periodic_electricity(maxf(0.0, delta))
+	var safe_delta: float = maxf(0.0, delta)
+	_tick_periodic_electricity(safe_delta)
+	_tick_dropping_pulses(safe_delta)
 
 
 func can_apply_upgrade_effect(effect: UpgradeEffectDefinition) -> bool:
@@ -72,6 +76,7 @@ func reset_upgrade_runtime() -> void:
 	_climbing_state.clear()
 	for anchor_id: int in range(_periodic_elapsed.size()):
 		_periodic_elapsed[anchor_id] = 0.0
+		_drop_elapsed[anchor_id] = 0.0
 	_anchors.reset_combat_anchor_modifiers()
 	_sync_anchor_modifiers()
 	upgrades_changed.emit()
@@ -83,6 +88,26 @@ func set_random_seed(value: int) -> void:
 
 func get_periodic_interval() -> float:
 	return balance.get_periodic_interval(upgrades.periodic_electric_advanced)
+
+
+func get_drop_pulse_interval_for_tests() -> float:
+	return balance.drop_pulse_interval_seconds
+
+
+func get_endpoint_pulse_radius_for_tests() -> float:
+	return balance.endpoint_pulse_radius
+
+
+func get_trap_explosion_radius_for_tests() -> float:
+	return balance.trap_attach_radius
+
+
+func get_trap_knockback_distance_for_tests() -> float:
+	return balance.trap_knockback_distance
+
+
+func is_pair_install_fall_chance_enabled_for_tests() -> bool:
+	return upgrades.strong_second_install_enabled
 
 
 func _sync_anchor_modifiers() -> void:
@@ -126,6 +151,23 @@ func _tick_periodic_electricity(delta: float) -> void:
 			periodic_pulse.emit(anchor_id, damaged)
 
 
+func _tick_dropping_pulses(delta: float) -> void:
+	if not upgrades.electric_drop_enabled:
+		for anchor_id: int in range(_drop_elapsed.size()):
+			_drop_elapsed[anchor_id] = 0.0
+		return
+	var interval: float = balance.drop_pulse_interval_seconds
+	for anchor_id: int in range(_drop_elapsed.size()):
+		if not _is_anchor_holding(anchor_id):
+			_drop_elapsed[anchor_id] = 0.0
+			continue
+		_drop_elapsed[anchor_id] += delta
+		while _drop_elapsed[anchor_id] >= interval:
+			_drop_elapsed[anchor_id] -= interval
+			var dropped: int = _apply_dropping_pulse(anchor_id)
+			dropping_pulse.emit(anchor_id, dropped)
+
+
 func _track_climbing_entries() -> void:
 	var next_state: Dictionary[int, bool] = {}
 	for enemy: BoardingEnemy in _enemies.get_all_enemies():
@@ -136,7 +178,7 @@ func _track_climbing_entries() -> void:
 		if (
 			climbing
 			and not was_climbing
-			and upgrades.strong_climber_fall_enabled
+			and _has_strong_entry_fall_chance()
 			and _rng.randf() < balance.spontaneous_fall_chance
 		):
 			var anchor_id: int = enemy.get_selected_anchor_id()
@@ -147,111 +189,90 @@ func _track_climbing_entries() -> void:
 	_climbing_state = next_state
 
 
+func _has_strong_entry_fall_chance() -> bool:
+	return upgrades.strong_second_install_enabled or upgrades.strong_climber_fall_enabled
+
+
 func _on_anchor_attached(anchor_id: int) -> void:
 	_periodic_elapsed[anchor_id] = 0.0
+	_drop_elapsed[anchor_id] = 0.0
 	if upgrades.has_electric_specialization():
 		_apply_electric_endpoint_pulse(anchor_id)
-	if upgrades.trap_attach_explosion_enabled:
-		_apply_attach_trap(anchor_id)
+	if upgrades.has_trap_specialization():
+		_apply_trap_explosion(anchor_id, &"anchor_trap_attach")
 
 
 func _on_anchor_detaching(anchor_id: int) -> void:
 	if upgrades.has_electric_specialization():
 		_apply_electric_endpoint_pulse(anchor_id)
 	if upgrades.has_trap_specialization():
-		_apply_remove_trap(anchor_id)
+		_apply_trap_explosion(anchor_id, &"anchor_trap_remove")
 	_periodic_elapsed[anchor_id] = 0.0
+	_drop_elapsed[anchor_id] = 0.0
 
 
 func _apply_electric_endpoint_pulse(anchor_id: int) -> void:
 	var snapshot: AnchorPathSnapshot = _anchors.get_path_snapshot(anchor_id)
 	if snapshot == null:
 		return
-	var targets: Array[BoardingEnemy] = []
-	var radius_squared: float = balance.endpoint_pulse_radius * balance.endpoint_pulse_radius
-	for enemy: BoardingEnemy in _enemies.get_all_enemies():
-		if enemy == null or not enemy.health.is_alive():
-			continue
-		var on_rope: bool = (
-			enemy.is_counted_as_climbing()
-			and enemy.get_selected_anchor_id() == anchor_id
-		)
-		var near_ground_endpoint: bool = (
-			enemy.is_counted_as_ground()
-			and snapshot.ground_point.distance_squared_to(enemy.global_position)
-			<= radius_squared
-		)
-		if on_rope or near_ground_endpoint:
-			targets.append(enemy)
-
-	var damaged_count: int = 0
-	for enemy: BoardingEnemy in targets:
-		var was_climbing: bool = enemy.is_counted_as_climbing()
-		var enemy_id: int = enemy.enemy_id
-		enemy.health.apply_damage(
-			balance.electric_pulse_damage,
-			&"anchor_electric_endpoint",
-			self
-		)
-		damaged_count += 1
-		if not enemy.health.is_alive():
-			continue
-		if _rng.randf() < balance.electric_stun_chance:
-			enemy.apply_stun(balance.electric_stun_seconds)
-		if (
-			was_climbing
-			and upgrades.electric_drop_enabled
-			and _rng.randf() < balance.electric_drop_chance
-			and enemy.knock_down_from_anchor(&"combat")
-		):
-			enemy_dropped.emit(anchor_id, enemy_id, &"anchor_electric_drop")
+	var damaged_count: int = _damage_and_stun_ground_near(
+		snapshot.ground_point,
+		balance.endpoint_pulse_radius,
+		balance.electric_pulse_damage,
+		&"anchor_electric_endpoint"
+	)
 	endpoint_pulse.emit(anchor_id, damaged_count)
 
 
-func _apply_attach_trap(anchor_id: int) -> void:
+func _apply_dropping_pulse(anchor_id: int) -> int:
+	var dropped_count: int = 0
+	for enemy: BoardingEnemy in _enemies.get_all_enemies():
+		if enemy == null or not enemy.health.is_alive():
+			continue
+		if not enemy.is_counted_as_climbing():
+			continue
+		if enemy.get_selected_anchor_id() != anchor_id:
+			continue
+		var enemy_id: int = enemy.enemy_id
+		if _rng.randf() >= balance.electric_drop_chance:
+			continue
+		if enemy.knock_down_from_anchor(&"anchor_electric_drop"):
+			dropped_count += 1
+			enemy_dropped.emit(anchor_id, enemy_id, &"anchor_electric_drop")
+	return dropped_count
+
+
+func _apply_trap_explosion(anchor_id: int, source_id: StringName) -> void:
 	var snapshot: AnchorPathSnapshot = _anchors.get_path_snapshot(anchor_id)
 	if snapshot == null:
 		return
-	var damaged_count: int = _damage_ground_near(
+	var radius: float = _get_trap_radius(source_id)
+	var damage: int = _get_trap_damage(source_id)
+	var damaged_count: int = _damage_and_knockback_ground_near(
 		snapshot.ground_point,
-		balance.trap_attach_radius,
-		balance.trap_attach_damage,
-		&"anchor_trap_attach"
+		radius,
+		damage,
+		source_id
 	)
 	trap_triggered.emit(
 		anchor_id,
 		snapshot.ground_point,
-		balance.trap_attach_radius,
+		radius,
 		damaged_count,
-		&"anchor_trap_attach"
+		source_id
 	)
 
 
-func _apply_remove_trap(anchor_id: int) -> void:
-	var edge: Vector2 = _anchors.get_platform_attachment_world(anchor_id)
-	var radius_squared: float = balance.trap_remove_radius * balance.trap_remove_radius
-	var damaged_count: int = 0
-	for enemy: BoardingEnemy in _enemies.get_boarded_enemies():
-		if edge.distance_squared_to(enemy.global_position) > radius_squared:
-			continue
-		enemy.health.apply_damage(
-			balance.trap_remove_damage,
-			&"anchor_trap_remove",
-			self
-		)
-		damaged_count += 1
-		if enemy.health.is_alive():
-			enemy.apply_platform_knockback(
-				balance.trap_knockback_distance,
-				edge.x
-			)
-	trap_triggered.emit(
-		anchor_id,
-		edge,
-		balance.trap_remove_radius,
-		damaged_count,
-		&"anchor_trap_remove"
-	)
+func _get_trap_radius(source_id: StringName) -> float:
+	if source_id == &"anchor_trap_remove":
+		return balance.trap_remove_radius
+	return balance.trap_attach_radius
+
+
+func _get_trap_damage(source_id: StringName) -> int:
+	if source_id == &"anchor_trap_remove":
+		return balance.trap_remove_damage
+	return balance.trap_attach_damage
 
 
 func _damage_climbers_on_anchor(
@@ -272,7 +293,7 @@ func _damage_climbers_on_anchor(
 	return damaged_count
 
 
-func _damage_ground_near(
+func _damage_and_stun_ground_near(
 	world_position: Vector2,
 	radius: float,
 	amount: int,
@@ -289,6 +310,33 @@ func _damage_ground_near(
 			continue
 		enemy.health.apply_damage(amount, source_id, self)
 		damaged_count += 1
+		if enemy.health.is_alive() and _rng.randf() < balance.electric_stun_chance:
+			enemy.apply_stun(balance.electric_stun_seconds)
+	return damaged_count
+
+
+func _damage_and_knockback_ground_near(
+	world_position: Vector2,
+	radius: float,
+	amount: int,
+	source_id: StringName
+) -> int:
+	var radius_squared: float = radius * radius
+	var damaged_count: int = 0
+	for enemy: BoardingEnemy in _enemies.get_all_enemies():
+		if enemy == null or not enemy.health.is_alive():
+			continue
+		if not enemy.is_counted_as_ground():
+			continue
+		if world_position.distance_squared_to(enemy.global_position) > radius_squared:
+			continue
+		enemy.health.apply_damage(amount, source_id, self)
+		damaged_count += 1
+		if enemy.health.is_alive():
+			enemy.apply_ground_knockback(
+				balance.trap_knockback_distance,
+				world_position.x
+			)
 	return damaged_count
 
 
