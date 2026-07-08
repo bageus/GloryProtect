@@ -114,6 +114,8 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 	))
 	assert(visual.has_current_replacement_asset_for_tests())
 	_assert_cropped_draw_rect(visual)
+	if archetype_id == &"runner":
+		_assert_runner_idle_grounding(visual as GroundedBoardingEnemyVisual)
 	_assert_state_mirrors_when_facing_right(visual, &"run")
 	_assert_state_mirrors_when_facing_right(visual, &"attack")
 	_assert_state_mirrors_when_facing_right(visual, &"climb")
@@ -146,6 +148,36 @@ func _assert_visual_for_archetype(archetype_id: StringName) -> void:
 		visual.reparent(enemy, true)
 	enemy.queue_free()
 	await process_frame
+
+
+func _assert_runner_idle_grounding(visual: GroundedBoardingEnemyVisual) -> void:
+	assert(visual != null)
+	var run_feet_y: float = visual.get_asset_feet_y_for_tests(&"run")
+	assert(is_equal_approx(
+		visual.get_asset_feet_y_for_tests(&"idle"),
+		run_feet_y + visual.fast_idle_ground_offset_y
+	))
+	assert(visual.get_state_ground_offset_y_for_tests(&"idle") > 0.0)
+	assert(is_equal_approx(
+		visual.get_state_ground_offset_y_for_tests(&"run"),
+		0.0
+	))
+	assert(is_equal_approx(
+		visual.get_state_ground_offset_y_for_tests(&"jump"),
+		0.0
+	))
+	assert(is_equal_approx(
+		visual.get_state_ground_offset_y_for_tests(&"fall"),
+		0.0
+	))
+	assert(is_equal_approx(
+		visual.get_asset_feet_y_for_tests(&"jump"),
+		run_feet_y
+	))
+	assert(is_equal_approx(
+		visual.get_asset_feet_y_for_tests(&"fall"),
+		run_feet_y
+	))
 
 
 func _assert_detached_rope_fall_uses_fall_asset() -> void:
