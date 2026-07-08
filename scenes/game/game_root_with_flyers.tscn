@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=3]
+[gd_scene load_steps=42 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -39,6 +39,7 @@
 [ext_resource type="Script" path="res://scripts/ui/shield_core_critical_indicator.gd" id="37_core_indicator"]
 [ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_stability_fixed.gd" id="38_upgrade_assets"]
 [ext_resource type="Script" path="res://scripts/presentation/anchor_asset_presentation.gd" id="39_anchor_assets"]
+[ext_resource type="Script" path="res://scripts/presentation/platform_wind_compensator_visual.gd" id="40_wind_compensator"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -137,6 +138,12 @@ platform_path = NodePath("..")
 shield_core_system_path = NodePath("../../ShieldCoreSystem")
 anchorless_control_system_path = NodePath("../../AnchorlessControlSystem")
 steering_input_path = NodePath("../../../SteeringInputProvider")
+
+[node name="PlatformWindCompensatorVisual" type="Node2D" parent="World/Platform"]
+z_index = 6
+script = ExtResource("40_wind_compensator")
+platform_path = NodePath("..")
+wind_system_path = NodePath("../../../WindSystem")
 
 [node name="PlatformWindIndicator" type="Node2D" parent="World/Platform"]
 z_index = 8
