@@ -25,6 +25,9 @@ func _run() -> void:
 	var overlay: PlatformUpgradeAssetOverlay = game.get_node(
 		"World/Platform/PlatformUpgradeAssetOverlay"
 	)
+	var stability_overlay: PlatformUpgradeAssetOverlayStabilityFixed = (
+		overlay as PlatformUpgradeAssetOverlayStabilityFixed
+	)
 	var platform: PlatformController = game.get_node("World/Platform")
 	var platform_visual: PlatformVisualController = game.get_node(
 		"World/Platform/PlatformVisualController"
@@ -37,6 +40,7 @@ func _run() -> void:
 	assert(anchorless != null)
 	assert(combat != null)
 	assert(overlay != null)
+	assert(stability_overlay != null)
 	assert(platform_visual != null)
 	assert(anchor_visual != null)
 
@@ -98,6 +102,7 @@ func _run() -> void:
 	await process_frame
 	assert(overlay.is_stability_asset_visible())
 	assert(overlay.is_stability_pulse_active_for_tests())
+	_assert_stability_layout(stability_overlay, platform)
 	anchorless.reset_upgrade_runtime()
 	await process_frame
 	assert(not overlay.is_stability_asset_visible())
@@ -148,6 +153,55 @@ func _assert_control_mechanism_layout(
 	var moved_active_center: Vector2 = overlay.get_control_active_center_for_tests()
 	assert(moved_active_center.x > active_center.x)
 	assert(is_equal_approx(moved_active_center.y, active_center.y))
+
+
+func _assert_stability_layout(
+	overlay: PlatformUpgradeAssetOverlayStabilityFixed,
+	platform: PlatformController
+) -> void:
+	var centers: Array[Vector2] = overlay.get_stability_base_centers_for_tests()
+	var left_center: Vector2 = centers[0]
+	var right_center: Vector2 = centers[1]
+	var base_size: Vector2 = overlay.get_stability_base_draw_size_for_tests()
+	var overlay_size: Vector2 = overlay.get_stability_overlay_draw_size_for_tests()
+	var left_overlay_center: Vector2 = overlay.get_stability_overlay_center_for_tests(-1)
+	var right_overlay_center: Vector2 = overlay.get_stability_overlay_center_for_tests(1)
+	var left_edge: float = overlay.get_platform_edge_x_for_tests(-1)
+	var right_edge: float = overlay.get_platform_edge_x_for_tests(1)
+
+	assert(left_edge < 0.0)
+	assert(right_edge > 0.0)
+	assert(is_equal_approx(left_edge, -platform.get_platform_width() * 0.5))
+	assert(is_equal_approx(right_edge, platform.get_platform_width() * 0.5))
+	assert(left_center.x < left_edge)
+	assert(right_center.x > right_edge)
+	assert(is_equal_approx(
+		left_center.x + base_size.x * 0.5,
+		left_edge + overlay.stability_edge_overlap
+	))
+	assert(is_equal_approx(
+		right_center.x - base_size.x * 0.5,
+		right_edge - overlay.stability_edge_overlap
+	))
+	assert(is_equal_approx(left_center.y, overlay.stability_vertical_offset))
+	assert(is_equal_approx(right_center.y, overlay.stability_vertical_offset))
+	assert(overlay.is_stability_side_mirrored_for_tests(-1))
+	assert(not overlay.is_stability_side_mirrored_for_tests(1))
+	assert(is_equal_approx(left_overlay_center.x, left_center.x))
+	assert(is_equal_approx(right_overlay_center.x, right_center.x))
+	assert(is_equal_approx(
+		left_overlay_center.y + overlay_size.y * 0.5,
+		left_center.y + base_size.y * 0.5 - overlay.stability_overlay_bottom_padding
+	))
+	assert(is_equal_approx(
+		right_overlay_center.y + overlay_size.y * 0.5,
+		right_center.y + base_size.y * 0.5 - overlay.stability_overlay_bottom_padding
+	))
+	assert(overlay.get_stability_base_scale_for_tests() > 0.0)
+	assert(base_size.x > 0.0)
+	assert(base_size.y > 0.0)
+	assert(overlay_size.x > 0.0)
+	assert(overlay_size.y > 0.0)
 
 
 func _disable_spawners(game: Node) -> void:

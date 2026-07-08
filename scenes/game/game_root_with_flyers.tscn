@@ -37,7 +37,7 @@
 [ext_resource type="Resource" path="res://resources/presentation/shield_core_pulse_visual_style.tres" id="35_core_pulse_style"]
 [ext_resource type="Script" path="res://scripts/presentation/platform_wind_indicator.gd" id="36_wind_indicator"]
 [ext_resource type="Script" path="res://scripts/ui/shield_core_critical_indicator.gd" id="37_core_indicator"]
-[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay.gd" id="38_upgrade_assets"]
+[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_stability_fixed.gd" id="38_upgrade_assets"]
 [ext_resource type="Script" path="res://scripts/presentation/anchor_asset_presentation.gd" id="39_anchor_assets"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
