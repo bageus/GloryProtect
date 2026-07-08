@@ -60,6 +60,9 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"distributed_border")
+	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
+		overlay.core_overlay_size
+	))
 	assert(overlay.get_core_overlay_center_for_tests().is_equal_approx(
 		overlay.get_platform_core_center_for_tests()
 	))
@@ -69,12 +72,19 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"focused_border")
+	assert(overlay.get_focused_core_overlay_scale_for_tests() < 1.0)
+	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
+		overlay.core_overlay_size * overlay.get_focused_core_overlay_scale_for_tests()
+	))
 	shield_core.reset_upgrade_runtime()
 	assert(shield_core.apply_upgrade_effect(
 		catalog.get_definition(ShieldCoreUpgradeRuntime.SURGE).effect
 	))
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"surge_splash")
+	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
+		overlay.core_overlay_size
+	))
 	shield_core.reset_upgrade_runtime()
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"")
