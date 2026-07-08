@@ -27,6 +27,9 @@ func _assert_scene_hides_overlay(scene: PackedScene) -> void:
 
 	var hud: PrototypeHUD = game.get_node("CanvasLayer/PrototypeHUD") as PrototypeHUD
 	assert(hud != null)
+	assert(hud.has_node("CrewCommandPanel"))
+	assert(hud.get_node_or_null("TelemetryPanel/Margin/VBox/BuildableLabel") != null)
+	assert(hud.get_node_or_null("TelemetryPanel/Margin/VBox/TurretLabel") != null)
 	assert(not hud.is_telemetry_overlay_visible_for_tests())
 	assert(not hud.is_instant_anchor_remove_prompt_visible_for_tests())
 
