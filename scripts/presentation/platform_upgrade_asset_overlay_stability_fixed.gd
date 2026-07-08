@@ -14,17 +14,26 @@ const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 	"res://visual/objects/platform/core/stability/overlay_stability_03.png"
 )
 
+@export_node_path("PlatformVisualController") var platform_visual_path: NodePath = NodePath(
+	"../PlatformVisualController"
+)
+
 @export_range(0.0, 32.0, 0.25) var stability_edge_overlap: float = 6.0
 @export_range(-64.0, 64.0, 0.25) var stability_vertical_offset: float = 0.0
 @export_range(0.0, 32.0, 0.25) var stability_overlay_bottom_padding: float = 0.0
-@export_range(-48.0, 48.0, 0.25) var control_under_driver_offset_x: float = 6.0
+@export_range(-48.0, 48.0, 0.25) var control_under_driver_offset_x: float = 3.0
 @export_range(-24.0, 48.0, 0.25) var control_under_driver_gap: float = 0.0
+@export_range(0.0, 16.0, 0.25) var control_active_lift_y: float = 1.0
 
 var _fixed_stability_flames: Array[Texture2D] = [
 	FIXED_STABILITY_FLAME_1,
 	FIXED_STABILITY_FLAME_2,
 	FIXED_STABILITY_FLAME_3,
 ]
+
+@onready var _platform_visual: PlatformVisualController = get_node_or_null(
+	platform_visual_path
+) as PlatformVisualController
 
 
 func _draw() -> void:
@@ -69,6 +78,10 @@ func get_control_under_driver_gap_for_tests() -> float:
 	return control_under_driver_gap
 
 
+func get_control_active_lift_y_for_tests() -> float:
+	return control_active_lift_y
+
+
 func is_stability_side_mirrored_for_tests(side: int) -> bool:
 	return side < 0
 
@@ -109,9 +122,19 @@ func _get_all_textures() -> Array[Texture2D]:
 func _get_control_base_center() -> Vector2:
 	var platform_top: float = _get_platform_surface_y()
 	return Vector2(
-		control_under_driver_offset_x,
+		_get_control_post_center_x() + control_under_driver_offset_x,
 		platform_top + control_under_driver_gap + control_mechanism_size.y * 0.5
 	)
+
+
+func _get_control_active_center() -> Vector2:
+	return super._get_control_active_center() + Vector2(0.0, -control_active_lift_y)
+
+
+func _get_control_post_center_x() -> float:
+	if _platform_visual == null:
+		return 0.0
+	return _platform_visual.driver_console_surface_offset.x
 
 
 func _get_stability_layout(side: int, overlay_texture: Texture2D) -> Dictionary:
