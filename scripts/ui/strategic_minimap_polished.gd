@@ -74,6 +74,13 @@ func get_latest_core_burst_angle_for_tests() -> float:
 	return float(_core_bursts[_core_bursts.size() - 1]["angle"])
 
 
+func get_latest_core_burst_center_for_tests() -> Vector2:
+	if _core_bursts.is_empty():
+		return Vector2.ZERO
+	var burst: Dictionary = _core_bursts[_core_bursts.size() - 1]
+	return _get_core_burst_center(int(burst["section"]), _get_core_burst_metrics())
+
+
 func get_core_burst_direction_for_section_for_tests(section_id: int) -> Vector2:
 	var metrics: Dictionary = _get_core_burst_metrics()
 	return _get_core_burst_direction(section_id, metrics)
@@ -188,12 +195,15 @@ func _draw_core_bursts() -> void:
 	if _core_bursts.is_empty() or _shield.get_section_count() <= 0:
 		return
 	var metrics: Dictionary = _get_core_burst_metrics()
-	var center: Vector2 = metrics["center"]
 	for burst: Dictionary in _core_bursts:
 		var progress: float = clampf(
 			float(burst["elapsed"]) / maxf(0.001, core_burst_duration),
 			0.0,
 			1.0
+		)
+		var center: Vector2 = _get_core_burst_center(
+			int(burst["section"]),
+			metrics
 		)
 		_draw_core_burst(center, float(burst["angle"]), progress)
 
@@ -235,27 +245,28 @@ func _get_core_burst_metrics() -> Dictionary:
 	var lane_bottom: float = _get_lane_bottom()
 	var shield_bar_y: float = lane_bottom - SHIELD_BAR_HEIGHT
 	var lane_width: float = (_get_map_width() - margin_x * 2.0) / float(section_count)
-	var center := Vector2(
-		margin_x + float(section_count) * lane_width * 0.5,
-		shield_bar_y + SHIELD_BAR_HEIGHT * 0.5
-	)
 	return {
-		"center": center,
 		"lane_top": lane_top,
 		"margin_x": margin_x,
 		"lane_width": lane_width,
+		"shield_bar_y": shield_bar_y,
 	}
 
 
-func _get_core_burst_direction(section_id: int, metrics: Dictionary) -> Vector2:
-	var center: Vector2 = metrics["center"]
-	var lane_top: float = float(metrics["lane_top"])
-	var margin_x: float = float(metrics["margin_x"])
-	var lane_width: float = float(metrics["lane_width"])
-	var target := Vector2(
-		margin_x + (float(section_id) + 0.5) * lane_width,
-		lane_top
+func _get_core_burst_center(section_id: int, metrics: Dictionary) -> Vector2:
+	var section_count: int = maxi(1, _shield.get_section_count())
+	var clamped_section: int = clampi(section_id, 0, section_count - 1)
+	return _get_core_marker_position(
+		clamped_section,
+		float(metrics["margin_x"]),
+		float(metrics["shield_bar_y"]),
+		float(metrics["lane_width"])
 	)
+
+
+func _get_core_burst_direction(section_id: int, metrics: Dictionary) -> Vector2:
+	var center: Vector2 = _get_core_burst_center(section_id, metrics)
+	var target := Vector2(center.x, float(metrics["lane_top"]))
 	var direction: Vector2 = target - center
 	if direction.length_squared() <= 0.01:
 		return Vector2.UP

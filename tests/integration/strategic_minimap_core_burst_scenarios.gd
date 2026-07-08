@@ -35,12 +35,18 @@ func _run() -> void:
 	var left_direction: Vector2 = minimap.get_core_burst_direction_for_section_for_tests(0)
 	var center_direction: Vector2 = minimap.get_core_burst_direction_for_section_for_tests(2)
 	var right_direction: Vector2 = minimap.get_core_burst_direction_for_section_for_tests(4)
-	assert(left_direction.x < 0.0)
+	assert(absf(left_direction.x) < 0.01)
 	assert(left_direction.y < 0.0)
 	assert(absf(center_direction.x) < 0.01)
 	assert(center_direction.y < 0.0)
-	assert(right_direction.x > 0.0)
+	assert(absf(right_direction.x) < 0.01)
 	assert(right_direction.y < 0.0)
+
+	var center_marker: Vector2 = minimap.get_core_marker_position(2)
+	var left_marker: Vector2 = minimap.get_core_marker_position(0)
+	var right_marker: Vector2 = minimap.get_core_marker_position(4)
+	assert(not left_marker.is_equal_approx(center_marker))
+	assert(not right_marker.is_equal_approx(center_marker))
 
 	shield_core.surge_pulse_requested.emit(
 		0,
@@ -50,7 +56,14 @@ func _run() -> void:
 	assert(minimap.get_active_core_burst_count_for_tests() == 1)
 	assert(minimap.has_core_burst_for_section_for_tests(0))
 	assert(pulse_visual.get_active_pulse_count() == 0)
+	assert(minimap.get_latest_core_burst_center_for_tests().is_equal_approx(
+		left_marker
+	))
+	assert(not minimap.get_latest_core_burst_center_for_tests().is_equal_approx(
+		center_marker
+	))
 	var left_angle: float = minimap.get_latest_core_burst_angle_for_tests()
+	assert(is_equal_approx(left_angle, -PI * 0.5))
 
 	shield_core.surge_pulse_requested.emit(
 		4,
@@ -60,8 +73,14 @@ func _run() -> void:
 	assert(minimap.get_active_core_burst_count_for_tests() == 2)
 	assert(minimap.has_core_burst_for_section_for_tests(4))
 	assert(pulse_visual.get_active_pulse_count() == 0)
+	assert(minimap.get_latest_core_burst_center_for_tests().is_equal_approx(
+		right_marker
+	))
+	assert(not minimap.get_latest_core_burst_center_for_tests().is_equal_approx(
+		center_marker
+	))
 	var right_angle: float = minimap.get_latest_core_burst_angle_for_tests()
-	assert(right_angle > left_angle)
+	assert(is_equal_approx(right_angle, -PI * 0.5))
 
 	minimap.call("_process", minimap.core_burst_duration + 0.1)
 	assert(minimap.get_active_core_burst_count_for_tests() == 0)

@@ -29,6 +29,7 @@ func _run() -> void:
 		overlay as PlatformUpgradeAssetOverlayStabilityFixed
 	)
 	var platform: PlatformController = game.get_node("World/Platform")
+	var contact: OrbContactSystem = game.get_node("World/OrbContactSystem")
 	var platform_visual: PlatformVisualController = game.get_node(
 		"World/Platform/PlatformVisualController"
 	)
@@ -42,6 +43,7 @@ func _run() -> void:
 	assert(overlay != null)
 	assert(stability_overlay != null)
 	assert(platform_visual != null)
+	assert(contact != null)
 	assert(anchor_visual != null)
 
 	assert(overlay.get_visible_asset_ids_for_tests().is_empty())
@@ -90,6 +92,26 @@ func _run() -> void:
 	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
 		overlay.core_overlay_size
 	))
+	var original_platform_position: Vector2 = platform.position
+	contact.call("_set_active_orb", 0)
+	await process_frame
+	var initial_surge_direction: Vector2 = overlay.get_core_overlay_beam_direction_for_tests()
+	var initial_surge_rotation: float = overlay.get_core_overlay_rotation_for_tests()
+	assert(initial_surge_direction.length() > 0.9)
+	assert(Vector2.DOWN.rotated(initial_surge_rotation).dot(initial_surge_direction) > 0.99)
+	platform.position.x += 120.0
+	overlay.call("_process", 0.1)
+	var moved_surge_direction: Vector2 = overlay.get_core_overlay_beam_direction_for_tests()
+	var moved_surge_rotation: float = overlay.get_core_overlay_rotation_for_tests()
+	assert(moved_surge_direction.length() > 0.9)
+	assert(absf(wrapf(
+		moved_surge_rotation - initial_surge_rotation,
+		-PI,
+		PI
+	)) > 0.001)
+	assert(Vector2.DOWN.rotated(moved_surge_rotation).dot(moved_surge_direction) > 0.99)
+	platform.position = original_platform_position
+	contact.call("_set_active_orb", -1)
 	shield_core.reset_upgrade_runtime()
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"")
