@@ -161,35 +161,12 @@ turret_asset_scale = 0.095
 [node name="CrewRoleManager" parent="World/Platform"]
 script = ExtResource("14_shooter_roles")
 
-[node name="ShieldCoreSystem" type="Node" parent="World"]
-script = ExtResource("21_shield_core")
-shield_system_path = NodePath("../../ShieldSystem")
-orbs_path = NodePath("../GroundOrbRegistry")
-contact_system_path = NodePath("../OrbContactSystem")
-balance = ExtResource("22_shield_core_balance")
+[node name="BoardingMovementResolver" parent="World"]
+script = ExtResource("28_movement")
 
-[node name="ShieldCorePulseVisual" type="Node2D" parent="World"]
-script = ExtResource("34_core_pulse")
-shield_core_system_path = NodePath("../ShieldCoreSystem")
-style = ExtResource("35_core_pulse_style")
-
-[node name="ShieldCriticalIndicator" type="CanvasLayer" parent="."]
-script = ExtResource("37_core_indicator")
-shield_system_path = NodePath("../ShieldSystem")
-
-[node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
-script = ExtResource("2_director")
-game_flow_path = NodePath("../../GameFlowController")
-platform_path = NodePath("../Platform")
-enemy_registry_path = NodePath("../BoardingEnemyRegistry")
-movement_resolver_path = NodePath("../BoardingMovementResolver")
-jump_planner_path = NodePath("../BoardingJumpPlanner")
-crew_manager_path = NodePath("../Platform/CrewManager")
-paths_path = NodePath("../AnchorPathRegistry")
-orbs_path = NodePath("../GroundOrbRegistry")
-enemy_scene = ExtResource("3_enemy")
-balance = ExtResource("4_boarding")
-profile = ExtResource("5_profile")
+[node name="TurretSystem" parent="World"]
+script = ExtResource("8_turret_system")
+upgrade_balance = ExtResource("9_turret_balance")
 
 [node name="CombatAnchorSystem" type="Node" parent="World"]
 script = ExtResource("16_combat_anchors")
@@ -197,25 +174,85 @@ game_flow_path = NodePath("../../GameFlowController")
 anchor_system_path = NodePath("../AnchorSystem")
 enemy_registry_path = NodePath("../BoardingEnemyRegistry")
 
-[node name="TurretSystem" parent="World"]
-script = ExtResource("8_turret_system")
-balance = ExtResource("9_turret_balance")
+[node name="ShieldCoreSystem" type="Node" parent="World"]
+script = ExtResource("21_shield_core")
+game_flow_path = NodePath("../../GameFlowController")
+shield_system_path = NodePath("../../ShieldSystem")
+recharge_controller_path = NodePath("../ShieldRechargeController")
+contact_system_path = NodePath("../OrbContactSystem")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+strategic_wave_system_path = NodePath("../StrategicWaveSystem")
+balance = ExtResource("22_shield_core_balance")
+
+[node name="ShieldCorePulseVisual" type="Node2D" parent="World"]
+z_index = 2
+script = ExtResource("34_core_pulse")
+game_flow_path = NodePath("../../GameFlowController")
+shield_core_system_path = NodePath("../ShieldCoreSystem")
+platform_path = NodePath("../Platform")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+style = ExtResource("35_core_pulse_style")
 
 [node name="MedicRoleModifierController" type="Node" parent="World"]
 script = ExtResource("10_medic_roles")
+game_flow_path = NodePath("../../GameFlowController")
 crew_manager_path = NodePath("../Platform/CrewManager")
+role_manager_path = NodePath("../Platform/CrewRoleManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicStimulantController" type="Node" parent="World"]
 script = ExtResource("11_stimulant")
+game_flow_path = NodePath("../../GameFlowController")
+crew_manager_path = NodePath("../Platform/CrewManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicProtectiveHealingController" type="Node" parent="World"]
 script = ExtResource("12_protective")
+crew_manager_path = NodePath("../Platform/CrewManager")
 medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="MedicRevivalController" type="Node" parent="World"]
 script = ExtResource("13_revival")
-crew_manager_path = NodePath("../Platform/CrewManager")
-medical_system_path = NodePath("../MedicalStationSystem")
 game_flow_path = NodePath("../../GameFlowController")
+crew_manager_path = NodePath("../Platform/CrewManager")
+replacement_controller_path = NodePath("../../CrewReplacementController")
+medical_system_path = NodePath("../MedicalStationSystem")
+
+[node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
+script = ExtResource("2_director")
+game_flow_path = NodePath("../../GameFlowController")
+wave_director_path = NodePath("../StrategicWaveDirector")
+platform_path = NodePath("../Platform")
+path_registry_path = NodePath("../AnchorPathRegistry")
+enemy_registry_path = NodePath("../BoardingEnemyRegistry")
+movement_resolver_path = NodePath("../BoardingMovementResolver")
+jump_planner_path = NodePath("../BoardingJumpPlanner")
+crew_manager_path = NodePath("../Platform/CrewManager")
+orb_registry_path = NodePath("../GroundOrbRegistry")
+enemy_container_path = NodePath("../BoardingEnemyContainer")
+enemy_scene = ExtResource("3_enemy")
+boarding_balance = ExtResource("4_boarding")
+profile = ExtResource("5_profile")
+first_flying_wave_number = 10
+
+[node name="PrototypeHUD" parent="CanvasLayer"]
+script = ExtResource("29_hud")
+buildable_placement_controller_path = NodePath("../../BuildablePlacementController")
+
+[node name="ShieldCoreCriticalIndicator" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+z_index = 8
+script = ExtResource("37_core_indicator")
+shield_system_path = NodePath("../../ShieldSystem")
+orb_registry_path = NodePath("../../World/GroundOrbRegistry")
+
+[node name="BuildablePlacementPanel" type="PanelContainer" parent="CanvasLayer"]
+script = ExtResource("25_placement_panel")
+controller_path = NodePath("../../BuildablePlacementController")
+use_unified_context = true
