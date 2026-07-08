@@ -17,6 +17,8 @@ const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 @export_range(0.0, 32.0, 0.25) var stability_edge_overlap: float = 6.0
 @export_range(-64.0, 64.0, 0.25) var stability_vertical_offset: float = 0.0
 @export_range(0.0, 32.0, 0.25) var stability_overlay_bottom_padding: float = 0.0
+@export_range(0.0, 48.0, 0.25) var control_front_overlap: float = 18.0
+@export_range(-64.0, 64.0, 0.25) var control_front_vertical_offset: float = 0.0
 
 var _fixed_stability_flames: Array[Texture2D] = [
 	FIXED_STABILITY_FLAME_1,
@@ -59,6 +61,10 @@ func get_platform_edge_x_for_tests(side: int) -> float:
 	return _get_platform_edge_x(side)
 
 
+func get_control_front_overlap_for_tests() -> float:
+	return control_front_overlap
+
+
 func is_stability_side_mirrored_for_tests(side: int) -> bool:
 	return side < 0
 
@@ -94,6 +100,14 @@ func _get_all_textures() -> Array[Texture2D]:
 	textures.append(FIXED_STABILITY_FLAME_2)
 	textures.append(FIXED_STABILITY_FLAME_3)
 	return textures
+
+
+func _get_control_base_center() -> Vector2:
+	var edge_x: float = _get_platform_edge_x(1)
+	return Vector2(
+		edge_x + control_mechanism_size.x * 0.5 - control_front_overlap,
+		control_front_vertical_offset
+	)
 
 
 func _get_stability_layout(side: int, overlay_texture: Texture2D) -> Dictionary:
