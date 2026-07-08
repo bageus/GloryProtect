@@ -60,14 +60,14 @@ func _run_scenario() -> void:
 	var base_pulse_half_width: float = (
 		pulse_visual.get_ground_pulse_half_width_for_tests(1.0)
 	)
-	assert(is_equal_approx(pulse_visual.get_compact_wave_scale_for_tests(), 0.9))
+	assert(is_equal_approx(pulse_visual.get_compact_wave_scale_for_tests(), 0.75))
 	assert(is_equal_approx(pulse_visual.get_spread_wave_scale_for_tests(), 1.1))
 	assert(is_equal_approx(
 		pulse_visual.get_ground_pulse_half_width_for_tests(
 			1.0,
 			pulse_visual.get_compact_wave_scale_for_tests()
 		),
-		base_pulse_half_width * 0.9
+		base_pulse_half_width * 0.75
 	))
 	assert(is_equal_approx(
 		pulse_visual.get_ground_pulse_half_width_for_tests(
