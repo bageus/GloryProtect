@@ -18,33 +18,22 @@ func _run() -> void:
 	_disable_spawners(game)
 
 	assert(not game.has_node("World/AnchorAssetPresentation"))
+	assert(not game.has_node("World/Platform/PlatformAnchorWinchVisual"))
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
-	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
-	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
 	var rope_visual: CombatAnchorVisualController = anchors.get_node(
 		"AnchorVisualController"
 	) as CombatAnchorVisualController
-	var winch_visual: PlatformAnchorWinchVisual = game.get_node(
-		"World/Platform/PlatformAnchorWinchVisual"
-	) as PlatformAnchorWinchVisual
+	var platform_visual: PlatformVisualController = game.get_node(
+		"World/Platform/PlatformVisualController"
+	) as PlatformVisualController
 	assert(rope_visual != null)
 	assert(rope_visual.visible)
 	assert(rope_visual.get_anchor_visual_z_index_for_tests() >= 80)
 	assert(rope_visual.are_anchor_asset_regions_valid_for_tests())
-	assert(winch_visual != null)
-	assert(winch_visual.visible)
-	assert(winch_visual.get_visible_winch_count_for_tests() == 4)
-	for anchor_id: int in range(4):
-		assert(winch_visual.is_winch_drawable_for_tests(anchor_id))
-	assert(winch_visual.get_winch_asset_id_for_tests(0) == &"base")
-
-	assert(combat.apply_upgrade_effect(
-		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
-	))
-	await process_frame
-	assert(winch_visual.get_winch_asset_id_for_tests(0) == &"trap")
-	for anchor_id: int in range(4):
-		assert(winch_visual.is_winch_drawable_for_tests(anchor_id))
+	assert(platform_visual != null)
+	assert(platform_visual.visible)
+	assert(platform_visual.get_anchor_winch_count_for_tests() == 4)
+	assert(platform_visual.is_anchor_winch_drawable_for_tests())
 
 	print("Anchor visual layer scenarios passed")
 	quit()
