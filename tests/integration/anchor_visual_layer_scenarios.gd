@@ -19,6 +19,8 @@ func _run() -> void:
 
 	assert(not game.has_node("World/AnchorAssetPresentation"))
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
+	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
+	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
 	var visual: CombatAnchorVisualController = anchors.get_node(
 		"AnchorVisualController"
 	) as CombatAnchorVisualController
@@ -29,6 +31,14 @@ func _run() -> void:
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 	assert(visual.get_winch_asset_id_for_tests(0) == &"base")
+
+	assert(combat.apply_upgrade_effect(
+		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
+	))
+	await process_frame
+	assert(visual.get_winch_asset_id_for_tests(0) == &"trap")
+	for anchor_id: int in range(4):
+		assert(visual.is_winch_drawable_for_tests(anchor_id))
 
 	print("Anchor visual layer scenarios passed")
 	quit()

@@ -378,6 +378,7 @@ enemy_registry_path = NodePath("../../World/BoardingEnemyRegistry")
 spawn_director_path = NodePath("../../World/BoardingSpawnDirector")
 
 [node name="TelemetryPanel" type="PanelContainer" parent="CanvasLayer/PrototypeHUD"]
+visible = false
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 1200.0

@@ -49,12 +49,6 @@ func _create_visual_controller() -> void:
 		self,
 		combat_anchors
 	)
-	if get_node_or_null("../AnchorAssetPresentation") != null:
-		# The production scene now owns anchor rendering through a mounted
-		# presentation node, matching platform/portal asset rendering.
-		# Keep this child only as a compatibility object for existing tests
-		# and signal observers; it must not draw a second anchor layer.
-		combat_visual.visible = false
 
 
 func set_combat_anchor_modifiers(

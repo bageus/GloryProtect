@@ -113,7 +113,7 @@ PrototypeHUD
 CrewRoleManager.request_assignment(defender_id, role_id, station_id)
 ```
 
-Она не резервирует посты и не изменяет `CrewAssignmentRuntime` напрямую. Диагностическая телеметрия переключается `F10`.
+Она не резервирует посты и не изменяет `CrewAssignmentRuntime` напрямую. `PrototypeHUD` не показывает общий диагностический оверлей подсказок; допустима только контекстная подсказка мгновенного снятия якорей, когда соответствующее улучшение активно.
 
 ## 7. PlatformDomain
 
