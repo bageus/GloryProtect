@@ -79,6 +79,27 @@ func _run() -> void:
 	assert(panel.get_item_description_for_tests(
 		&"anchor_install_speed_basic"
 	).contains("Скорость закрепления"))
+	assert(panel.get_item_visible_text_for_tests(
+		CombatAnchorUpgradeRuntime.STRONG
+	) == "Усиленные лебёдки")
+	assert(panel.get_item_visible_text_for_tests(
+		CombatAnchorUpgradeRuntime.ELECTRIC
+	) == "Импульсные лебёдки")
+	assert(panel.get_item_visible_text_for_tests(
+		CombatAnchorUpgradeRuntime.TRAP
+	) == "Лебёдки-ловушки")
+	assert(panel.get_item_description_for_tests(
+		CombatAnchorUpgradeRuntime.ELECTRIC
+	).contains("радиусе 240"))
+	assert(panel.get_item_description_for_tests(
+		CombatAnchorUpgradeRuntime.TRAP
+	).contains("отбрасывание врагов по земле на 300"))
+	assert(panel.get_item_description_for_tests(
+		CombatAnchorUpgradeRuntime.STRONG_SECOND_INSTALL
+	).contains("+25% шанс"))
+	assert(panel.get_item_description_for_tests(
+		CombatAnchorUpgradeRuntime.ELECTRIC_DROP
+	).contains("Каждые 2 секунды"))
 
 	var shield_core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
 	assert(not shield_core.upgrades.has_distributed_specialization())
