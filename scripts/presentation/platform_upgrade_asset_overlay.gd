@@ -48,6 +48,12 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
 @export_node_path("AnchorlessControlSystem") var anchorless_control_system_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
+@export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath = NodePath(
+	"../../GroundOrbRegistry"
+)
+@export_node_path("OrbContactSystem") var contact_system_path: NodePath = NodePath(
+	"../../OrbContactSystem"
+)
 
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export_range(1, 128, 1) var minimum_z_index: int = 12
@@ -94,6 +100,12 @@ var _stability_flames: Array[Texture2D] = [
 @onready var _steering: SteeringInputProvider = get_node_or_null(
 	steering_input_path
 ) as SteeringInputProvider
+@onready var _orb_registry: GroundOrbRegistry = get_node_or_null(
+	orb_registry_path
+) as GroundOrbRegistry
+@onready var _contact: OrbContactSystem = get_node_or_null(
+	contact_system_path
+) as OrbContactSystem
 
 
 func _ready() -> void:
@@ -163,6 +175,14 @@ func get_core_overlay_center_for_tests() -> Vector2:
 
 func get_core_overlay_draw_size_for_tests() -> Vector2:
 	return _get_core_overlay_draw_size()
+
+
+func get_core_overlay_rotation_for_tests() -> float:
+	return _get_core_overlay_rotation()
+
+
+func get_core_overlay_beam_direction_for_tests() -> Vector2:
+	return _get_core_overlay_beam_direction()
 
 
 func get_distributed_core_overlay_scale_for_tests() -> float:
@@ -272,7 +292,8 @@ func _draw_core_overlay() -> void:
 		texture,
 		_get_platform_core_center() + core_overlay_offset,
 		_get_core_overlay_draw_size(),
-		false
+		false,
+		_get_core_overlay_rotation()
 	)
 
 
@@ -284,6 +305,31 @@ func _get_core_overlay_draw_size() -> Vector2:
 			return core_overlay_size * focused_core_overlay_scale
 		_:
 			return core_overlay_size
+
+
+func _get_core_overlay_rotation() -> float:
+	if get_core_overlay_asset_for_tests() != &"surge_splash":
+		return 0.0
+	var direction: Vector2 = _get_core_overlay_beam_direction()
+	if direction.length_squared() <= 0.01:
+		return 0.0
+	return direction.angle() - PI * 0.5
+
+
+func _get_core_overlay_beam_direction() -> Vector2:
+	if _contact == null or _orb_registry == null:
+		return Vector2.ZERO
+	var orb_id: int = _contact.get_active_orb_id()
+	if orb_id < 0:
+		return Vector2.ZERO
+	var core_world_position: Vector2 = to_global(
+		_get_platform_core_center() + core_overlay_offset
+	)
+	var orb_world_position: Vector2 = _orb_registry.get_orb_world_position(orb_id)
+	var direction: Vector2 = orb_world_position - core_world_position
+	if direction.length_squared() <= 0.01:
+		return Vector2.ZERO
+	return direction.normalized()
 
 
 func _draw_speed_assets() -> void:
@@ -339,7 +385,8 @@ func _draw_texture_centered(
 	texture: Texture2D,
 	center: Vector2,
 	target_size: Vector2,
-	mirrored: bool
+	mirrored: bool,
+	rotation: float = 0.0
 ) -> void:
 	var source_rect: Rect2 = _source_rects.get(texture, Rect2())
 	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
@@ -350,7 +397,7 @@ func _draw_texture_centered(
 	)
 	var rect := Rect2(-draw_size * 0.5, draw_size)
 	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
-	draw_set_transform(center, 0.0, scale)
+	draw_set_transform(center, rotation, scale)
 	draw_texture_rect_region(texture, rect, source_rect)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -459,6 +506,10 @@ func _resolve_optional_systems() -> void:
 		_anchorless = get_node_or_null(anchorless_control_system_path) as AnchorlessControlSystem
 		if _anchorless != null and not _anchorless.upgrades_changed.is_connected(_on_upgrade_changed):
 			_anchorless.upgrades_changed.connect(_on_upgrade_changed)
+	if _orb_registry == null:
+		_orb_registry = get_node_or_null(orb_registry_path) as GroundOrbRegistry
+	if _contact == null:
+		_contact = get_node_or_null(contact_system_path) as OrbContactSystem
 
 
 func _get_all_textures() -> Array[Texture2D]:
