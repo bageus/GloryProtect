@@ -134,6 +134,25 @@ func force_board_at(local_x: float) -> void:
 	_update_world_position_from_platform()
 
 
+func apply_ground_knockback(distance: float, source_world_x: float) -> void:
+	if distance <= 0.0:
+		return
+	if state not in [State.WAITING_WITHOUT_PATH, State.RUNNING_TO_ANCHOR]:
+		return
+	var direction: float = signf(_enemy.global_position.x - source_world_x)
+	if is_zero_approx(direction):
+		direction = 1.0
+	var desired_x: float = _enemy.global_position.x + direction * distance
+	_enemy.global_position.x = _movement_resolver.resolve_ground_x(
+		_enemy,
+		_enemy.global_position.x,
+		desired_x
+	)
+	selected_anchor_id = -1
+	state = State.WAITING_WITHOUT_PATH
+	_set_ground_height()
+
+
 func _update_waiting(delta: float) -> void:
 	var path: AnchorPathSnapshot = _choose_ground_path()
 	if path != null:
