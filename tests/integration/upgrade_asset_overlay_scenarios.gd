@@ -60,8 +60,13 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"distributed_border")
+	assert(overlay.get_distributed_core_overlay_scale_for_tests() > 1.0)
+	assert(is_equal_approx(
+		overlay.get_distributed_core_overlay_scale_for_tests(),
+		1.1
+	))
 	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
-		overlay.core_overlay_size
+		overlay.core_overlay_size * overlay.get_distributed_core_overlay_scale_for_tests()
 	))
 	assert(overlay.get_core_overlay_center_for_tests().is_equal_approx(
 		overlay.get_platform_core_center_for_tests()
