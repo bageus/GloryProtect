@@ -56,6 +56,7 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export_range(0.0, 1.0, 0.01) var platform_core_protrusion_ratio: float = 0.38
 @export var platform_core_reference_offset: Vector2 = Vector2(0.0, 12.0)
 @export var core_overlay_size: Vector2 = Vector2(116.0, 116.0)
+@export_range(0.1, 1.0, 0.01) var focused_core_overlay_scale: float = 0.75
 @export var core_overlay_offset: Vector2 = Vector2.ZERO
 @export var speed_engine_size: Vector2 = Vector2(74.52, 57.96)
 @export var speed_engine_offset: Vector2 = Vector2(68.0, 0.0)
@@ -159,6 +160,14 @@ func get_core_overlay_center_for_tests() -> Vector2:
 	return _get_platform_core_center() + core_overlay_offset
 
 
+func get_core_overlay_draw_size_for_tests() -> Vector2:
+	return _get_core_overlay_draw_size()
+
+
+func get_focused_core_overlay_scale_for_tests() -> float:
+	return focused_core_overlay_scale
+
+
 func is_speed_asset_visible() -> bool:
 	return _anchorless != null and _anchorless.upgrades.has_speed_specialization()
 
@@ -257,9 +266,15 @@ func _draw_core_overlay() -> void:
 	_draw_texture_centered(
 		texture,
 		_get_platform_core_center() + core_overlay_offset,
-		core_overlay_size,
+		_get_core_overlay_draw_size(),
 		false
 	)
+
+
+func _get_core_overlay_draw_size() -> Vector2:
+	if get_core_overlay_asset_for_tests() == &"focused_border":
+		return core_overlay_size * focused_core_overlay_scale
+	return core_overlay_size
 
 
 func _draw_speed_assets() -> void:
