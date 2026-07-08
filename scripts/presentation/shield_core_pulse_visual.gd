@@ -106,8 +106,8 @@ func _connect_anchorless_system() -> void:
 		_anchorless.core_pulse_requested.connect(_on_anchorless_core_pulse_requested)
 
 
-func _on_surge_pulse_requested(section_id: int, source: int) -> void:
-	_start_pulse(section_id, source)
+func _on_surge_pulse_requested(_section_id: int, _source: int) -> void:
+	pass
 
 
 func _on_focused_retargeted(section_id: int, _enemy_count: int) -> void:
