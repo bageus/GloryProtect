@@ -85,7 +85,7 @@ var _instant_anchor_remove_prompt: Label
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_title_label.text = "GloryProtect — Prototype 2.0"
-	_telemetry_panel.visible = false
+	_hide_telemetry_overlay()
 	if not buildable_placement_controller_path.is_empty():
 		_placement = get_node_or_null(
 			buildable_placement_controller_path
@@ -101,19 +101,12 @@ func _ready() -> void:
 	_update_instant_anchor_remove_prompt()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not event is InputEventKey:
-		return
-	var key_event: InputEventKey = event as InputEventKey
-	if not key_event.pressed or key_event.echo:
-		return
-	if key_event.keycode != KEY_F10:
-		return
-	_telemetry_panel.visible = not _telemetry_panel.visible
-	get_viewport().set_input_as_handled()
+func _unhandled_input(_event: InputEvent) -> void:
+	_hide_telemetry_overlay()
 
 
 func _process(_delta: float) -> void:
+	_hide_telemetry_overlay()
 	_update_run_state()
 	_update_statistics()
 	_update_wind_and_platform()
@@ -137,6 +130,10 @@ func get_instant_anchor_remove_prompt_text_for_tests() -> String:
 	if _instant_anchor_remove_prompt == null:
 		return ""
 	return _instant_anchor_remove_prompt.text
+
+
+func is_telemetry_overlay_visible_for_tests() -> bool:
+	return _telemetry_panel != null and _telemetry_panel.visible
 
 
 func _create_crew_command_panel() -> void:
@@ -198,6 +195,12 @@ func _should_show_instant_anchor_remove_prompt() -> bool:
 		and _anchors.is_instant_remove_all_enabled()
 		and _anchors.get_active_path_count() > 0
 	)
+
+
+func _hide_telemetry_overlay() -> void:
+	if _telemetry_panel == null:
+		return
+	_telemetry_panel.visible = false
 
 
 func _update_run_state() -> void:
