@@ -37,6 +37,7 @@ var _commands: AnchorCommandController = AnchorCommandController.new()
 var _rope_durability: AnchorRopeDurability = AnchorRopeDurability.new()
 var _recovery: AnchorBreakRecoveryController = AnchorBreakRecoveryController.new()
 var _visual: AnchorVisualController
+var _platform_winch_visual: PlatformAnchorWinchVisual
 
 @onready var _game_flow: GameFlowController = get_node(game_flow_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
@@ -200,6 +201,8 @@ func set_operator_assigned(side: int, is_assigned: bool) -> void:
 	else:
 		right_operator_assigned = is_assigned
 	_commands.operator_availability_changed(side, is_assigned)
+	if _platform_winch_visual != null:
+		_platform_winch_visual.queue_redraw()
 
 
 func is_operator_assigned(side: int) -> bool:
@@ -259,6 +262,25 @@ func _create_visual_controller() -> void:
 		Callable(self, "is_operator_assigned"),
 		Callable(_game_flow, "is_world_simulation_active")
 	)
+	_create_platform_winch_visual()
+
+
+func _create_platform_winch_visual(
+	combat_anchors: CombatAnchorSystem = null
+) -> void:
+	if _platform == null:
+		return
+	var existing := _platform.get_node_or_null(
+		"PlatformAnchorWinchVisual"
+	) as PlatformAnchorWinchVisual
+	if existing != null:
+		_platform_winch_visual = existing
+		_platform_winch_visual.configure(_platform, self, combat_anchors)
+		return
+	_platform_winch_visual = PlatformAnchorWinchVisual.new()
+	_platform_winch_visual.name = "PlatformAnchorWinchVisual"
+	_platform_winch_visual.configure(_platform, self, combat_anchors)
+	_platform.add_child(_platform_winch_visual)
 
 
 func _on_anchor_state_changed(anchor_id: int, state: int) -> void:
