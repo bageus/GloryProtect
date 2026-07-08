@@ -10,6 +10,19 @@ const STRONG_WINCH_TEXTURE: Texture2D = preload(
 const SPECIALIZATION_2_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_03.png"
 )
+const FASTENING_CLAMP_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_clamp_02.png"
+)
+const TURBO_CLAMP_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_clamp_03.png"
+)
+const MAGNET_ANCHOR_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_anchor_02.png"
+)
+
+const FASTENING_BASIC_RATIO := 0.2
+const FASTENING_TURBO_RATIO := 0.4
+const FASTENING_RATIO_EPSILON := 0.001
 
 @export_range(1.0, 8.0, 0.25) var electric_arc_speed: float = 4.5
 @export_range(4.0, 20.0, 1.0) var electric_arc_spacing: float = 10.0
@@ -31,6 +44,9 @@ func _ready() -> void:
 	)
 	_register_texture_source_rect(STRONG_WINCH_TEXTURE)
 	_register_texture_source_rect(SPECIALIZATION_2_WINCH_TEXTURE)
+	_register_texture_source_rect(FASTENING_CLAMP_TEXTURE)
+	_register_texture_source_rect(TURBO_CLAMP_TEXTURE)
+	_register_texture_source_rect(MAGNET_ANCHOR_TEXTURE)
 
 
 func configure_combat(
@@ -80,6 +96,18 @@ func _draw() -> void:
 
 func get_winch_asset_id_for_tests(anchor_id: int = 0) -> StringName:
 	return _get_combat_winch_asset_id(anchor_id)
+
+
+func get_clamp_asset_id_for_tests() -> StringName:
+	return _get_combat_clamp_asset_id()
+
+
+func get_anchor_asset_id_for_tests() -> StringName:
+	return _get_combat_anchor_asset_id()
+
+
+func is_turbo_anchor_grounded_for_tests() -> bool:
+	return _uses_turbo_fastening_assets()
 
 
 func is_electric_visual_active(anchor_id: int) -> bool:
@@ -144,6 +172,24 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 			return super._get_winch_asset_id(anchor_id)
 
 
+func _draw_anchor_asset(top: Vector2, tint: Color) -> void:
+	var texture: Texture2D = _get_combat_anchor_texture()
+	var source_rect: Rect2 = _get_texture_source_rect(texture)
+	if texture == null or not _is_rect_drawable(source_rect):
+		super._draw_anchor_asset(top, tint)
+		return
+	_draw_anchor_texture_at_top(top, texture, source_rect, tint)
+
+
+func _draw_clamp(ground: Vector2, tint: Color) -> void:
+	var texture: Texture2D = _get_combat_clamp_texture()
+	var source_rect: Rect2 = _get_texture_source_rect(texture)
+	if texture == null or not _is_rect_drawable(source_rect):
+		super._draw_clamp(ground, tint)
+		return
+	_draw_clamp_texture(ground, texture, source_rect, tint)
+
+
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
 	super._draw_stowed_anchor(anchor, start)
 	if not is_reinforced_chain_visual_active():
@@ -178,6 +224,8 @@ func _draw_attached_anchor(
 	ground: Vector2
 ) -> void:
 	super._draw_attached_anchor(anchor, start, ground)
+	if _uses_turbo_fastening_assets():
+		_draw_anchor_asset(_get_clamp_connection_point(ground), Color.WHITE)
 	if is_reinforced_chain_visual_active():
 		_draw_reinforced_chain_overlay(
 			start,
@@ -209,6 +257,90 @@ func _draw_returning_anchor(
 	var source := _get_clamp_connection_point(ground)
 	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
 	_draw_reinforced_chain_overlay(source, top, Color(0.98, 0.86, 0.52, 1.0))
+
+
+func _get_combat_clamp_texture() -> Texture2D:
+	match _get_combat_clamp_asset_id():
+		&"fastening":
+			return FASTENING_CLAMP_TEXTURE
+		&"turbo_fastening":
+			return TURBO_CLAMP_TEXTURE
+		_:
+			return CLAMP_TEXTURE
+
+
+func _get_combat_anchor_texture() -> Texture2D:
+	if _uses_turbo_fastening_assets():
+		return MAGNET_ANCHOR_TEXTURE
+	return ANCHOR_TEXTURE
+
+
+func _get_combat_clamp_asset_id() -> StringName:
+	var ratio: float = _get_install_speed_bonus_ratio()
+	if ratio >= FASTENING_TURBO_RATIO - FASTENING_RATIO_EPSILON:
+		return &"turbo_fastening"
+	if ratio >= FASTENING_BASIC_RATIO - FASTENING_RATIO_EPSILON:
+		return &"fastening"
+	return &"base"
+
+
+func _get_combat_anchor_asset_id() -> StringName:
+	if _uses_turbo_fastening_assets():
+		return &"magnet_anchor"
+	return &"base"
+
+
+func _uses_turbo_fastening_assets() -> bool:
+	return _get_install_speed_bonus_ratio() >= (
+		FASTENING_TURBO_RATIO - FASTENING_RATIO_EPSILON
+	)
+
+
+func _get_install_speed_bonus_ratio() -> float:
+	if _combat_anchors == null:
+		return 0.0
+	return _combat_anchors.upgrades.install_speed_bonus_ratio
+
+
+func _draw_anchor_texture_at_top(
+	top: Vector2,
+	texture: Texture2D,
+	source_rect: Rect2,
+	tint: Color
+) -> void:
+	var size := source_rect.size * object_asset_scale
+	var rect := Rect2(Vector2(-size.x * 0.5, 0.0), size)
+	draw_set_transform(top, 0.0, Vector2.ONE)
+	draw_texture_rect_region(texture, rect, source_rect, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_clamp_texture(
+	ground: Vector2,
+	texture: Texture2D,
+	source_rect: Rect2,
+	tint: Color
+) -> void:
+	var source_size: Vector2 = source_rect.size
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		source_size = Vector2(42.0, 34.0)
+	var size := source_size * get_clamp_visual_scale()
+	var bottom := ground + clamp_ground_offset
+	var marker_center := bottom + Vector2(0.0, -size.y * 0.34)
+	var glow := Color(tint.r, tint.g, tint.b, minf(0.3, maxf(0.16, tint.a * 0.24)))
+	draw_circle(marker_center, maxf(8.0, size.x * 0.25), glow)
+	draw_arc(
+		marker_center,
+		maxf(9.0, size.x * 0.31),
+		0.0,
+		TAU,
+		28,
+		Color(0.85, 0.96, 1.0, 0.55),
+		2.0,
+		true
+	)
+	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
+	draw_texture_rect_region(texture, rect, source_rect, tint)
 
 
 func _draw_reinforced_chain_overlay(start: Vector2, finish: Vector2, tint: Color) -> void:

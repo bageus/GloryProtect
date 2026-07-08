@@ -47,6 +47,9 @@ func _run() -> void:
 	assert(overlay.get_visible_asset_ids_for_tests().is_empty())
 	assert(overlay.get_speed_engine_count_for_tests() == 0)
 	assert(not anchor_visual.is_reinforced_chain_visual_active())
+	assert(anchor_visual.get_clamp_asset_id_for_tests() == &"base")
+	assert(anchor_visual.get_anchor_asset_id_for_tests() == &"base")
+	assert(not anchor_visual.is_turbo_anchor_grounded_for_tests())
 	assert(overlay.get_core_overlay_center_for_tests().is_equal_approx(
 		overlay.get_platform_core_center_for_tests()
 	))
@@ -106,6 +109,26 @@ func _run() -> void:
 	anchorless.reset_upgrade_runtime()
 	await process_frame
 	assert(not overlay.is_stability_asset_visible())
+
+	assert(combat.apply_upgrade_effect(
+		catalog.get_definition(&"anchor_install_speed_basic").effect
+	))
+	await process_frame
+	assert(anchor_visual.get_clamp_asset_id_for_tests() == &"fastening")
+	assert(anchor_visual.get_anchor_asset_id_for_tests() == &"base")
+	assert(not anchor_visual.is_turbo_anchor_grounded_for_tests())
+	assert(combat.apply_upgrade_effect(
+		catalog.get_definition(&"anchor_install_speed_advanced").effect
+	))
+	await process_frame
+	assert(anchor_visual.get_clamp_asset_id_for_tests() == &"turbo_fastening")
+	assert(anchor_visual.get_anchor_asset_id_for_tests() == &"magnet_anchor")
+	assert(anchor_visual.is_turbo_anchor_grounded_for_tests())
+	combat.reset_upgrade_runtime()
+	await process_frame
+	assert(anchor_visual.get_clamp_asset_id_for_tests() == &"base")
+	assert(anchor_visual.get_anchor_asset_id_for_tests() == &"base")
+	assert(not anchor_visual.is_turbo_anchor_grounded_for_tests())
 
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.STRONG).effect

@@ -64,6 +64,22 @@ func _run() -> void:
 	assert(not panel.is_upgrade_selected_for_tests(&"shield_contact_basic"))
 	assert(not panel.is_upgrade_selected_for_tests(&"shield_contact_advanced"))
 
+	assert(panel.get_item_visible_text_for_tests(
+		&"anchor_install_speed_basic"
+	) == "Ускоренное закрепление")
+	assert(panel.get_item_visible_text_for_tests(
+		&"anchor_install_speed_advanced"
+	) == "Турбо закрепление")
+	assert(panel.get_item_description_for_tests(
+		&"anchor_install_speed_basic"
+	).contains("Открывает: Турбо закрепление"))
+	assert(panel.get_item_description_for_tests(
+		&"anchor_install_speed_advanced"
+	).contains("Требуется: Ускоренное закрепление"))
+	assert(panel.get_item_description_for_tests(
+		&"anchor_install_speed_basic"
+	).contains("Скорость закрепления"))
+
 	var shield_core: ShieldCoreSystem = game.get_node("World/ShieldCoreSystem")
 	assert(not shield_core.upgrades.has_distributed_specialization())
 	assert(panel.toggle_upgrade_for_tests(
