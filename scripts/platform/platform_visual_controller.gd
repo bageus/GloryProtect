@@ -21,12 +21,8 @@ const CAPTAIN_LEFT_TEXTURE: Texture2D = preload(
 const CAPTAIN_RIGHT_TEXTURE: Texture2D = preload(
 	"res://visual/defenders/captain_platform/asset_captain_right.png"
 )
-const WINCH_BASE_TEXTURE: Texture2D = preload(
-	"res://visual/objects/asset_winch_01.png"
-)
 
 const TURBO_RECHARGE_RED_THRESHOLD: float = 0.19
-
 
 enum PortalState {
 	IDLE,
@@ -68,10 +64,6 @@ enum PortalState {
 @export_range(0.01, 2.0, 0.01) var portal_ghost_duration: float = 0.26
 @export_range(0.01, 2.0, 0.01) var portal_finish_duration: float = 0.26
 
-@export_group("Anchor Winches")
-@export var winch_size: Vector2 = Vector2(58.0, 54.0)
-@export var winch_surface_offset: Vector2 = Vector2(0.0, 2.0)
-
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _steering_input: SteeringInputProvider = get_node(steering_input_path)
 
@@ -84,7 +76,6 @@ var _portal_spawn2_source_rect: Rect2
 var _captain_center_source_rect: Rect2
 var _captain_left_source_rect: Rect2
 var _captain_right_source_rect: Rect2
-var _winch_source_rect: Rect2
 var _portal_state: PortalState = PortalState.IDLE
 var _portal_state_elapsed: float = 0.0
 var _portal_active_defender_id: int = -1
@@ -121,10 +112,6 @@ func _ready() -> void:
 	)
 	_captain_right_source_rect = TextureRegionLayout.get_alpha_bounds(
 		CAPTAIN_RIGHT_TEXTURE,
-		alpha_crop_threshold
-	)
-	_winch_source_rect = TextureRegionLayout.get_alpha_bounds(
-		WINCH_BASE_TEXTURE,
 		alpha_crop_threshold
 	)
 	var scene_root: Node = get_tree().current_scene
@@ -174,14 +161,6 @@ func get_platform_core_atlas_path_for_tests() -> String:
 	return _surface_visual.get_platform_core_atlas_path_for_tests()
 
 
-func get_anchor_winch_count_for_tests() -> int:
-	return 4
-
-
-func is_anchor_winch_drawable_for_tests() -> bool:
-	return _winch_source_rect.size.x > 0.0 and _winch_source_rect.size.y > 0.0
-
-
 func _draw() -> void:
 	var platform_width: float = _platform.get_platform_width()
 	_surface_visual.set_platform_core_red_enabled(_is_platform_core_red_enabled())
@@ -197,7 +176,6 @@ func _draw() -> void:
 		_draw_cells(platform_width)
 	_draw_portal()
 	_draw_driver_console()
-	_draw_anchor_winches()
 	_surface_visual.draw_core(
 		self,
 		balance.platform_height,
@@ -284,45 +262,6 @@ func _draw_driver_console() -> void:
 		post_size
 	)
 	draw_texture_rect_region(texture, post_rect, source_rect)
-
-
-func _draw_anchor_winches() -> void:
-	if _winch_source_rect.size.x <= 0.0 or _winch_source_rect.size.y <= 0.0:
-		return
-	for anchor_id: int in range(4):
-		var center := _get_anchor_winch_center(anchor_id)
-		var size: Vector2 = TextureRegionLayout.fit_inside(
-			_winch_source_rect.size,
-			winch_size
-		)
-		var rect := Rect2(-size * 0.5, size)
-		var mirrored := anchor_id == 1 or anchor_id == 3
-		var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
-		draw_set_transform(center, 0.0, scale)
-		draw_texture_rect_region(WINCH_BASE_TEXTURE, rect, _winch_source_rect)
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-
-
-func _get_anchor_winch_center(anchor_id: int) -> Vector2:
-	var bottom := Vector2(
-		_get_anchor_winch_local_x(anchor_id) + winch_surface_offset.x,
-		-balance.platform_height * 0.5 + winch_surface_offset.y
-	)
-	return bottom - Vector2(0.0, winch_size.y * 0.5)
-
-
-func _get_anchor_winch_local_x(anchor_id: int) -> float:
-	match anchor_id:
-		0:
-			return _platform.get_cell_local_x(0)
-		1:
-			return _platform.get_cell_local_x(1)
-		2:
-			return _platform.get_cell_local_x(_platform.get_cell_count() - 2)
-		3:
-			return _platform.get_cell_local_x(_platform.get_cell_count() - 1)
-		_:
-			return 0.0
 
 
 func _draw_empty_driver_console() -> void:
@@ -437,3 +376,11 @@ func _is_platform_core_red_enabled() -> bool:
 		_shield_core != null
 		and _shield_core.upgrades.recharge_bonus_ratio >= TURBO_RECHARGE_RED_THRESHOLD
 	)
+
+
+func _on_visual_state_changed(_is_available: bool) -> void:
+	queue_redraw()
+
+
+func _on_shield_core_upgrades_changed() -> void:
+	queue_redraw()
