@@ -34,7 +34,7 @@ const PORTAL_STREAM: AudioStream = preload(
 	"res://audio/teleport_portal.ogg"
 )
 const TURRET_ATTACK_STREAM: AudioStream = preload(
-	"res://audio/turret_attack.ogg"
+	"res://audio/turret_attack2.ogg"
 )
 const WINCH_CONNECT_STREAM: AudioStream = preload(
 	"res://audio/winck_connect.ogg"
