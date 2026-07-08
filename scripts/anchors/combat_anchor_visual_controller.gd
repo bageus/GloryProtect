@@ -10,6 +10,9 @@ const STRONG_WINCH_TEXTURE: Texture2D = preload(
 const SPECIALIZATION_2_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_03.png"
 )
+const TRAP_WINCH_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_winch_04.png"
+)
 const FASTENING_CLAMP_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_clamp_02.png"
 )
@@ -44,6 +47,7 @@ func _ready() -> void:
 	)
 	_register_texture_source_rect(STRONG_WINCH_TEXTURE)
 	_register_texture_source_rect(SPECIALIZATION_2_WINCH_TEXTURE)
+	_register_texture_source_rect(TRAP_WINCH_TEXTURE)
 	_register_texture_source_rect(FASTENING_CLAMP_TEXTURE)
 	_register_texture_source_rect(TURBO_CLAMP_TEXTURE)
 	_register_texture_source_rect(MAGNET_ANCHOR_TEXTURE)
@@ -151,6 +155,8 @@ func _get_winch_texture(anchor_id: int) -> Texture2D:
 			return STRONG_WINCH_TEXTURE
 		&"specialization_2":
 			return SPECIALIZATION_2_WINCH_TEXTURE
+		&"trap":
+			return TRAP_WINCH_TEXTURE
 		_:
 			return super._get_winch_texture(anchor_id)
 
@@ -166,8 +172,10 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 	match specialization:
 		CombatAnchorUpgradeRuntime.STRONG:
 			return &"strong"
-		CombatAnchorUpgradeRuntime.ELECTRIC, CombatAnchorUpgradeRuntime.TRAP:
+		CombatAnchorUpgradeRuntime.ELECTRIC:
 			return &"specialization_2"
+		CombatAnchorUpgradeRuntime.TRAP:
+			return &"trap"
 		_:
 			return super._get_winch_asset_id(anchor_id)
 
