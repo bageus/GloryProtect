@@ -105,7 +105,7 @@ func _get_compensator_center(side: int) -> Vector2:
 	var draw_size: Vector2 = _get_draw_size(_base_source_rect)
 	var inner_edge_x: float = _get_anchor_post_inner_edge_x(normalized_side)
 	return Vector2(
-		inner_edge_x + float(normalized_side) * (anchor_post_gap + draw_size.x * 0.5),
+		inner_edge_x - float(normalized_side) * (anchor_post_gap + draw_size.x * 0.5),
 		_get_platform_bottom_y() - platform_attach_overlap + draw_size.y * 0.5 + vertical_offset
 	)
 
