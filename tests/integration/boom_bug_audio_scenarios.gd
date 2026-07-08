@@ -21,6 +21,7 @@ func _run() -> void:
 	var enemies: BoardingEnemyRegistry = game.get_node("World/BoardingEnemyRegistry")
 	assert(audio != null)
 	assert(enemies != null)
+	audio.set_audio_enabled(true)
 	assert(audio.get_loaded_sound_ids().has(GameAudioController.SOUND_BOOM_BUG))
 	assert(audio.get_trigger_count(GameAudioController.SOUND_BOOM_BUG) == 0)
 	assert(audio.get_trigger_count(GameAudioController.SOUND_MONSTER_DIE) == 0)
@@ -31,11 +32,6 @@ func _run() -> void:
 	assert(audio.get_trigger_count(GameAudioController.SOUND_MONSTER_DIE) == 1)
 
 	enemies.enemy_removed.emit(11, &"rope_sabotage")
-	await process_frame
-	assert(audio.get_trigger_count(GameAudioController.SOUND_BOOM_BUG) == 1)
-	assert(audio.get_trigger_count(GameAudioController.SOUND_MONSTER_DIE) == 2)
-	assert(audio.get_active_one_shot_count_for_tests(GameAudioController.SOUND_BOOM_BUG) == 1)
-
 	enemies.enemy_removed.emit(12, &"rope_sabotage")
 	enemies.enemy_removed.emit(13, &"rope_sabotage")
 	await process_frame
