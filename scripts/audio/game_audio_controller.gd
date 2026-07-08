@@ -463,7 +463,7 @@ func _on_anchor_trap_triggered(
 	_damaged_enemy_count: int,
 	source_id: StringName
 ) -> void:
-	if source_id not in [&"anchor_trap_attach", &"anchor_trap_remove"]:
+	if source_id != &"anchor_trap_attach" and source_id != &"anchor_trap_remove":
 		return
 	_play_one_shot(SOUND_BOOM_WINCH, BOOM_WINCH_STREAM)
 
