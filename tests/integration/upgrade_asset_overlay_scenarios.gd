@@ -133,7 +133,7 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(overlay.is_control_mechanism_visible())
-	_assert_control_mechanism_layout(stability_overlay, platform)
+	_assert_control_mechanism_layout(stability_overlay, platform, platform_visual)
 	anchorless.reset_upgrade_runtime()
 	assert(anchorless.apply_upgrade_effect(
 		catalog.get_definition(AnchorlessControlUpgradeRuntime.PRECISE).effect
@@ -182,7 +182,8 @@ func _run() -> void:
 
 func _assert_control_mechanism_layout(
 	overlay: PlatformUpgradeAssetOverlayStabilityFixed,
-	platform: PlatformController
+	platform: PlatformController,
+	platform_visual: PlatformVisualController
 ) -> void:
 	overlay.set("_elapsed", 0.0)
 	var base_center: Vector2 = overlay.get_control_base_center_for_tests()
@@ -190,22 +191,20 @@ func _assert_control_mechanism_layout(
 	var base_size: Vector2 = overlay.control_mechanism_size
 	var active_size: Vector2 = overlay.control_active_size
 	var platform_top: float = -platform.balance.platform_height * 0.5
-	var platform_bottom: float = platform.balance.platform_height * 0.5
-	var front_edge: float = overlay.get_platform_edge_x_for_tests(1)
-	var base_left: float = base_center.x - base_size.x * 0.5
-	var base_right: float = base_center.x + base_size.x * 0.5
-	assert(base_left < front_edge)
-	assert(base_right > front_edge)
-	assert(is_equal_approx(
-		front_edge - base_left,
-		overlay.get_control_front_overlap_for_tests()
-	))
+	var expected_x: float = (
+		platform_visual.driver_console_surface_offset.x
+		+ overlay.get_control_under_driver_offset_x_for_tests()
+	)
+	var expected_top_y: float = (
+		platform_top + overlay.get_control_under_driver_gap_for_tests()
+	)
+	assert(is_equal_approx(base_center.x, expected_x))
+	assert(is_equal_approx(base_center.y - base_size.y * 0.5, expected_top_y))
 	assert(base_center.y > platform_top)
-	assert(base_center.y < platform_bottom)
-	assert(is_equal_approx(base_center.y, overlay.control_front_vertical_offset))
+	assert(base_center.y < platform.balance.platform_height * 0.5)
 	assert(active_size.x < base_size.x)
 	assert(active_size.y < base_size.y)
-	assert(active_center.x > base_right)
+	assert(active_center.x > base_center.x + base_size.x * 0.5)
 	assert(is_equal_approx(
 		active_center.y + active_size.y * 0.5,
 		base_center.y + base_size.y * 0.5
