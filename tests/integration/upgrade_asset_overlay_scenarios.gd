@@ -26,6 +26,9 @@ func _run() -> void:
 		"World/Platform/PlatformUpgradeAssetOverlay"
 	)
 	var platform: PlatformController = game.get_node("World/Platform")
+	var platform_visual: PlatformVisualController = game.get_node(
+		"World/Platform/PlatformVisualController"
+	)
 	var anchor_visual: CombatAnchorVisualController = anchors.get_node(
 		"AnchorVisualController"
 	) as CombatAnchorVisualController
@@ -34,6 +37,7 @@ func _run() -> void:
 	assert(anchorless != null)
 	assert(combat != null)
 	assert(overlay != null)
+	assert(platform_visual != null)
 	assert(anchor_visual != null)
 
 	assert(overlay.get_visible_asset_ids_for_tests().is_empty())
@@ -85,6 +89,7 @@ func _run() -> void:
 	))
 	await process_frame
 	assert(overlay.is_control_mechanism_visible())
+	_assert_control_mechanism_layout(overlay, platform, platform_visual)
 	anchorless.reset_upgrade_runtime()
 	assert(anchorless.apply_upgrade_effect(
 		catalog.get_definition(AnchorlessControlUpgradeRuntime.PRECISE).effect
@@ -108,6 +113,41 @@ func _run() -> void:
 
 	print("Upgrade asset overlay scenarios passed")
 	quit()
+
+
+func _assert_control_mechanism_layout(
+	overlay: PlatformUpgradeAssetOverlay,
+	platform: PlatformController,
+	platform_visual: PlatformVisualController
+) -> void:
+	overlay.set("_elapsed", 0.0)
+	var base_center: Vector2 = overlay.get_control_base_center_for_tests()
+	var active_center: Vector2 = overlay.get_control_active_center_for_tests()
+	var base_size: Vector2 = overlay.control_mechanism_size
+	var active_size: Vector2 = overlay.control_active_size
+	var platform_surface_y: float = -platform.balance.platform_height * 0.5
+	var driver_post_right: float = (
+		platform_visual.driver_console_surface_offset.x
+		+ platform.balance.driver_post_width * 0.5
+	)
+	assert(base_center.x > platform_visual.driver_console_surface_offset.x)
+	assert(base_center.x - base_size.x * 0.5 <= driver_post_right)
+	assert(is_equal_approx(
+		base_center.y + base_size.y * 0.5,
+		platform_surface_y + overlay.control_mechanism_surface_offset.y
+	))
+	assert(base_center.y + base_size.y * 0.5 > platform_surface_y)
+	assert(active_size.x < base_size.x)
+	assert(active_size.y < base_size.y)
+	assert(active_center.x > base_center.x + base_size.x * 0.5)
+	assert(is_equal_approx(
+		active_center.y + active_size.y * 0.5,
+		base_center.y + base_size.y * 0.5
+	))
+	overlay.call("_process", 0.1)
+	var moved_active_center: Vector2 = overlay.get_control_active_center_for_tests()
+	assert(moved_active_center.x > active_center.x)
+	assert(is_equal_approx(moved_active_center.y, active_center.y))
 
 
 func _disable_spawners(game: Node) -> void:
