@@ -63,7 +63,7 @@ func _run() -> void:
 	assert(overlay.get_distributed_core_overlay_scale_for_tests() > 1.0)
 	assert(is_equal_approx(
 		overlay.get_distributed_core_overlay_scale_for_tests(),
-		1.1
+		1.11
 	))
 	assert(overlay.get_core_overlay_draw_size_for_tests().is_equal_approx(
 		overlay.core_overlay_size * overlay.get_distributed_core_overlay_scale_for_tests()
