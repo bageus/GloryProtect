@@ -19,14 +19,28 @@ func _run() -> void:
 
 	var platform: PlatformController = game.get_node("World/Platform")
 	var wind: WindSystem = game.get_node("WindSystem")
+	var anchorless: AnchorlessControlSystem = game.get_node(
+		"World/AnchorlessControlSystem"
+	) as AnchorlessControlSystem
+	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
 	var compensator: PlatformWindCompensatorVisual = game.get_node(
 		"World/Platform/PlatformWindCompensatorVisual"
 	) as PlatformWindCompensatorVisual
 	assert(platform != null)
 	assert(wind != null)
+	assert(anchorless != null)
+	assert(catalog != null)
 	assert(compensator != null)
 
 	_assert_compensator_layout(compensator, platform)
+	assert(not compensator.is_compensator_visible_for_tests())
+	assert(not compensator.visible)
+	assert(compensator.get_active_side_for_tests() == 0)
+
+	_apply(anchorless, catalog, &"anchorless_wind_reduction_basic")
+	await process_frame
+	assert(compensator.is_compensator_visible_for_tests())
+	assert(compensator.visible)
 
 	wind.set_debug_state(1, 2)
 	await process_frame
@@ -43,8 +57,24 @@ func _run() -> void:
 	assert(compensator.get_active_side_for_tests() == 0)
 	wind.reset_anchorless_modifiers()
 
+	anchorless.reset_upgrade_runtime()
+	await process_frame
+	assert(not compensator.is_compensator_visible_for_tests())
+	assert(not compensator.visible)
+
 	print("Platform wind compensator scenarios passed")
 	quit()
+
+
+func _apply(
+	anchorless: AnchorlessControlSystem,
+	catalog: UpgradeCatalog,
+	card_id: StringName
+) -> void:
+	var definition: UpgradeDefinition = catalog.get_definition(card_id)
+	assert(definition != null)
+	assert(anchorless.can_apply_upgrade_effect(definition.effect))
+	assert(anchorless.apply_upgrade_effect(definition.effect))
 
 
 func _assert_compensator_layout(
