@@ -1,4 +1,4 @@
-[gd_scene load_steps=60 format=3]
+[gd_scene load_steps=61 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -59,6 +59,7 @@
 [ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual.gd" id="57_buildable_visual"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_system.gd" id="58_turret_system"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_debug_input.gd" id="59_turret_input"]
+[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_stability_fixed.gd" id="60_upgrade_assets"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -315,6 +316,15 @@ steering_input_path = NodePath("../../../SteeringInputProvider")
 balance = ExtResource("7_platform_balance")
 crew_balance = ExtResource("14_crew_balance")
 
+[node name="PlatformUpgradeAssetOverlay" type="Node2D" parent="World/Platform"]
+z_index = 7
+script = ExtResource("60_upgrade_assets")
+platform_path = NodePath("..")
+shield_core_system_path = NodePath("../../ShieldCoreSystem")
+anchorless_control_system_path = NodePath("../../AnchorlessControlSystem")
+steering_input_path = NodePath("../../../SteeringInputProvider")
+wind_system_path = NodePath("../../../WindSystem")
+
 [node name="BuildableGridVisual" type="Node2D" parent="World/Platform"]
 script = ExtResource("57_buildable_visual")
 platform_path = NodePath("..")
@@ -429,116 +439,3 @@ text = "Якоря"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Экипаж"
-
-[node name="ReplacementLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Замены"
-
-[node name="EconomyLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Монеты забега"
-
-[node name="UpgradeLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Карточки"
-
-[node name="BuildableLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Объекты"
-
-[node name="MedicalLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Лечение"
-
-[node name="TurretLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Турели"
-
-[node name="BoardingLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Абордаж"
-
-[node name="ContactLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Контакт"
-
-[node name="ShieldLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Щит"
-
-[node name="TargetLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Цели"
-
-[node name="HelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "←/→ — движение   1–4 — якоря   R — снять все   Esc — пауза"
-
-[node name="CrewHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "5/6/7 — защитник   D — рулевой   Z/X — якорщик   C — свободный   H — лекарь"
-
-[node name="BuildableHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = ",/. — клетка   B — открыть медпост   M — установить/перенести   Del — снять"
-
-[node name="TurretHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "T — открыть турель   G — новая   K — выбрать   V — перенести   J — оператор   Backspace — снять"
-
-[node name="ShieldHelpLabel" type="Label" parent="CanvasLayer/PrototypeHUD/TelemetryPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.68, 0.76, 0.84, 1)
-text = "F1–F5 — выбрать секцию   Space — нанести выбранной секции урон"
-
-[node name="PauseLabel" type="Label" parent="CanvasLayer/PrototypeHUD"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -185.0
-offset_top = -42.0
-offset_right = 185.0
-offset_bottom = 42.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(1, 0.88, 0.42, 1)
-theme_override_colors/font_outline_color = Color(0.02, 0.03, 0.05, 1)
-theme_override_constants/outline_size = 10
-theme_override_font_sizes/font_size = 42
-text = "ПАУЗА"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="StrategicMinimap" parent="CanvasLayer" instance=ExtResource("46_strategic_minimap")]
-shield_system_path = NodePath("../../ShieldSystem")
-wave_system_path = NodePath("../../World/StrategicWaveSystem")
-wave_director_path = NodePath("../../World/StrategicWaveDirector")
-
-[node name="ShieldCriticalAlertPresenter" parent="CanvasLayer" instance=ExtResource("51_critical_presenter")]
-alert_controller_path = NodePath("../../ShieldCriticalAlertController")
-
-[node name="UpgradeSelectionPanel" parent="CanvasLayer" instance=ExtResource("40_upgrade_panel")]
-upgrade_system_path = NodePath("../../UpgradeSystem")
-
-[node name="GameOverPanel" parent="CanvasLayer" instance=ExtResource("49_game_over")]
-game_flow_path = NodePath("../../GameFlowController")
-run_statistics_path = NodePath("../../RunStatistics")
