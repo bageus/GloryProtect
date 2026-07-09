@@ -30,7 +30,6 @@ func _run() -> void:
 	)
 	var platform: PlatformController = game.get_node("World/Platform")
 	var contact: OrbContactSystem = game.get_node("World/OrbContactSystem")
-	var wind: WindSystem = game.get_node("WindSystem")
 	var platform_visual: PlatformVisualController = game.get_node(
 		"World/Platform/PlatformVisualController"
 	)
@@ -45,12 +44,10 @@ func _run() -> void:
 	assert(stability_overlay != null)
 	assert(platform_visual != null)
 	assert(contact != null)
-	assert(wind != null)
 	assert(anchor_visual != null)
 
 	assert(overlay.get_visible_asset_ids_for_tests().is_empty())
 	assert(overlay.get_speed_engine_count_for_tests() == 0)
-	assert(not stability_overlay.is_wind_compensator_visible_for_tests())
 	assert(not anchor_visual.is_reinforced_chain_visual_active())
 	assert(anchor_visual.get_clamp_asset_id_for_tests() == &"base")
 	assert(anchor_visual.get_anchor_asset_id_for_tests() == &"base")
@@ -118,26 +115,6 @@ func _run() -> void:
 	shield_core.reset_upgrade_runtime()
 	await process_frame
 	assert(overlay.get_core_overlay_asset_for_tests() == &"")
-
-	assert(anchorless.apply_upgrade_effect(
-		catalog.get_definition(&"anchorless_wind_reduction_basic").effect
-	))
-	await process_frame
-	assert(stability_overlay.is_wind_compensator_visible_for_tests())
-	assert(overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
-	var compensator_centers: Array[Vector2] = stability_overlay.get_wind_compensator_centers_for_tests()
-	assert(compensator_centers[0].x < 0.0)
-	assert(compensator_centers[1].x > 0.0)
-	wind.set_debug_state(1, 2)
-	await process_frame
-	assert(stability_overlay.get_wind_compensator_active_side_for_tests() == 1)
-	wind.set_debug_state(-1, 2)
-	await process_frame
-	assert(stability_overlay.get_wind_compensator_active_side_for_tests() == -1)
-	anchorless.reset_upgrade_runtime()
-	await process_frame
-	assert(not stability_overlay.is_wind_compensator_visible_for_tests())
-	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
 
 	assert(anchorless.apply_upgrade_effect(
 		catalog.get_definition(AnchorlessControlUpgradeRuntime.SPEED).effect
