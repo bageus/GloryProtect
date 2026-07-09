@@ -14,6 +14,24 @@ static func fit_inside(source_size: Vector2, target_size: Vector2) -> Vector2:
 	return source_size * scale
 
 
+static func fit_height(source_size: Vector2, target_height: float) -> Vector2:
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		return Vector2.ZERO
+	if target_height <= 0.0:
+		return Vector2.ZERO
+	var scale: float = target_height / source_size.y
+	return source_size * scale
+
+
+static func fit_width(source_size: Vector2, target_width: float) -> Vector2:
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		return Vector2.ZERO
+	if target_width <= 0.0:
+		return Vector2.ZERO
+	var scale: float = target_width / source_size.x
+	return source_size * scale
+
+
 static func get_alpha_bounds(
 	texture: Texture2D,
 	threshold: float = 0.0
