@@ -40,12 +40,6 @@ const STABILITY_FLAME_2: Texture2D = preload(
 const STABILITY_FLAME_3: Texture2D = preload(
 	"res://visual/objects/platform/core/control_stability/overlay_stability_control_03.png"
 )
-const WIND_COMPENSATOR_BASE: Texture2D = preload(
-	"res://visual/objects/platform/core/asset_air_02.png"
-)
-const WIND_COMPENSATOR_ACTIVE: Texture2D = preload(
-	"res://visual/objects/platform/core/asset_air_01.png"
-)
 
 const SPEED_ENGINE_BASE_SIZE: Vector2 = Vector2(64.8, 50.4)
 const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
@@ -85,9 +79,6 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export var stability_unit_size: Vector2 = Vector2(44.0, 36.0)
 @export var stability_unit_offset: Vector2 = Vector2(114.0, 34.0)
 @export_range(0.05, 1.2, 0.05) var stability_pulse_duration: float = 0.45
-@export var wind_compensator_size: Vector2 = Vector2(72.0, 54.0)
-@export_range(0.0, 48.0, 0.25) var wind_compensator_gap: float = 8.0
-@export_range(-64.0, 64.0, 0.25) var wind_compensator_vertical_offset: float = -8.0
 @export_range(1.0, 24.0, 0.5) var overlay_frame_rate: float = 12.0
 
 var _elapsed: float = 0.0
@@ -95,6 +86,7 @@ var _stability_pulse_elapsed: float = INF
 var _last_direction: int = 0
 
 var _source_rects: Dictionary[Texture2D, Rect2] = {}
+var _wind_compensator := PlatformUpgradeWindCompensatorAsset.new()
 var _speed_flames: Array[Texture2D] = [SPEED_FLAME_1, SPEED_FLAME_2, SPEED_FLAME_3]
 var _stability_flames: Array[Texture2D] = [
 	STABILITY_FLAME_1,
@@ -283,23 +275,26 @@ func is_stability_pulse_active_for_tests() -> bool:
 
 
 func is_wind_compensator_visible_for_tests() -> bool:
-	return _anchorless != null and _anchorless.upgrades.wind_reduction_ratio > 0.0
+	return _wind_compensator.is_visible(_anchorless)
 
 
 func get_wind_compensator_centers_for_tests() -> Array[Vector2]:
-	return [_get_wind_compensator_center(-1), _get_wind_compensator_center(1)]
+	return _wind_compensator.get_centers(
+		_platform,
+		get_wind_compensator_draw_size_for_tests()
+	)
 
 
 func get_wind_compensator_draw_size_for_tests() -> Vector2:
-	return _get_draw_size(WIND_COMPENSATOR_BASE, wind_compensator_size)
+	return _wind_compensator.get_draw_size(_source_rects)
 
 
 func get_wind_compensator_active_side_for_tests() -> int:
-	if not is_wind_compensator_visible_for_tests():
-		return 0
-	if _wind == null or is_zero_approx(_wind.get_current_force()):
-		return 0
-	return 1 if _wind.get_current_force() > 0.0 else -1
+	return _wind_compensator.get_active_side(_anchorless, _wind)
+
+
+func get_wind_compensator_vertical_offset_for_tests() -> float:
+	return _wind_compensator.vertical_offset
 
 
 func debug_trigger_direction_change_for_tests(direction: int) -> void:
@@ -417,17 +412,14 @@ func _draw_stability_assets() -> void:
 func _draw_wind_compensators() -> void:
 	if not is_wind_compensator_visible_for_tests():
 		return
-	var active_side: int = get_wind_compensator_active_side_for_tests()
-	for side: int in [-1, 1]:
-		var texture: Texture2D = (
-			WIND_COMPENSATOR_ACTIVE
-			if active_side == side
-			else WIND_COMPENSATOR_BASE
-		)
+	var sides: Array[int] = [-1, 1]
+	var centers: Array[Vector2] = get_wind_compensator_centers_for_tests()
+	for index: int in sides.size():
+		var side: int = sides[index]
 		_draw_texture_centered(
-			texture,
-			_get_wind_compensator_center(side),
-			wind_compensator_size,
+			_wind_compensator.get_texture_for_side(side, _anchorless, _wind),
+			centers[index],
+			_wind_compensator.size,
 			side < 0
 		)
 
@@ -525,34 +517,6 @@ func _get_control_active_rest_offset() -> Vector2:
 	)
 
 
-func _get_wind_compensator_center(side: int) -> Vector2:
-	var normalized_side: int = -1 if side < 0 else 1
-	var draw_size: Vector2 = get_wind_compensator_draw_size_for_tests()
-	var inner_edge_x: float = _get_anchor_post_inner_edge_x(normalized_side)
-	return Vector2(
-		inner_edge_x
-			- float(normalized_side) * (wind_compensator_gap + draw_size.x * 0.5),
-		_get_platform_surface_y() + draw_size.y * 0.5 + wind_compensator_vertical_offset
-	)
-
-
-func _get_anchor_post_inner_edge_x(side: int) -> float:
-	var normalized_side: int = -1 if side < 0 else 1
-	if _platform == null or _platform.balance == null:
-		return 0.0
-	if normalized_side < 0:
-		var left_inner_post: int = mini(1, _platform.get_cell_count() - 1)
-		return (
-			_platform.get_cell_local_x(left_inner_post)
-			+ _platform.balance.anchor_post_width * 0.5
-		)
-	var right_inner_post: int = maxi(0, _platform.get_cell_count() - 2)
-	return (
-		_platform.get_cell_local_x(right_inner_post)
-		- _platform.balance.anchor_post_width * 0.5
-	)
-
-
 func _get_platform_surface_y() -> float:
 	if _platform == null or _platform.balance == null:
 		return -29.0
@@ -610,7 +574,7 @@ func _resolve_optional_systems() -> void:
 
 
 func _get_all_textures() -> Array[Texture2D]:
-	return [
+	var textures: Array[Texture2D] = [
 		CORE_BORDER_DISTRIBUTED,
 		CORE_BORDER_FOCUSED,
 		CORE_SURGE_SPLASH,
@@ -624,9 +588,9 @@ func _get_all_textures() -> Array[Texture2D]:
 		STABILITY_FLAME_1,
 		STABILITY_FLAME_2,
 		STABILITY_FLAME_3,
-		WIND_COMPENSATOR_BASE,
-		WIND_COMPENSATOR_ACTIVE,
 	]
+	_wind_compensator.append_textures(textures)
+	return textures
 
 
 func _on_upgrade_changed() -> void:
