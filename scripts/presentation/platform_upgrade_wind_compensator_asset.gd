@@ -1,16 +1,11 @@
 class_name PlatformUpgradeWindCompensatorAsset
-extends RefCounted
+extends Resource
 
-const BASE_TEXTURE: Texture2D = preload(
-	"res://visual/objects/platform/core/asset_air_02.png"
-)
-const ACTIVE_TEXTURE: Texture2D = preload(
-	"res://visual/objects/platform/core/asset_air_01.png"
-)
-
-var size: Vector2 = Vector2(72.0, 54.0)
-var gap: float = 8.0
-var vertical_offset: float = -8.0
+@export var base_texture: Texture2D
+@export var active_texture: Texture2D
+@export var size: Vector2 = Vector2(72.0, 54.0)
+@export_range(0.0, 48.0, 0.25) var gap: float = 8.0
+@export_range(-64.0, 64.0, 0.25) var vertical_offset: float = -8.0
 
 
 func is_visible(anchorless: AnchorlessControlSystem) -> bool:
@@ -33,7 +28,9 @@ func get_texture_for_side(
 	anchorless: AnchorlessControlSystem,
 	wind: WindSystem
 ) -> Texture2D:
-	return ACTIVE_TEXTURE if get_active_side(anchorless, wind) == side else BASE_TEXTURE
+	if get_active_side(anchorless, wind) == side and active_texture != null:
+		return active_texture
+	return base_texture
 
 
 func get_centers(
@@ -47,15 +44,19 @@ func get_centers(
 
 
 func get_draw_size(source_rects: Dictionary[Texture2D, Rect2]) -> Vector2:
-	var source_rect: Rect2 = source_rects.get(BASE_TEXTURE, Rect2())
+	if base_texture == null:
+		return Vector2.ZERO
+	var source_rect: Rect2 = source_rects.get(base_texture, Rect2())
 	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
 		return Vector2.ZERO
 	return TextureRegionLayout.fit_inside(source_rect.size, size)
 
 
 func append_textures(textures: Array[Texture2D]) -> void:
-	textures.append(BASE_TEXTURE)
-	textures.append(ACTIVE_TEXTURE)
+	if base_texture != null:
+		textures.append(base_texture)
+	if active_texture != null:
+		textures.append(active_texture)
 
 
 func _get_center(
