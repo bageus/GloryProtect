@@ -42,6 +42,7 @@ func _draw() -> void:
 	_draw_stability_assets()
 	_draw_core_overlay()
 	_draw_control_mechanism()
+	_draw_wind_compensators()
 
 
 func get_stability_base_centers_for_tests() -> Array[Vector2]:
