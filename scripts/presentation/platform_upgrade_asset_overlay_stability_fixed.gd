@@ -257,3 +257,21 @@ func _get_platform_edge_x(side: int) -> float:
 	if _platform == null or _platform.balance == null:
 		return stability_unit_offset.x * float(normalized_side)
 	return _platform.get_platform_width() * 0.5 * float(normalized_side)
+
+
+func _draw_stability_texture(
+	texture: Texture2D,
+	source_rect: Rect2,
+	center: Vector2,
+	draw_size: Vector2,
+	mirrored: bool
+) -> void:
+	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		return
+	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
+		return
+	var rect := Rect2(-draw_size * 0.5, draw_size)
+	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
+	draw_set_transform(center, 0.0, scale)
+	draw_texture_rect_region(texture, rect, source_rect)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
