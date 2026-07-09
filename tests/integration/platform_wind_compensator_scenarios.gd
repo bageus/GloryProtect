@@ -17,47 +17,53 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_disable_spawners(game)
 
+	var platform: PlatformController = game.get_node("World/Platform")
 	var wind: WindSystem = game.get_node("WindSystem")
 	var anchorless: AnchorlessControlSystem = game.get_node(
 		"World/AnchorlessControlSystem"
 	) as AnchorlessControlSystem
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
-	var overlay: PlatformUpgradeAssetOverlayStabilityFixed = game.get_node(
-		"World/Platform/PlatformUpgradeAssetOverlay"
-	) as PlatformUpgradeAssetOverlayStabilityFixed
+	var compensator: PlatformWindCompensatorVisual = game.get_node(
+		"World/Platform/PlatformWindCompensatorVisual"
+	) as PlatformWindCompensatorVisual
+	assert(platform != null)
 	assert(wind != null)
 	assert(anchorless != null)
 	assert(catalog != null)
-	assert(overlay != null)
-	assert(game.get_node_or_null("World/Platform/PlatformWindCompensatorVisual") == null)
+	assert(compensator != null)
 
-	_assert_compensator_layout(overlay)
-	assert(not overlay.is_wind_compensator_visible_for_tests())
-	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 0)
+	_assert_compensator_layout(compensator, platform)
+	assert(compensator.z_index >= compensator.get_minimum_z_index_for_tests())
+	assert(not compensator.z_as_relative)
+	assert(not compensator.is_compensator_visible_for_tests())
+	assert(not compensator.visible)
+	assert(compensator.get_active_side_for_tests() == 0)
 
 	_apply(anchorless, catalog, &"anchorless_wind_reduction_basic")
 	await process_frame
-	assert(overlay.is_wind_compensator_visible_for_tests())
-	assert(overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
+	assert(compensator.is_compensator_visible_for_tests())
+	assert(compensator.visible)
+	assert(compensator.z_index >= 12)
 
 	wind.set_debug_state(1, 2)
 	await process_frame
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 1)
+	assert(compensator.get_active_side_for_tests() == 1)
+	assert(not compensator.is_side_mirrored_for_tests(1))
 
 	wind.set_debug_state(-1, 2)
 	await process_frame
-	assert(overlay.get_wind_compensator_active_side_for_tests() == -1)
+	assert(compensator.get_active_side_for_tests() == -1)
+	assert(compensator.is_side_mirrored_for_tests(-1))
 
 	wind.set_anchorless_modifiers(1.0, false)
 	await process_frame
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 0)
+	assert(compensator.get_active_side_for_tests() == 0)
 	wind.reset_anchorless_modifiers()
 
 	anchorless.reset_upgrade_runtime()
 	await process_frame
-	assert(not overlay.is_wind_compensator_visible_for_tests())
-	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
+	assert(not compensator.is_compensator_visible_for_tests())
+	assert(not compensator.visible)
 
 	print("Platform wind compensator scenarios passed")
 	quit()
@@ -75,19 +81,44 @@ func _apply(
 
 
 func _assert_compensator_layout(
-	overlay: PlatformUpgradeAssetOverlayStabilityFixed
+	compensator: PlatformWindCompensatorVisual,
+	platform: PlatformController
 ) -> void:
-	var centers: Array[Vector2] = overlay.get_wind_compensator_centers_for_tests()
+	var centers: Array[Vector2] = compensator.get_compensator_centers_for_tests()
 	var left_center: Vector2 = centers[0]
 	var right_center: Vector2 = centers[1]
-	assert(left_center.x < 0.0)
-	assert(right_center.x > 0.0)
-	assert(is_equal_approx(absf(left_center.x), overlay.wind_compensator_offset.x))
-	assert(is_equal_approx(right_center.x, overlay.wind_compensator_offset.x))
-	assert(is_equal_approx(left_center.y, overlay.wind_compensator_offset.y))
-	assert(is_equal_approx(right_center.y, overlay.wind_compensator_offset.y))
-	assert(overlay.wind_compensator_size.x > 0.0)
-	assert(overlay.wind_compensator_size.y > 0.0)
+	var draw_size: Vector2 = compensator.get_compensator_draw_size_for_tests()
+	var platform_bottom: float = compensator.get_platform_bottom_y_for_tests()
+	var left_inner_edge: float = compensator.get_anchor_post_inner_edge_x_for_tests(-1)
+	var right_inner_edge: float = compensator.get_anchor_post_inner_edge_x_for_tests(1)
+
+	assert(draw_size.x > 0.0)
+	assert(draw_size.y > 0.0)
+	assert(is_equal_approx(platform_bottom, platform.get_platform_height() * 0.5))
+	assert(left_inner_edge < 0.0)
+	assert(right_inner_edge > 0.0)
+	assert(left_center.x > left_inner_edge)
+	assert(right_center.x < right_inner_edge)
+	assert(is_equal_approx(
+		left_center.x - draw_size.x * 0.5,
+		left_inner_edge + compensator.anchor_post_gap
+	))
+	assert(is_equal_approx(
+		right_center.x + draw_size.x * 0.5,
+		right_inner_edge - compensator.anchor_post_gap
+	))
+	assert(is_equal_approx(
+		left_center.y - draw_size.y * 0.5,
+		platform_bottom - compensator.platform_attach_overlap + compensator.vertical_offset
+	))
+	assert(is_equal_approx(
+		right_center.y - draw_size.y * 0.5,
+		platform_bottom - compensator.platform_attach_overlap + compensator.vertical_offset
+	))
+	assert(left_center.y + draw_size.y * 0.5 > platform_bottom)
+	assert(right_center.y + draw_size.y * 0.5 > platform_bottom)
+	assert(compensator.is_side_mirrored_for_tests(-1))
+	assert(not compensator.is_side_mirrored_for_tests(1))
 
 
 func _disable_spawners(game: Node) -> void:
