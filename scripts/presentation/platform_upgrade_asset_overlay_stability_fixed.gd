@@ -13,9 +13,18 @@ const FIXED_STABILITY_FLAME_2: Texture2D = preload(
 const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 	"res://visual/objects/platform/core/stability/overlay_stability_03.png"
 )
+const WIND_COMPENSATOR_BASE: Texture2D = preload(
+	"res://visual/objects/platform/core/asset_air_02.png"
+)
+const WIND_COMPENSATOR_ACTIVE: Texture2D = preload(
+	"res://visual/objects/platform/core/asset_air_01.png"
+)
 
 @export_node_path("PlatformVisualController") var platform_visual_path: NodePath = NodePath(
 	"../PlatformVisualController"
+)
+@export_node_path("WindSystem") var wind_system_path: NodePath = NodePath(
+	"../../../WindSystem"
 )
 
 @export_range(0.0, 32.0, 0.25) var stability_edge_overlap: float = 6.0
@@ -25,6 +34,8 @@ const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 @export_range(-24.0, 48.0, 0.25) var control_under_driver_gap: float = 0.0
 @export_range(-16.0, 16.0, 0.25) var control_active_offset_x: float = -2.0
 @export_range(0.0, 16.0, 0.25) var control_active_lift_y: float = 3.0
+@export var wind_compensator_size: Vector2 = Vector2(56.0, 42.0)
+@export var wind_compensator_offset: Vector2 = Vector2(92.0, 25.0)
 
 var _fixed_stability_flames: Array[Texture2D] = [
 	FIXED_STABILITY_FLAME_1,
@@ -35,6 +46,7 @@ var _fixed_stability_flames: Array[Texture2D] = [
 @onready var _platform_visual: PlatformVisualController = get_node_or_null(
 	platform_visual_path
 ) as PlatformVisualController
+@onready var _wind: WindSystem = get_node_or_null(wind_system_path) as WindSystem
 
 
 func _draw() -> void:
@@ -43,6 +55,13 @@ func _draw() -> void:
 	_draw_core_overlay()
 	_draw_control_mechanism()
 	_draw_wind_compensators()
+
+
+func get_visible_asset_ids_for_tests() -> PackedStringArray:
+	var result: PackedStringArray = super.get_visible_asset_ids_for_tests()
+	if is_wind_compensator_visible_for_tests():
+		result.append("wind_compensator")
+	return result
 
 
 func get_stability_base_centers_for_tests() -> Array[Vector2]:
@@ -88,6 +107,22 @@ func get_control_active_lift_y_for_tests() -> float:
 	return control_active_lift_y
 
 
+func is_wind_compensator_visible_for_tests() -> bool:
+	return _anchorless != null and _anchorless.upgrades.wind_reduction_ratio > 0.0
+
+
+func get_wind_compensator_centers_for_tests() -> Array[Vector2]:
+	return [_get_wind_compensator_center(-1), _get_wind_compensator_center(1)]
+
+
+func get_wind_compensator_active_side_for_tests() -> int:
+	if not is_wind_compensator_visible_for_tests():
+		return 0
+	if _wind == null or is_zero_approx(_wind.get_current_force()):
+		return 0
+	return 1 if _wind.get_current_force() > 0.0 else -1
+
+
 func is_stability_side_mirrored_for_tests(side: int) -> bool:
 	return side < 0
 
@@ -116,12 +151,28 @@ func _draw_stability_assets() -> void:
 			)
 
 
+func _draw_wind_compensators() -> void:
+	if not is_wind_compensator_visible_for_tests():
+		return
+	var active_side: int = get_wind_compensator_active_side_for_tests()
+	for side: int in [-1, 1]:
+		var texture: Texture2D = WIND_COMPENSATOR_ACTIVE if active_side == side else WIND_COMPENSATOR_BASE
+		_draw_texture_centered(
+			texture,
+			_get_wind_compensator_center(side),
+			wind_compensator_size,
+			side < 0
+		)
+
+
 func _get_all_textures() -> Array[Texture2D]:
 	var textures: Array[Texture2D] = super._get_all_textures()
 	textures.append(FIXED_STABILITY_BASE)
 	textures.append(FIXED_STABILITY_FLAME_1)
 	textures.append(FIXED_STABILITY_FLAME_2)
 	textures.append(FIXED_STABILITY_FLAME_3)
+	textures.append(WIND_COMPENSATOR_BASE)
+	textures.append(WIND_COMPENSATOR_ACTIVE)
 	return textures
 
 
@@ -144,6 +195,14 @@ func _get_control_post_center_x() -> float:
 	if _platform_visual == null:
 		return 0.0
 	return _platform_visual.driver_console_surface_offset.x
+
+
+func _get_wind_compensator_center(side: int) -> Vector2:
+	var normalized_side: int = -1 if side < 0 else 1
+	return Vector2(
+		wind_compensator_offset.x * float(normalized_side),
+		wind_compensator_offset.y
+	)
 
 
 func _get_stability_layout(side: int, overlay_texture: Texture2D) -> Dictionary:
