@@ -28,6 +28,12 @@ const CONTROL_BASE: Texture2D = preload(
 const CONTROL_ACTIVE: Texture2D = preload(
 	"res://visual/objects/platform/core/control_mechanism/control_mechanism_02.png"
 )
+const WIND_COMPENSATOR_BASE: Texture2D = preload(
+	"res://visual/objects/platform/core/asset_air_02.png"
+)
+const WIND_COMPENSATOR_ACTIVE: Texture2D = preload(
+	"res://visual/objects/platform/core/asset_air_01.png"
+)
 const STABILITY_BASE: Texture2D = preload(
 	"res://visual/objects/platform/core/control_stability/stability_control.png"
 )
@@ -48,6 +54,9 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
 @export_node_path("AnchorlessControlSystem") var anchorless_control_system_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
+@export_node_path("WindSystem") var wind_system_path: NodePath = NodePath(
+	"../../../WindSystem"
+)
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath = NodePath(
 	"../../GroundOrbRegistry"
 )
@@ -73,6 +82,8 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export_range(-16.0, 16.0, 0.25) var control_active_gap: float = -2.0
 @export_range(0.0, 16.0, 0.25) var control_active_amplitude: float = 4.0
 @export_range(1.0, 18.0, 0.25) var control_active_speed: float = 5.0
+@export var wind_compensator_size: Vector2 = Vector2(56.0, 42.0)
+@export var wind_compensator_offset: Vector2 = Vector2(92.0, 25.0)
 @export var stability_unit_size: Vector2 = Vector2(44.0, 36.0)
 @export var stability_unit_offset: Vector2 = Vector2(114.0, 34.0)
 @export_range(0.05, 1.2, 0.05) var stability_pulse_duration: float = 0.45
@@ -100,6 +111,7 @@ var _stability_flames: Array[Texture2D] = [
 @onready var _steering: SteeringInputProvider = get_node_or_null(
 	steering_input_path
 ) as SteeringInputProvider
+@onready var _wind: WindSystem = get_node_or_null(wind_system_path) as WindSystem
 @onready var _orb_registry: GroundOrbRegistry = get_node_or_null(
 	orb_registry_path
 ) as GroundOrbRegistry
@@ -137,6 +149,7 @@ func _draw() -> void:
 	_draw_stability_assets()
 	_draw_core_overlay()
 	_draw_control_mechanism()
+	_draw_wind_compensators()
 
 
 func get_visible_asset_ids_for_tests() -> PackedStringArray:
@@ -148,6 +161,8 @@ func get_visible_asset_ids_for_tests() -> PackedStringArray:
 		result.append("speed")
 	if is_control_mechanism_visible():
 		result.append("control")
+	if is_wind_compensator_visible_for_tests():
+		result.append("wind_compensator")
 	if is_stability_asset_visible():
 		result.append("stability")
 	return result
@@ -253,6 +268,25 @@ func get_control_base_center_for_tests() -> Vector2:
 
 func get_control_active_center_for_tests() -> Vector2:
 	return _get_control_active_center()
+
+
+func is_wind_compensator_visible_for_tests() -> bool:
+	return _anchorless != null and _anchorless.upgrades.wind_reduction_ratio > 0.0
+
+
+func get_wind_compensator_centers_for_tests() -> Array[Vector2]:
+	return [
+		_get_wind_compensator_center(-1),
+		_get_wind_compensator_center(1),
+	]
+
+
+func get_wind_compensator_active_side_for_tests() -> int:
+	if not is_wind_compensator_visible_for_tests():
+		return 0
+	if _wind == null or is_zero_approx(_wind.get_current_force()):
+		return 0
+	return 1 if _wind.get_current_force() > 0.0 else -1
 
 
 func is_stability_asset_visible() -> bool:
@@ -365,6 +399,20 @@ func _draw_control_mechanism() -> void:
 	)
 
 
+func _draw_wind_compensators() -> void:
+	if not is_wind_compensator_visible_for_tests():
+		return
+	var active_side: int = get_wind_compensator_active_side_for_tests()
+	for side: int in [-1, 1]:
+		var texture: Texture2D = WIND_COMPENSATOR_ACTIVE if active_side == side else WIND_COMPENSATOR_BASE
+		_draw_texture_centered(
+			texture,
+			_get_wind_compensator_center(side),
+			wind_compensator_size,
+			side < 0
+		)
+
+
 func _draw_stability_assets() -> void:
 	if not is_stability_asset_visible():
 		return
@@ -460,6 +508,13 @@ func _get_control_active_rest_offset() -> Vector2:
 	)
 
 
+func _get_wind_compensator_center(side: int) -> Vector2:
+	return _get_platform_core_center() + Vector2(
+		wind_compensator_offset.x * float(side),
+		wind_compensator_offset.y
+	)
+
+
 func _get_platform_surface_y() -> float:
 	if _platform == null or _platform.balance == null:
 		return -29.0
@@ -506,6 +561,8 @@ func _resolve_optional_systems() -> void:
 		_anchorless = get_node_or_null(anchorless_control_system_path) as AnchorlessControlSystem
 		if _anchorless != null and not _anchorless.upgrades_changed.is_connected(_on_upgrade_changed):
 			_anchorless.upgrades_changed.connect(_on_upgrade_changed)
+	if _wind == null:
+		_wind = get_node_or_null(wind_system_path) as WindSystem
 	if _orb_registry == null:
 		_orb_registry = get_node_or_null(orb_registry_path) as GroundOrbRegistry
 	if _contact == null:
@@ -523,6 +580,8 @@ func _get_all_textures() -> Array[Texture2D]:
 		SPEED_FLAME_3,
 		CONTROL_BASE,
 		CONTROL_ACTIVE,
+		WIND_COMPENSATOR_BASE,
+		WIND_COMPENSATOR_ACTIVE,
 		STABILITY_BASE,
 		STABILITY_FLAME_1,
 		STABILITY_FLAME_2,
