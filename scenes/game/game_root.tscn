@@ -1,4 +1,4 @@
-[gd_scene load_steps=60 format=3]
+[gd_scene load_steps=61 format=3]
 
 [ext_resource type="Script" path="res://scripts/game_flow/game_flow_controller.gd" id="1_flow"]
 [ext_resource type="Script" path="res://scripts/platform/wind_system.gd" id="2_wind"]
@@ -59,6 +59,7 @@
 [ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual.gd" id="57_buildable_visual"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_system.gd" id="58_turret_system"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_debug_input.gd" id="59_turret_input"]
+[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_stability_fixed.gd" id="60_upgrade_assets"]
 
 [node name="GameRoot" type="Node2D"]
 
@@ -314,6 +315,15 @@ platform_path = NodePath("..")
 steering_input_path = NodePath("../../../SteeringInputProvider")
 balance = ExtResource("7_platform_balance")
 crew_balance = ExtResource("14_crew_balance")
+
+[node name="PlatformUpgradeAssetOverlay" type="Node2D" parent="World/Platform"]
+z_index = 7
+script = ExtResource("60_upgrade_assets")
+platform_path = NodePath("..")
+shield_core_system_path = NodePath("../../ShieldCoreSystem")
+anchorless_control_system_path = NodePath("../../AnchorlessControlSystem")
+steering_input_path = NodePath("../../../SteeringInputProvider")
+wind_system_path = NodePath("../../../WindSystem")
 
 [node name="BuildableGridVisual" type="Node2D" parent="World/Platform"]
 script = ExtResource("57_buildable_visual")
