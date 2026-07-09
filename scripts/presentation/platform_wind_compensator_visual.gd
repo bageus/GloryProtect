@@ -14,10 +14,11 @@ const ACTIVE_TEXTURE: Texture2D = preload(
 	"../../AnchorlessControlSystem"
 )
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
-@export var compensator_size: Vector2 = Vector2(48.0, 36.0)
+@export_range(1, 64, 1) var minimum_z_index: int = 12
+@export var compensator_size: Vector2 = Vector2(56.0, 42.0)
 @export_range(0.0, 24.0, 0.25) var anchor_post_gap: float = 4.0
-@export_range(0.0, 24.0, 0.25) var platform_attach_overlap: float = 4.0
-@export_range(-24.0, 24.0, 0.25) var vertical_offset: float = 0.0
+@export_range(0.0, 24.0, 0.25) var platform_attach_overlap: float = 2.0
+@export_range(-24.0, 24.0, 0.25) var vertical_offset: float = -6.0
 
 var _base_source_rect: Rect2
 var _active_source_rect: Rect2
@@ -31,6 +32,8 @@ var _active_source_rect: Rect2
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	z_as_relative = false
+	z_index = maxi(z_index, minimum_z_index)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	_base_source_rect = TextureRegionLayout.get_alpha_bounds(
 		BASE_TEXTURE,
@@ -84,6 +87,10 @@ func get_platform_bottom_y_for_tests() -> float:
 
 func get_anchor_post_inner_edge_x_for_tests(side: int) -> float:
 	return _get_anchor_post_inner_edge_x(side)
+
+
+func get_minimum_z_index_for_tests() -> int:
+	return minimum_z_index
 
 
 func is_side_mirrored_for_tests(side: int) -> bool:
