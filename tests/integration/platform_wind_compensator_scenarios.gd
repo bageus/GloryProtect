@@ -79,9 +79,14 @@ func _assert_base_scene_has_upgrade_overlay() -> void:
 	var overlay: PlatformUpgradeAssetOverlay = base_game.get_node_or_null(
 		"World/Platform/PlatformUpgradeAssetOverlay"
 	) as PlatformUpgradeAssetOverlay
+	var anchorless: AnchorlessControlSystem = base_game.get_node_or_null(
+		"World/AnchorlessControlSystem"
+	) as AnchorlessControlSystem
 	assert(overlay != null)
 	assert(overlay.wind_compensator_asset != null)
+	assert(anchorless != null)
 	_assert_single_upgrade_overlay(base_game)
+	_assert_single_anchorless_system(base_game)
 	base_game.queue_free()
 
 
@@ -103,7 +108,8 @@ func _assert_single_anchorless_system(game: Node) -> void:
 		false
 	)
 	assert(systems.size() == 1)
-	assert(systems[0].get_path() == NodePath("/root/GameRoot/World/AnchorlessControlSystem"))
+	assert(systems[0].name == "AnchorlessControlSystem")
+	assert(systems[0].get_parent().name == "World")
 
 
 func _apply(
