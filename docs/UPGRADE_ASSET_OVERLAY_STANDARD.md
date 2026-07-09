@@ -8,6 +8,8 @@ This document defines the single accepted path for platform upgrade assets.
 
 Specialized subclasses such as `PlatformUpgradeAssetOverlayStabilityFixed` may adjust layout for already supported visuals. They must not introduce a second rendering pipeline for new platform upgrade assets.
 
+The wind compensator, speed engine, steering/control mechanism, stability visuals, and core overlays all belong to this common layer. They must not be split into separate scene nodes merely to adjust z-index, position, visibility, or animation.
+
 ## Adding a platform upgrade asset
 
 A new platform upgrade asset must use the same sequence as the existing steering/control asset:
@@ -24,18 +26,21 @@ Do not add a separate scene node, z-index layer, or presentation controller for 
 
 A new asset must not make existing platform upgrade assets disappear when it fails. If a new texture import, path, or alpha crop is uncertain, first add a narrow validation change or a dedicated asset-loading wrapper instead of wiring it directly into the common overlay renderer.
 
+The shared draw helper must use a safe source-rect fallback. If alpha cropping returns an empty region, the helper should fall back to the full texture rect instead of silently drawing nothing.
+
 ## Rejected patterns
 
 - A separate `Node2D` that renders a platform upgrade while other platform upgrades are rendered by `PlatformUpgradeAssetOverlay`.
 - Drawing the same upgrade in both a base overlay and a subclass.
 - Adding a new asset by copying an existing draw path into a sibling script.
 - Fixing visibility only with z-index changes when the asset is not using the common overlay flow.
+- Reading one derived runtime field in a separate visual node while the rest of the platform upgrade visuals read the upgrade runtime through the common overlay.
 
 ## Review checklist
 
 Before merging a platform upgrade asset PR, confirm:
 
-- Existing ids such as `control`, `speed`, `stability`, and core overlays still appear in `get_visible_asset_ids_for_tests()` under their original conditions.
+- Existing ids such as `control`, `speed`, `stability`, `wind_compensator`, and core overlays still appear in `get_visible_asset_ids_for_tests()` under their original conditions.
 - New asset visibility depends only on the owning domain runtime.
 - The PR does not create a second owner for the same visual state.
 - The common overlay file remains below the hard 600-line limit and is evaluated for splitting after 450 lines.

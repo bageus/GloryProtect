@@ -48,6 +48,9 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export_node_path("ShieldCoreSystem") var shield_core_system_path: NodePath
 @export_node_path("AnchorlessControlSystem") var anchorless_control_system_path: NodePath
 @export_node_path("SteeringInputProvider") var steering_input_path: NodePath
+@export_node_path("WindSystem") var wind_system_path: NodePath = NodePath(
+	"../../../WindSystem"
+)
 @export_node_path("GroundOrbRegistry") var orb_registry_path: NodePath = NodePath(
 	"../../GroundOrbRegistry"
 )
@@ -77,6 +80,9 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export var stability_unit_offset: Vector2 = Vector2(114.0, 34.0)
 @export_range(0.05, 1.2, 0.05) var stability_pulse_duration: float = 0.45
 @export_range(1.0, 24.0, 0.5) var overlay_frame_rate: float = 12.0
+@export var wind_compensator_asset: PlatformUpgradeWindCompensatorAsset = preload(
+	"res://resources/presentation/platform_wind_compensator_asset.tres"
+)
 
 var _elapsed: float = 0.0
 var _stability_pulse_elapsed: float = INF
@@ -100,6 +106,7 @@ var _stability_flames: Array[Texture2D] = [
 @onready var _steering: SteeringInputProvider = get_node_or_null(
 	steering_input_path
 ) as SteeringInputProvider
+@onready var _wind: WindSystem = get_node_or_null(wind_system_path) as WindSystem
 @onready var _orb_registry: GroundOrbRegistry = get_node_or_null(
 	orb_registry_path
 ) as GroundOrbRegistry
@@ -114,10 +121,7 @@ func _ready() -> void:
 	z_index = maxi(z_index, minimum_z_index)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	for texture: Texture2D in _get_all_textures():
-		_source_rects[texture] = TextureRegionLayout.get_alpha_bounds(
-			texture,
-			alpha_crop_threshold
-		)
+		_source_rects[texture] = _get_safe_source_rect(texture)
 	_resolve_optional_systems()
 	_apply_canvas_pixel_snap()
 	queue_redraw()
@@ -137,6 +141,7 @@ func _draw() -> void:
 	_draw_stability_assets()
 	_draw_core_overlay()
 	_draw_control_mechanism()
+	_draw_wind_compensators()
 
 
 func get_visible_asset_ids_for_tests() -> PackedStringArray:
@@ -150,6 +155,8 @@ func get_visible_asset_ids_for_tests() -> PackedStringArray:
 		result.append("control")
 	if is_stability_asset_visible():
 		result.append("stability")
+	if is_wind_compensator_visible_for_tests():
+		result.append("wind_compensator")
 	return result
 
 
@@ -269,6 +276,13 @@ func is_stability_pulse_active_for_tests() -> bool:
 	return _stability_pulse_elapsed < stability_pulse_duration
 
 
+func is_wind_compensator_visible_for_tests() -> bool:
+	return (
+		wind_compensator_asset != null
+		and wind_compensator_asset.is_visible(_anchorless)
+	)
+
+
 func debug_trigger_direction_change_for_tests(direction: int) -> void:
 	if direction == 0:
 		return
@@ -381,6 +395,21 @@ func _draw_stability_assets() -> void:
 			)
 
 
+func _draw_wind_compensators() -> void:
+	if not is_wind_compensator_visible_for_tests():
+		return
+	var draw_size: Vector2 = wind_compensator_asset.get_draw_size(_source_rects)
+	var centers: Array[Vector2] = wind_compensator_asset.get_centers(_platform, draw_size)
+	for index: int in range(centers.size()):
+		var side: int = -1 if index == 0 else 1
+		_draw_texture_centered(
+			wind_compensator_asset.get_texture_for_side(side, _anchorless, _wind),
+			centers[index],
+			wind_compensator_asset.size,
+			side < 0
+		)
+
+
 func _draw_texture_centered(
 	texture: Texture2D,
 	center: Vector2,
@@ -388,18 +417,32 @@ func _draw_texture_centered(
 	mirrored: bool,
 	rotation: float = 0.0
 ) -> void:
-	var source_rect: Rect2 = _source_rects.get(texture, Rect2())
-	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+	var draw_size: Vector2 = _get_draw_size(texture, target_size)
+	if draw_size.x <= 0.0 or draw_size.y <= 0.0:
 		return
-	var draw_size: Vector2 = TextureRegionLayout.fit_inside(
-		source_rect.size,
-		target_size
-	)
+	var source_rect: Rect2 = _source_rects.get(texture, Rect2())
 	var rect := Rect2(-draw_size * 0.5, draw_size)
 	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
 	draw_set_transform(center, rotation, scale)
 	draw_texture_rect_region(texture, rect, source_rect)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _get_draw_size(texture: Texture2D, target_size: Vector2) -> Vector2:
+	var source_rect: Rect2 = _source_rects.get(texture, Rect2())
+	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
+		return Vector2.ZERO
+	return TextureRegionLayout.fit_inside(source_rect.size, target_size)
+
+
+func _get_safe_source_rect(texture: Texture2D) -> Rect2:
+	var source_rect: Rect2 = TextureRegionLayout.get_alpha_bounds(
+		texture,
+		alpha_crop_threshold
+	)
+	if source_rect.size.x > 0.0 and source_rect.size.y > 0.0:
+		return source_rect
+	return Rect2(Vector2.ZERO, texture.get_size())
 
 
 func _update_direction_pulse(delta: float) -> void:
@@ -506,6 +549,10 @@ func _resolve_optional_systems() -> void:
 		_anchorless = get_node_or_null(anchorless_control_system_path) as AnchorlessControlSystem
 		if _anchorless != null and not _anchorless.upgrades_changed.is_connected(_on_upgrade_changed):
 			_anchorless.upgrades_changed.connect(_on_upgrade_changed)
+	if _wind == null:
+		_wind = get_node_or_null(wind_system_path) as WindSystem
+		if _wind != null and not _wind.wind_state_changed.is_connected(_on_upgrade_changed):
+			_wind.wind_state_changed.connect(_on_upgrade_changed)
 	if _orb_registry == null:
 		_orb_registry = get_node_or_null(orb_registry_path) as GroundOrbRegistry
 	if _contact == null:
@@ -513,7 +560,7 @@ func _resolve_optional_systems() -> void:
 
 
 func _get_all_textures() -> Array[Texture2D]:
-	return [
+	var textures: Array[Texture2D] = [
 		CORE_BORDER_DISTRIBUTED,
 		CORE_BORDER_FOCUSED,
 		CORE_SURGE_SPLASH,
@@ -528,6 +575,9 @@ func _get_all_textures() -> Array[Texture2D]:
 		STABILITY_FLAME_2,
 		STABILITY_FLAME_3,
 	]
+	if wind_compensator_asset != null:
+		wind_compensator_asset.append_textures(textures)
+	return textures
 
 
 func _on_upgrade_changed() -> void:

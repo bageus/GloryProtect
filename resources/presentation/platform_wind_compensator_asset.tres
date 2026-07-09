@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PlatformUpgradeWindCompensatorAsset" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_wind_compensator_asset.gd" id="1_asset"]
+[ext_resource type="Texture2D" path="res://visual/objects/platform/core/asset_air_02.png" id="2_base"]
+[ext_resource type="Texture2D" path="res://visual/objects/platform/core/asset_air_01.png" id="3_active"]
+
+[resource]
+script = ExtResource("1_asset")
+base_texture = ExtResource("2_base")
+active_texture = ExtResource("3_active")
+size = Vector2(72, 54)
+gap = 8.0
+vertical_offset = -8.0
