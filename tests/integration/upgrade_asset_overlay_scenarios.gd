@@ -198,14 +198,23 @@ func _assert_control_mechanism_layout(
 	var expected_top_y: float = (
 		platform_top + overlay.get_control_under_driver_gap_for_tests()
 	)
+	var expected_active_x: float = (
+		base_center.x
+		+ base_size.x * 0.5
+		+ active_size.x * 0.5
+		+ overlay.control_active_gap
+		+ overlay.get_control_active_offset_x_for_tests()
+	)
 	assert(is_equal_approx(overlay.get_control_under_driver_offset_x_for_tests(), 3.0))
-	assert(is_equal_approx(overlay.get_control_active_lift_y_for_tests(), 1.0))
+	assert(is_equal_approx(overlay.get_control_active_offset_x_for_tests(), -2.0))
+	assert(is_equal_approx(overlay.get_control_active_lift_y_for_tests(), 3.0))
 	assert(is_equal_approx(base_center.x, expected_x))
 	assert(is_equal_approx(base_center.y - base_size.y * 0.5, expected_top_y))
 	assert(base_center.y > platform_top)
 	assert(base_center.y < platform.balance.platform_height * 0.5)
 	assert(active_size.x < base_size.x)
 	assert(active_size.y < base_size.y)
+	assert(is_equal_approx(active_center.x, expected_active_x))
 	assert(active_center.x > base_center.x + base_size.x * 0.5)
 	assert(is_equal_approx(
 		active_center.y + active_size.y * 0.5,

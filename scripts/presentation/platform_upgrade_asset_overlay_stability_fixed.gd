@@ -23,7 +23,8 @@ const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 @export_range(0.0, 32.0, 0.25) var stability_overlay_bottom_padding: float = 0.0
 @export_range(-48.0, 48.0, 0.25) var control_under_driver_offset_x: float = 3.0
 @export_range(-24.0, 48.0, 0.25) var control_under_driver_gap: float = 0.0
-@export_range(0.0, 16.0, 0.25) var control_active_lift_y: float = 1.0
+@export_range(-16.0, 16.0, 0.25) var control_active_offset_x: float = -2.0
+@export_range(0.0, 16.0, 0.25) var control_active_lift_y: float = 3.0
 
 var _fixed_stability_flames: Array[Texture2D] = [
 	FIXED_STABILITY_FLAME_1,
@@ -78,6 +79,10 @@ func get_control_under_driver_gap_for_tests() -> float:
 	return control_under_driver_gap
 
 
+func get_control_active_offset_x_for_tests() -> float:
+	return control_active_offset_x
+
+
 func get_control_active_lift_y_for_tests() -> float:
 	return control_active_lift_y
 
@@ -128,7 +133,10 @@ func _get_control_base_center() -> Vector2:
 
 
 func _get_control_active_center() -> Vector2:
-	return super._get_control_active_center() + Vector2(0.0, -control_active_lift_y)
+	return super._get_control_active_center() + Vector2(
+		control_active_offset_x,
+		-control_active_lift_y
+	)
 
 
 func _get_control_post_center_x() -> float:
