@@ -199,6 +199,7 @@ func _on_anchorless_upgrades_changed() -> void:
 
 func _on_wind_state_changed(
 	_direction: int,
-	_strength_level: int,	_base_force: float
+	_strength_level: int,
+	_base_force: float
 ) -> void:
 	queue_redraw()
