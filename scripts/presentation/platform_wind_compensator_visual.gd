@@ -10,6 +10,9 @@ const ACTIVE_TEXTURE: Texture2D = preload(
 
 @export_node_path("PlatformController") var platform_path: NodePath
 @export_node_path("WindSystem") var wind_system_path: NodePath
+@export_node_path("AnchorlessControlSystem") var anchorless_control_system_path: NodePath = NodePath(
+	"../../AnchorlessControlSystem"
+)
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
 @export var compensator_size: Vector2 = Vector2(48.0, 36.0)
 @export_range(0.0, 24.0, 0.25) var anchor_post_gap: float = 4.0
@@ -21,6 +24,9 @@ var _active_source_rect: Rect2
 
 @onready var _platform: PlatformController = get_node(platform_path)
 @onready var _wind: WindSystem = get_node(wind_system_path)
+@onready var _anchorless: AnchorlessControlSystem = get_node_or_null(
+	anchorless_control_system_path
+) as AnchorlessControlSystem
 
 
 func _ready() -> void:
@@ -36,19 +42,29 @@ func _ready() -> void:
 	)
 	if not _wind.wind_state_changed.is_connected(_on_wind_state_changed):
 		_wind.wind_state_changed.connect(_on_wind_state_changed)
-	queue_redraw()
+	_connect_anchorless_control_system()
+	_refresh_visibility()
 
 
 func _process(_delta: float) -> void:
-	queue_redraw()
+	_connect_anchorless_control_system()
+	_refresh_visibility()
 
 
 func _draw() -> void:
+	if not is_compensator_visible_for_tests():
+		return
 	for side: int in [-1, 1]:
 		_draw_compensator(side)
 
 
+func is_compensator_visible_for_tests() -> bool:
+	return _anchorless != null and _anchorless.upgrades.wind_reduction_ratio > 0.0
+
+
 func get_active_side_for_tests() -> int:
+	if not is_compensator_visible_for_tests():
+		return 0
 	if _wind == null or is_zero_approx(_wind.get_current_force()):
 		return 0
 	return 1 if _wind.get_current_force() > 0.0 else -1
@@ -137,6 +153,28 @@ func _get_draw_size(source_rect: Rect2) -> Vector2:
 	if source_rect.size.x <= 0.0 or source_rect.size.y <= 0.0:
 		return Vector2.ZERO
 	return TextureRegionLayout.fit_inside(source_rect.size, compensator_size)
+
+
+func _connect_anchorless_control_system() -> void:
+	if _anchorless == null:
+		_anchorless = get_node_or_null(
+			anchorless_control_system_path
+		) as AnchorlessControlSystem
+	if _anchorless == null:
+		return
+	if not _anchorless.upgrades_changed.is_connected(_on_anchorless_upgrades_changed):
+		_anchorless.upgrades_changed.connect(_on_anchorless_upgrades_changed)
+
+
+func _refresh_visibility() -> void:
+	var should_show: bool = is_compensator_visible_for_tests()
+	if visible != should_show:
+		visible = should_show
+	queue_redraw()
+
+
+func _on_anchorless_upgrades_changed() -> void:
+	_refresh_visibility()
 
 
 func _on_wind_state_changed(
