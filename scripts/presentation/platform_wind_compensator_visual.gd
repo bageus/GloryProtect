@@ -14,11 +14,10 @@ const ACTIVE_TEXTURE: Texture2D = preload(
 	"../../AnchorlessControlSystem"
 )
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold: float = 0.08
-@export_range(1, 64, 1) var minimum_z_index: int = 12
-@export var compensator_size: Vector2 = Vector2(56.0, 42.0)
-@export_range(0.0, 24.0, 0.25) var anchor_post_gap: float = 4.0
-@export_range(0.0, 24.0, 0.25) var platform_attach_overlap: float = 2.0
-@export_range(-24.0, 24.0, 0.25) var vertical_offset: float = -6.0
+@export_range(1, 64, 1) var minimum_z_index: int = 14
+@export var compensator_size: Vector2 = Vector2(72.0, 54.0)
+@export_range(0.0, 48.0, 0.25) var anchor_post_gap: float = 8.0
+@export_range(-64.0, 64.0, 0.25) var vertical_offset: float = -8.0
 
 var _base_source_rect: Rect2
 var _active_source_rect: Rect2
@@ -35,14 +34,8 @@ func _ready() -> void:
 	z_as_relative = false
 	z_index = maxi(z_index, minimum_z_index)
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_base_source_rect = TextureRegionLayout.get_alpha_bounds(
-		BASE_TEXTURE,
-		alpha_crop_threshold
-	)
-	_active_source_rect = TextureRegionLayout.get_alpha_bounds(
-		ACTIVE_TEXTURE,
-		alpha_crop_threshold
-	)
+	_base_source_rect = _get_safe_source_rect(BASE_TEXTURE)
+	_active_source_rect = _get_safe_source_rect(ACTIVE_TEXTURE)
 	if not _wind.wind_state_changed.is_connected(_on_wind_state_changed):
 		_wind.wind_state_changed.connect(_on_wind_state_changed)
 	_connect_anchorless_control_system()
@@ -85,6 +78,10 @@ func get_platform_bottom_y_for_tests() -> float:
 	return _get_platform_bottom_y()
 
 
+func get_platform_top_y_for_tests() -> float:
+	return _get_platform_top_y()
+
+
 func get_anchor_post_inner_edge_x_for_tests(side: int) -> float:
 	return _get_anchor_post_inner_edge_x(side)
 
@@ -123,13 +120,23 @@ func _draw_texture(
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
+func _get_safe_source_rect(texture: Texture2D) -> Rect2:
+	var alpha_rect: Rect2 = TextureRegionLayout.get_alpha_bounds(
+		texture,
+		alpha_crop_threshold
+	)
+	if alpha_rect.size.x > 0.0 and alpha_rect.size.y > 0.0:
+		return alpha_rect
+	return Rect2(Vector2.ZERO, texture.get_size())
+
+
 func _get_compensator_center(side: int) -> Vector2:
 	var normalized_side: int = -1 if side < 0 else 1
 	var draw_size: Vector2 = _get_draw_size(_base_source_rect)
 	var inner_edge_x: float = _get_anchor_post_inner_edge_x(normalized_side)
 	return Vector2(
 		inner_edge_x - float(normalized_side) * (anchor_post_gap + draw_size.x * 0.5),
-		_get_platform_bottom_y() - platform_attach_overlap + draw_size.y * 0.5 + vertical_offset
+		_get_platform_top_y() + draw_size.y * 0.5 + vertical_offset
 	)
 
 
@@ -148,6 +155,12 @@ func _get_anchor_post_inner_edge_x(side: int) -> float:
 		_platform.get_cell_local_x(right_inner_post)
 		- _platform.balance.anchor_post_width * 0.5
 	)
+
+
+func _get_platform_top_y() -> float:
+	if _platform == null or _platform.balance == null:
+		return -29.0
+	return -_platform.balance.platform_height * 0.5
 
 
 func _get_platform_bottom_y() -> float:
