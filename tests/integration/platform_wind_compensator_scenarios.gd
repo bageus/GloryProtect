@@ -31,12 +31,13 @@ func _run() -> void:
 	assert(anchorless != null)
 	assert(catalog != null)
 	assert(overlay != null)
+	assert(overlay.wind_compensator_asset != null)
 	assert(game.get_node_or_null("World/Platform/PlatformWindCompensatorVisual") == null)
 
-	_assert_compensator_layout(overlay, platform)
+	_assert_compensator_layout(overlay.wind_compensator_asset, platform)
 	assert(not overlay.is_wind_compensator_visible_for_tests())
 	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 0)
+	assert(overlay.wind_compensator_asset.get_active_side(anchorless, wind) == 0)
 
 	_apply(anchorless, catalog, &"anchorless_wind_reduction_basic")
 	await process_frame
@@ -46,16 +47,16 @@ func _run() -> void:
 
 	wind.set_debug_state(1, 2)
 	await process_frame
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 1)
+	assert(overlay.wind_compensator_asset.get_active_side(anchorless, wind) == 1)
 
 	wind.set_debug_state(-1, 2)
 	await process_frame
-	assert(overlay.get_wind_compensator_active_side_for_tests() == -1)
+	assert(overlay.wind_compensator_asset.get_active_side(anchorless, wind) == -1)
 
 	wind.set_anchorless_modifiers(1.0, false)
 	await process_frame
 	assert(overlay.is_wind_compensator_visible_for_tests())
-	assert(overlay.get_wind_compensator_active_side_for_tests() == 0)
+	assert(overlay.wind_compensator_asset.get_active_side(anchorless, wind) == 0)
 	wind.reset_anchorless_modifiers()
 
 	anchorless.reset_upgrade_runtime()
@@ -79,27 +80,28 @@ func _apply(
 
 
 func _assert_compensator_layout(
-	overlay: PlatformUpgradeAssetOverlay,
+	asset: PlatformUpgradeWindCompensatorAsset,
 	platform: PlatformController
 ) -> void:
-	var centers: Array[Vector2] = overlay.get_wind_compensator_centers_for_tests()
+	var draw_size: Vector2 = asset.size
+	var centers: Array[Vector2] = asset.get_centers(platform, draw_size)
 	var left_center: Vector2 = centers[0]
 	var right_center: Vector2 = centers[1]
-	var draw_size: Vector2 = overlay.get_wind_compensator_draw_size_for_tests()
 	var platform_top: float = -platform.get_platform_height() * 0.5
-	var vertical_offset: float = overlay.get_wind_compensator_vertical_offset_for_tests()
 
+	assert(asset.base_texture != null)
+	assert(asset.active_texture != null)
 	assert(draw_size.x > 0.0)
 	assert(draw_size.y > 0.0)
 	assert(left_center.x < 0.0)
 	assert(right_center.x > 0.0)
 	assert(is_equal_approx(
 		left_center.y - draw_size.y * 0.5,
-		platform_top + vertical_offset
+		platform_top + asset.vertical_offset
 	))
 	assert(is_equal_approx(
 		right_center.y - draw_size.y * 0.5,
-		platform_top + vertical_offset
+		platform_top + asset.vertical_offset
 	))
 	assert(left_center.y < platform.get_platform_height() * 0.5)
 	assert(right_center.y < platform.get_platform_height() * 0.5)
