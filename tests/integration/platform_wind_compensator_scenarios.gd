@@ -87,6 +87,7 @@ func _assert_compensator_layout(
 	var right_center: Vector2 = centers[1]
 	var draw_size: Vector2 = overlay.get_wind_compensator_draw_size_for_tests()
 	var platform_top: float = -platform.get_platform_height() * 0.5
+	var vertical_offset: float = overlay.get_wind_compensator_vertical_offset_for_tests()
 
 	assert(draw_size.x > 0.0)
 	assert(draw_size.y > 0.0)
@@ -94,11 +95,11 @@ func _assert_compensator_layout(
 	assert(right_center.x > 0.0)
 	assert(is_equal_approx(
 		left_center.y - draw_size.y * 0.5,
-		platform_top + overlay.wind_compensator_vertical_offset
+		platform_top + vertical_offset
 	))
 	assert(is_equal_approx(
 		right_center.y - draw_size.y * 0.5,
-		platform_top + overlay.wind_compensator_vertical_offset
+		platform_top + vertical_offset
 	))
 	assert(left_center.y < platform.get_platform_height() * 0.5)
 	assert(right_center.y < platform.get_platform_height() * 0.5)
