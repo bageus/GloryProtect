@@ -283,31 +283,6 @@ func is_wind_compensator_visible_for_tests() -> bool:
 	)
 
 
-func get_wind_compensator_centers_for_tests() -> Array[Vector2]:
-	if wind_compensator_asset == null:
-		return []
-	return wind_compensator_asset.get_centers(
-		_platform,
-		get_wind_compensator_draw_size_for_tests()
-	)
-
-
-func get_wind_compensator_draw_size_for_tests() -> Vector2:
-	if wind_compensator_asset == null:
-		return Vector2.ZERO
-	return wind_compensator_asset.get_draw_size(_source_rects)
-
-
-func get_wind_compensator_active_side_for_tests() -> int:
-	if wind_compensator_asset == null:
-		return 0
-	return wind_compensator_asset.get_active_side(_anchorless, _wind)
-
-
-func get_wind_compensator_vertical_offset_for_tests() -> float:
-	return 0.0 if wind_compensator_asset == null else wind_compensator_asset.vertical_offset
-
-
 func debug_trigger_direction_change_for_tests(direction: int) -> void:
 	if direction == 0:
 		return
@@ -423,10 +398,10 @@ func _draw_stability_assets() -> void:
 func _draw_wind_compensators() -> void:
 	if not is_wind_compensator_visible_for_tests():
 		return
-	var sides: Array[int] = [-1, 1]
-	var centers: Array[Vector2] = get_wind_compensator_centers_for_tests()
-	for index: int in range(sides.size()):
-		var side: int = sides[index]
+	var draw_size: Vector2 = wind_compensator_asset.get_draw_size(_source_rects)
+	var centers: Array[Vector2] = wind_compensator_asset.get_centers(_platform, draw_size)
+	for index: int in range(centers.size()):
+		var side: int = -1 if index == 0 else 1
 		_draw_texture_centered(
 			wind_compensator_asset.get_texture_for_side(side, _anchorless, _wind),
 			centers[index],
