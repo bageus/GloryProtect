@@ -35,12 +35,14 @@ func _run() -> void:
 	_assert_compensator_layout(compensator, platform)
 	assert(compensator.z_index >= compensator.get_minimum_z_index_for_tests())
 	assert(not compensator.z_as_relative)
+	assert(is_equal_approx(wind.get_influence_multiplier(), 1.0))
 	assert(not compensator.is_compensator_visible_for_tests())
 	assert(not compensator.visible)
 	assert(compensator.get_active_side_for_tests() == 0)
 
 	_apply(anchorless, catalog, &"anchorless_wind_reduction_basic")
 	await process_frame
+	assert(wind.get_influence_multiplier() < 1.0)
 	assert(compensator.is_compensator_visible_for_tests())
 	assert(compensator.visible)
 	assert(compensator.z_index >= 14)
@@ -57,6 +59,8 @@ func _run() -> void:
 
 	wind.set_anchorless_modifiers(1.0, false)
 	await process_frame
+	assert(not compensator.is_compensator_visible_for_tests())
+	assert(not compensator.visible)
 	assert(compensator.get_active_side_for_tests() == 0)
 	wind.reset_anchorless_modifiers()
 
