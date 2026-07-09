@@ -80,13 +80,15 @@ const SPEED_ENGINE_SCALE_MULTIPLIER: float = 1.15
 @export var stability_unit_offset: Vector2 = Vector2(114.0, 34.0)
 @export_range(0.05, 1.2, 0.05) var stability_pulse_duration: float = 0.45
 @export_range(1.0, 24.0, 0.5) var overlay_frame_rate: float = 12.0
+@export var wind_compensator_asset: PlatformUpgradeWindCompensatorAsset = preload(
+	"res://resources/presentation/platform_wind_compensator_asset.tres"
+)
 
 var _elapsed: float = 0.0
 var _stability_pulse_elapsed: float = INF
 var _last_direction: int = 0
 
 var _source_rects: Dictionary[Texture2D, Rect2] = {}
-var _wind_compensator := PlatformUpgradeWindCompensatorAsset.new()
 var _speed_flames: Array[Texture2D] = [SPEED_FLAME_1, SPEED_FLAME_2, SPEED_FLAME_3]
 var _stability_flames: Array[Texture2D] = [
 	STABILITY_FLAME_1,
@@ -275,26 +277,35 @@ func is_stability_pulse_active_for_tests() -> bool:
 
 
 func is_wind_compensator_visible_for_tests() -> bool:
-	return _wind_compensator.is_visible(_anchorless)
+	return (
+		wind_compensator_asset != null
+		and wind_compensator_asset.is_visible(_anchorless)
+	)
 
 
 func get_wind_compensator_centers_for_tests() -> Array[Vector2]:
-	return _wind_compensator.get_centers(
+	if wind_compensator_asset == null:
+		return []
+	return wind_compensator_asset.get_centers(
 		_platform,
 		get_wind_compensator_draw_size_for_tests()
 	)
 
 
 func get_wind_compensator_draw_size_for_tests() -> Vector2:
-	return _wind_compensator.get_draw_size(_source_rects)
+	if wind_compensator_asset == null:
+		return Vector2.ZERO
+	return wind_compensator_asset.get_draw_size(_source_rects)
 
 
 func get_wind_compensator_active_side_for_tests() -> int:
-	return _wind_compensator.get_active_side(_anchorless, _wind)
+	if wind_compensator_asset == null:
+		return 0
+	return wind_compensator_asset.get_active_side(_anchorless, _wind)
 
 
 func get_wind_compensator_vertical_offset_for_tests() -> float:
-	return _wind_compensator.vertical_offset
+	return 0.0 if wind_compensator_asset == null else wind_compensator_asset.vertical_offset
 
 
 func debug_trigger_direction_change_for_tests(direction: int) -> void:
@@ -417,9 +428,9 @@ func _draw_wind_compensators() -> void:
 	for index: int in sides.size():
 		var side: int = sides[index]
 		_draw_texture_centered(
-			_wind_compensator.get_texture_for_side(side, _anchorless, _wind),
+			wind_compensator_asset.get_texture_for_side(side, _anchorless, _wind),
 			centers[index],
-			_wind_compensator.size,
+			wind_compensator_asset.size,
 			side < 0
 		)
 
@@ -589,7 +600,8 @@ func _get_all_textures() -> Array[Texture2D]:
 		STABILITY_FLAME_2,
 		STABILITY_FLAME_3,
 	]
-	_wind_compensator.append_textures(textures)
+	if wind_compensator_asset != null:
+		wind_compensator_asset.append_textures(textures)
 	return textures
 
 
