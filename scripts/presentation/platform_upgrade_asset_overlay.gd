@@ -425,7 +425,7 @@ func _draw_wind_compensators() -> void:
 		return
 	var sides: Array[int] = [-1, 1]
 	var centers: Array[Vector2] = get_wind_compensator_centers_for_tests()
-	for index: int in sides.size():
+	for index: int in range(sides.size()):
 		var side: int = sides[index]
 		_draw_texture_centered(
 			wind_compensator_asset.get_texture_for_side(side, _anchorless, _wind),
