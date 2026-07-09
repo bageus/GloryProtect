@@ -55,7 +55,7 @@ func _draw() -> void:
 
 
 func is_compensator_visible_for_tests() -> bool:
-	return _anchorless != null and _anchorless.upgrades.wind_reduction_ratio > 0.0
+	return _wind != null and _wind.get_influence_multiplier() < 0.999
 
 
 func get_active_side_for_tests() -> int:
