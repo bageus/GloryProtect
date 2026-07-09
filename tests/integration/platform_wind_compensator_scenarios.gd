@@ -1,5 +1,6 @@
 extends SceneTree
 
+const BASE_GAME_SCENE := preload("res://scenes/game/game_root.tscn")
 const GAME_SCENE := preload("res://scenes/game/game_root_with_flyers.tscn")
 
 
@@ -8,6 +9,7 @@ func _init() -> void:
 
 
 func _run() -> void:
+	_assert_base_scene_has_upgrade_overlay()
 	var game: Node2D = GAME_SCENE.instantiate() as Node2D
 	var flow: GameFlowController = game.get_node("GameFlowController")
 	flow.start_delay_seconds = 0.0
@@ -34,6 +36,7 @@ func _run() -> void:
 	assert(overlay.wind_compensator_asset != null)
 	assert(game.get_node_or_null("World/Platform/PlatformWindCompensatorVisual") == null)
 
+	_assert_single_upgrade_overlay(game)
 	_assert_compensator_layout(overlay.wind_compensator_asset, platform)
 	assert(not overlay.is_wind_compensator_visible_for_tests())
 	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
@@ -66,6 +69,28 @@ func _run() -> void:
 
 	print("Platform wind compensator scenarios passed")
 	quit()
+
+
+func _assert_base_scene_has_upgrade_overlay() -> void:
+	var base_game: Node2D = BASE_GAME_SCENE.instantiate() as Node2D
+	assert(base_game != null)
+	var overlay: PlatformUpgradeAssetOverlay = base_game.get_node_or_null(
+		"World/Platform/PlatformUpgradeAssetOverlay"
+	) as PlatformUpgradeAssetOverlay
+	assert(overlay != null)
+	assert(overlay.wind_compensator_asset != null)
+	_assert_single_upgrade_overlay(base_game)
+	base_game.queue_free()
+
+
+func _assert_single_upgrade_overlay(game: Node) -> void:
+	var overlays: Array[Node] = game.find_children(
+		"PlatformUpgradeAssetOverlay",
+		"PlatformUpgradeAssetOverlay",
+		true,
+		false
+	)
+	assert(overlays.size() == 1)
 
 
 func _apply(
