@@ -33,6 +33,8 @@ func _run() -> void:
 	assert(compensator != null)
 
 	_assert_compensator_layout(compensator, platform)
+	assert(compensator.z_index >= compensator.get_minimum_z_index_for_tests())
+	assert(not compensator.z_as_relative)
 	assert(not compensator.is_compensator_visible_for_tests())
 	assert(not compensator.visible)
 	assert(compensator.get_active_side_for_tests() == 0)
@@ -41,6 +43,7 @@ func _run() -> void:
 	await process_frame
 	assert(compensator.is_compensator_visible_for_tests())
 	assert(compensator.visible)
+	assert(compensator.z_index >= 12)
 
 	wind.set_debug_state(1, 2)
 	await process_frame
