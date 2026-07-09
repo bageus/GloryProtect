@@ -31,12 +31,14 @@ func _run() -> void:
 	assert(platform != null)
 	assert(wind != null)
 	assert(anchorless != null)
+	assert(anchorless.get_parent() == game.get_node("World"))
 	assert(catalog != null)
 	assert(overlay != null)
 	assert(overlay.wind_compensator_asset != null)
 	assert(game.get_node_or_null("World/Platform/PlatformWindCompensatorVisual") == null)
 
 	_assert_single_upgrade_overlay(game)
+	_assert_single_anchorless_system(game)
 	_assert_compensator_layout(overlay.wind_compensator_asset, platform)
 	assert(not overlay.is_wind_compensator_visible_for_tests())
 	assert(not overlay.get_visible_asset_ids_for_tests().has("wind_compensator"))
@@ -91,6 +93,17 @@ func _assert_single_upgrade_overlay(game: Node) -> void:
 		false
 	)
 	assert(overlays.size() == 1)
+
+
+func _assert_single_anchorless_system(game: Node) -> void:
+	var systems: Array[Node] = game.find_children(
+		"AnchorlessControlSystem",
+		"AnchorlessControlSystem",
+		true,
+		false
+	)
+	assert(systems.size() == 1)
+	assert(systems[0].get_path() == NodePath("/root/GameRoot/World/AnchorlessControlSystem"))
 
 
 func _apply(
