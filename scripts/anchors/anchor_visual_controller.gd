@@ -28,13 +28,14 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 @export var stowed_chain_length := 20.0
 @export_range(0.0, 30.0, 1.0) var winch_embed_depth := 0.0
 @export var winch_chain_exit_offset := Vector2.ZERO
-@export var draw_winch_posts := false
+@export var draw_winch_posts := true
 
 var _store: AnchorRuntimeStore
 var _geometry: AnchorGeometry
 var _balance: AnchorBalance
 var _is_operator_available: Callable
 var _is_simulation_active: Callable
+var _is_second_winch_pair_enabled: Callable
 var _warning_elapsed := 0.0
 var _chain_source_rect: Rect2
 var _clamp_source_rect: Rect2
@@ -57,13 +58,15 @@ func configure(
 	geometry: AnchorGeometry,
 	balance: AnchorBalance,
 	is_operator_available: Callable,
-	is_simulation_active: Callable
+	is_simulation_active: Callable,
+	is_second_winch_pair_enabled: Callable = Callable()
 ) -> void:
 	_store = store
 	_geometry = geometry
 	_balance = balance
 	_is_operator_available = is_operator_available
 	_is_simulation_active = is_simulation_active
+	_is_second_winch_pair_enabled = is_second_winch_pair_enabled
 	queue_redraw()
 
 
@@ -77,6 +80,8 @@ func _draw() -> void:
 	if _store == null:
 		return
 	for anchor: AnchorRuntime in _store.get_all():
+		if not _is_anchor_slot_visible(anchor.anchor_id):
+			continue
 		_draw_anchor(anchor)
 	if draw_winch_posts:
 		_draw_winch_posts()
@@ -105,6 +110,10 @@ func get_anchor_visual_z_index_for_tests() -> int:
 	return z_index
 
 
+func get_visible_anchor_ids_for_tests() -> PackedInt32Array:
+	return _get_visible_anchor_ids()
+
+
 func is_winch_drawable_for_tests(anchor_id: int) -> bool:
 	var texture: Texture2D = _get_winch_texture(anchor_id)
 	var source_rect: Rect2 = _get_texture_source_rect(texture)
@@ -123,7 +132,7 @@ func are_anchor_asset_regions_valid_for_tests() -> bool:
 
 
 func _draw_winch_posts() -> void:
-	for anchor_id: int in range(4):
+	for anchor_id: int in _get_visible_anchor_ids():
 		var side := AnchorRuntime.Side.LEFT if anchor_id < 2 else AnchorRuntime.Side.RIGHT
 		_draw_winch(
 			anchor_id,
@@ -327,6 +336,87 @@ func _draw_fallback_clamp(bottom: Vector2, tint: Color) -> void:
 	var rect := Rect2(bottom + Vector2(-12.0, -18.0), Vector2(24.0, 18.0))
 	draw_rect(rect, tint, true)
 	draw_rect(rect, Color(0.85, 0.96, 1.0, 0.65), false, 2.0)
+
+
+func _draw_durability_meter(center: Vector2, ratio: float, color: Color) -> void:
+	var width := 32.0
+	var height := 4.0
+	var background := Rect2(center + Vector2(-width * 0.5, 10.0), Vector2(width, height))
+	draw_rect(background, Color(0.02, 0.03, 0.04, 0.65), true)
+	draw_rect(Rect2(background.position, Vector2(width * clampf(ratio, 0.0, 1.0), height)), color, true)
+
+
+func _get_visible_anchor_ids() -> PackedInt32Array:
+	if _is_second_pair_enabled():
+		return PackedInt32Array([0, 1, 2, 3])
+	return PackedInt32Array([0, 3])
+
+
+func _is_anchor_slot_visible(anchor_id: int) -> bool:
+	if _is_second_pair_enabled():
+		return anchor_id >= 0 and anchor_id <= 3
+	return anchor_id == 0 or anchor_id == 3
+
+
+func _is_second_pair_enabled() -> bool:
+	return (
+		_is_second_winch_pair_enabled.is_valid()
+		and bool(_is_second_winch_pair_enabled.call())
+	)
+
+
+func _get_clamp_connection_point(ground: Vector2) -> Vector2:
+	return ground + clamp_chain_connection_offset
+
+
+func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
+	if anchor.state == AnchorRuntime.State.QUEUED:
+		return Color(0.92, 0.82, 0.55, 1.0)
+	if anchor.state == AnchorRuntime.State.INSTALLING:
+		return Color(0.98, 0.9, 0.55, 1.0)
+	return Color.WHITE
+
+
+func _get_durability_ratio(anchor: AnchorRuntime) -> float:
+	if _balance == null or _balance.rope_max_durability <= 0.0:
+		return 1.0
+	if anchor.rope_durability <= 0.0:
+		return 1.0
+	return clampf(anchor.rope_durability / _balance.rope_max_durability, 0.0, 1.0)
+
+
+func _get_winch_texture(_anchor_id: int) -> Texture2D:
+	return WINCH_BASE_TEXTURE
+
+
+func _get_winch_source_rect(anchor_id: int) -> Rect2:
+	return _get_texture_source_rect(_get_winch_texture(anchor_id))
+
+
+func _get_winch_asset_id(_anchor_id: int) -> StringName:
+	return &"base"
+
+
+func _is_winch_mirrored(anchor_id: int) -> bool:
+	return anchor_id >= 2
+
+
+func _get_texture_source_rect(texture: Texture2D) -> Rect2:
+	if texture == null:
+		return Rect2()
+	if _source_rects.has(texture):
+		return _source_rects[texture]
+	return Rect2(Vector2.ZERO, texture.get_size())
+
+
+func _register_texture_source_rect(texture: Texture2D) -> void:
+	if texture == null:
+		return
+	_source_rects[texture] = TextureRegionLayout.get_alpha_bounds(texture, alpha_crop_threshold)
+
+
+func _is_rect_drawable(rect: Rect2) -> bool:
+	return rect.size.x > 0.0 and rect.size.y > 0.0
 
 
 func _get_winch_bottom(anchor_id: int) -> Vector2:
