@@ -8,6 +8,6 @@
 script = ExtResource("1_asset")
 base_texture = ExtResource("2_base")
 active_texture = ExtResource("3_active")
-size = Vector2(79.2, 59.4)
+size = Vector2(72, 54)
 gap = 8.0
 vertical_offset = 8.0
