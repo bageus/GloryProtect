@@ -18,7 +18,7 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
 @export_group("Anchor Assets")
 @export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.20
-@export_range(1.0, 2.0, 0.05) var clamp_scale_multiplier := 1.55
+@export_range(0.5, 2.0, 0.005) var clamp_scale_multiplier := 1.085
 @export_range(8.0, 128.0, 1.0) var chain_tile_height := 28.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
@@ -338,63 +338,3 @@ func _get_winch_bottom(anchor_id: int) -> Vector2:
 
 func _get_anchor_chain_start(anchor_id: int) -> Vector2:
 	return get_winch_chain_exit(anchor_id)
-
-
-func _is_winch_mirrored(anchor_id: int) -> bool:
-	return anchor_id == 1 or anchor_id == 3
-
-
-func _get_winch_texture(_anchor_id: int) -> Texture2D:
-	return WINCH_BASE_TEXTURE
-
-
-func _get_winch_asset_id(_anchor_id: int) -> StringName:
-	return &"base"
-
-
-func _get_winch_source_rect(anchor_id: int) -> Rect2:
-	return _get_texture_source_rect(_get_winch_texture(anchor_id))
-
-
-func _register_texture_source_rect(texture: Texture2D) -> void:
-	if texture == null or _source_rects.has(texture):
-		return
-	_source_rects[texture] = TextureRegionLayout.get_alpha_bounds(texture, alpha_crop_threshold)
-
-
-func _get_texture_source_rect(texture: Texture2D) -> Rect2:
-	_register_texture_source_rect(texture)
-	return _source_rects.get(texture, Rect2())
-
-
-func _is_rect_drawable(rect: Rect2) -> bool:
-	return rect.size.x > 0.0 and rect.size.y > 0.0
-
-
-func _get_clamp_tint(anchor: AnchorRuntime) -> Color:
-	if not bool(_is_operator_available.call(anchor.side)):
-		return Color(0.48, 0.5, 0.53, 0.78)
-	if anchor.state == AnchorRuntime.State.QUEUED:
-		return Color(1.0, 0.82, 0.35, 0.92)
-	if anchor.state == AnchorRuntime.State.INSTALLING:
-		return Color(0.5, 0.88, 1.0, 0.96)
-	return Color(0.52, 1.0, 0.65, 0.9)
-
-
-func _get_clamp_connection_point(ground: Vector2) -> Vector2:
-	return ground + clamp_chain_connection_offset
-
-
-func _draw_durability_meter(center: Vector2, ratio: float, fill: Color) -> void:
-	var size := Vector2(32.0, 5.0)
-	var rect := Rect2(center - size * 0.5, size)
-	draw_rect(rect.grow(2.0), Color(0.08, 0.06, 0.05, 0.9), true)
-	draw_rect(Rect2(rect.position, Vector2(size.x * ratio, size.y)), fill, true)
-	draw_rect(rect, Color(1.0, 0.92, 0.72, 0.8), false, 1.0)
-	draw_string(ThemeDB.fallback_font, center + Vector2(-14.0, -7.0), "%d%%" % roundi(ratio * 100.0), HORIZONTAL_ALIGNMENT_LEFT, -1.0, 10, Color.WHITE)
-
-
-func _get_durability_ratio(anchor: AnchorRuntime) -> float:
-	if _balance.rope_max_durability <= 0.0:
-		return 0.0
-	return clampf(anchor.rope_durability / _balance.rope_max_durability, 0.0, 1.0)
