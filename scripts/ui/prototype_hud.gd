@@ -2,7 +2,7 @@ class_name PrototypeHUD
 extends Control
 
 const ANCHOR_REMOVE_ALL_ACTION_ID := &"gp_anchor_remove_all"
-const APP_SETTINGS_RUNTIME_PATH := NodePath("/root/AppSettingsRuntime")
+const APP_SETTINGS_RUNTIME_PATH := "/root/AppSettingsRuntime"
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
@@ -51,7 +51,7 @@ const APP_SETTINGS_RUNTIME_PATH := NodePath("/root/AppSettingsRuntime")
 )
 @onready var _medical: MedicalStationSystem = get_node(medical_station_system_path)
 @onready var _turrets: TurretSystem = get_node(turret_system_path)
-@onready var _turret_input: TurretDebugInput = get_node(turret_input_path)
+@onready var _turret_input: TurretDebugInput = get_node(turret_debug_input_path)
 @onready var _orb_registry: GroundOrbRegistry = get_node(orb_registry_path)
 @onready var _contact: OrbContactSystem = get_node(contact_system_path)
 @onready var _shield: ShieldSystem = get_node(shield_system_path)
