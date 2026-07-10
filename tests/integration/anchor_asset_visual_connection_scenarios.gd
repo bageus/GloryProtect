@@ -24,8 +24,8 @@ func _run() -> void:
 		AnchorRuntimeStore.new(),
 		geometry,
 		anchor_balance,
-		Callable(self, "_always_true"),
-		Callable(self, "_always_true"),
+		Callable(self, "_is_operator_available"),
+		Callable(self, "_is_simulation_active"),
 		null,
 		combat_system
 	)
@@ -92,5 +92,9 @@ func _run() -> void:
 	quit()
 
 
-func _always_true() -> bool:
+func _is_operator_available(_side: int) -> bool:
+	return true
+
+
+func _is_simulation_active() -> bool:
 	return true
