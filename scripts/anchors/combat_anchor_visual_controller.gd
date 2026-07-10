@@ -10,6 +10,9 @@ const STRONG_WINCH_TEXTURE: Texture2D = preload(
 const SPECIALIZATION_2_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_03.png"
 )
+const TRAP_WINCH_TEXTURE: Texture2D = preload(
+	"res://visual/objects/asset_winch_04.png"
+)
 const FASTENING_CLAMP_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_clamp_02.png"
 )
@@ -44,6 +47,7 @@ func _ready() -> void:
 	)
 	_register_texture_source_rect(STRONG_WINCH_TEXTURE)
 	_register_texture_source_rect(SPECIALIZATION_2_WINCH_TEXTURE)
+	_register_texture_source_rect(TRAP_WINCH_TEXTURE)
 	_register_texture_source_rect(FASTENING_CLAMP_TEXTURE)
 	_register_texture_source_rect(TURBO_CLAMP_TEXTURE)
 	_register_texture_source_rect(MAGNET_ANCHOR_TEXTURE)
@@ -65,7 +69,8 @@ func configure_combat(
 		geometry,
 		balance,
 		is_operator_available,
-		is_simulation_active
+		is_simulation_active,
+		Callable(anchor_host, "is_second_winch_pair_enabled")
 	)
 	if _combat_anchors == null:
 		return
@@ -151,6 +156,8 @@ func _get_winch_texture(anchor_id: int) -> Texture2D:
 			return STRONG_WINCH_TEXTURE
 		&"specialization_2":
 			return SPECIALIZATION_2_WINCH_TEXTURE
+		&"trap":
+			return TRAP_WINCH_TEXTURE
 		_:
 			return super._get_winch_texture(anchor_id)
 
@@ -166,8 +173,10 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 	match specialization:
 		CombatAnchorUpgradeRuntime.STRONG:
 			return &"strong"
-		CombatAnchorUpgradeRuntime.ELECTRIC, CombatAnchorUpgradeRuntime.TRAP:
+		CombatAnchorUpgradeRuntime.ELECTRIC:
 			return &"specialization_2"
+		CombatAnchorUpgradeRuntime.TRAP:
+			return &"trap"
 		_:
 			return super._get_winch_asset_id(anchor_id)
 
@@ -194,9 +203,10 @@ func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
 	super._draw_stowed_anchor(anchor, start)
 	if not is_reinforced_chain_visual_active():
 		return
+	var anchor_top := start + Vector2(0.0, stowed_chain_length)
 	_draw_reinforced_chain_overlay(
 		start,
-		start + Vector2(0.0, stowed_chain_length),
+		_get_anchor_chain_connection(anchor_top),
 		Color(1.0, 0.95, 0.72, 1.0)
 	)
 
@@ -255,8 +265,15 @@ func _draw_returning_anchor(
 		1.0
 	)
 	var source := _get_clamp_connection_point(ground)
-	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
-	_draw_reinforced_chain_overlay(source, top, Color(0.98, 0.86, 0.52, 1.0))
+	var anchor_top := (source - anchor_chain_connection_offset).lerp(
+		start + Vector2(0.0, stowed_chain_length),
+		ratio
+	)
+	_draw_reinforced_chain_overlay(
+		source,
+		_get_anchor_chain_connection(anchor_top),
+		Color(0.98, 0.86, 0.52, 1.0)
+	)
 
 
 func _get_combat_clamp_texture() -> Texture2D:
@@ -418,64 +435,34 @@ func _draw_electric_arcs(
 		)
 		var origin: Vector2 = start.lerp(finish, ratio)
 		var side: float = -1.0 if branch_index % 2 == 0 else 1.0
-		var branch_end := (
-			origin
-			+ normal * electric_arc_amplitude * 2.4 * side
-			+ direction * 6.0
-		)
-		draw_line(
-			origin,
-			branch_end,
-			Color(0.75, 0.96, 1.0, 0.9),
-			1.5,
-			true
-		)
-
-
-func _draw_trap_bursts() -> void:
-	for burst: Dictionary in _trap_bursts:
-		var elapsed: float = float(burst["elapsed"])
-		var progress: float = clampf(
-			elapsed / maxf(0.01, trap_burst_duration),
-			0.0,
-			1.0
-		)
-		var center: Vector2 = burst["position"] as Vector2
-		var radius: float = float(burst["radius"])
-		var wave_radius: float = maxf(4.0, radius * _ease_out(progress))
-		var alpha: float = trap_burst_start_alpha * (1.0 - progress)
-		var ring := Color(1.0, 0.68, 0.18, alpha)
-		var glow := Color(1.0, 0.24, 0.08, alpha * 0.22)
-		draw_circle(center, wave_radius * 0.55, glow)
-		draw_arc(center, wave_radius, 0.0, TAU, 36, ring, 5.0, true)
-		var spoke_count: int = 8
-		for index: int in range(spoke_count):
-			var angle: float = float(index) / float(spoke_count) * TAU
-			var direction := Vector2.RIGHT.rotated(angle)
-			var inner: Vector2 = center + direction * wave_radius * 0.35
-			var outer: Vector2 = center + direction * wave_radius * 0.92
-			draw_line(inner, outer, ring.lightened(0.28), 2.0, true)
-
-
-func _on_trap_triggered(
-	_anchor_id: int,
-	world_position: Vector2,
-	radius: float,
-	_damaged_enemy_count: int,
-	_source_id: StringName
-) -> void:
-	_trap_bursts.append({
-		"position": world_position,
-		"radius": maxf(4.0, radius),
-		"elapsed": 0.0,
-	})
-	queue_redraw()
+		var branch_end: Vector2 = origin + normal * side * electric_arc_amplitude * 2.0
+		draw_line(origin, branch_end, Color(0.85, 0.98, 1.0, 0.75), 1.0, true)
 
 
 func _on_upgrades_changed() -> void:
 	queue_redraw()
 
 
-func _ease_out(value: float) -> float:
-	var clamped: float = clampf(value, 0.0, 1.0)
-	return 1.0 - pow(1.0 - clamped, 3)
+func _on_trap_triggered(
+	_anchor_id: int,
+	world_position: Vector2,
+	radius: float,
+	_damaged_enemy_count: int,	_source_id: StringName
+) -> void:
+	_trap_bursts.append({
+		"position": world_position,
+		"radius": radius,
+		"elapsed": 0.0,
+	})
+	queue_redraw()
+
+
+func _draw_trap_bursts() -> void:
+	for burst: Dictionary in _trap_bursts:
+		var elapsed := float(burst["elapsed"])
+		var ratio := clampf(elapsed / maxf(trap_burst_duration, 0.01), 0.0, 1.0)
+		var radius := float(burst["radius"]) * (0.45 + ratio * 0.55)
+		var alpha := trap_burst_start_alpha * (1.0 - ratio)
+		var center := burst["position"] as Vector2
+		draw_circle(center, radius, Color(1.0, 0.38, 0.08, alpha * 0.25))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
