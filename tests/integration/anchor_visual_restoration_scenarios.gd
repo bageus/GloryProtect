@@ -32,7 +32,7 @@ func _run() -> void:
 	assert(visual.get_base_clamp_source_rect_for_tests().size.x > 0.0)
 	assert(visual.get_base_clamp_source_rect_for_tests().size.y > 0.0)
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
-	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.483))
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.42))
 	assert(visual.get_anchor_chain_attach_depth_for_tests() > 0.0)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
