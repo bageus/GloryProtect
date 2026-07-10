@@ -33,7 +33,7 @@ func _connect_component_signals() -> void:
 
 
 func _create_visual_controller() -> void:
-	var combat_visual := CombatAnchorVisualController.new()
+	var combat_visual := AnchorVisualControllerPolished.new()
 	combat_visual.name = "AnchorVisualController"
 	_visual = combat_visual
 	add_child(_visual)

@@ -20,20 +20,19 @@ func _run() -> void:
 	assert(not game.has_node("World/AnchorAssetPresentation"))
 	assert(not game.has_node("World/Platform/PlatformAnchorWinchVisual"))
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
-	var rope_visual: CombatAnchorVisualController = anchors.get_node(
+	var visual: AnchorVisualControllerPolished = anchors.get_node(
 		"AnchorVisualController"
-	) as CombatAnchorVisualController
-	var platform_visual: PlatformVisualController = game.get_node(
-		"World/Platform/PlatformVisualController"
-	) as PlatformVisualController
-	assert(rope_visual != null)
-	assert(rope_visual.visible)
-	assert(rope_visual.get_anchor_visual_z_index_for_tests() >= 80)
-	assert(rope_visual.are_anchor_asset_regions_valid_for_tests())
-	assert(platform_visual != null)
-	assert(platform_visual.visible)
-	assert(platform_visual.get_anchor_winch_count_for_tests() == 4)
-	assert(platform_visual.is_anchor_winch_drawable_for_tests())
+	) as AnchorVisualControllerPolished
+	assert(visual != null)
+	assert(visual.visible)
+	assert(visual.get_anchor_visual_z_index_for_tests() >= 80)
+	assert(visual.are_anchor_asset_regions_valid_for_tests())
+	assert(
+		visual.get_visible_anchor_ids_for_tests()
+		== PackedInt32Array([0, 3])
+	)
+	for anchor_id: int in range(4):
+		assert(visual.is_winch_drawable_for_tests(anchor_id))
 
 	print("Anchor visual layer scenarios passed")
 	quit()

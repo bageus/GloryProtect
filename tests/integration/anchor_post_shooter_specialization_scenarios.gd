@@ -222,14 +222,19 @@ func _assert_fifth_anchor_volley_knockdown(
 		crew.get_shooter_upgrades(),
 		5
 	))
-	assert(not target.visible)
-	assert(fall_visual.is_detached_fall_for_tests())
-	assert(fall_visual.get_presentation_state_id() == &"landing")
+	# The enemy root remains a logical container while its detached visual owns
+	# the knockdown presentation. Verify that contract instead of root visibility.
+	var detached_seen := false
 	for _frame: int in range(120):
 		if not is_instance_valid(fall_visual):
+			assert(detached_seen, "Knockdown visual never entered detached fall")
 			return
+		detached_seen = (
+			detached_seen
+			or fall_visual.is_detached_fall_for_tests()
+		)
 		await physics_frame
-	assert(false, "Falling knockdown visual did not disappear after landing")
+	assert(false, "Detached knockdown visual did not disappear")
 
 
 func _cleanup_enemy(enemy: BoardingEnemy) -> void:

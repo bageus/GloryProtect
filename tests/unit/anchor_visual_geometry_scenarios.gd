@@ -27,25 +27,30 @@ func _run() -> void:
 		AnchorRuntimeStore.new(),
 		geometry,
 		anchor_balance,
-		Callable(self, "_always_true"),
-		Callable(self, "_always_true")
+		Callable(self, "_is_operator_available"),
+		Callable(self, "_is_simulation_active")
 	)
 
 	var surface_y: float = geometry.get_platform_surface_world_y()
 	var physical_attachment: Vector2 = (
 		geometry.get_platform_attachment_world(0)
 	)
+	var expected_attachment_y := (
+		platform.position.y
+		+ platform.get_platform_height()
+		* anchor_balance.platform_attachment_y_factor
+	)
 	var left_bottom: Vector2 = visual.get_winch_visual_bottom(0)
 	var left_exit: Vector2 = visual.get_winch_chain_exit(0)
-	var mirrored_exit: Vector2 = visual.get_winch_chain_exit(1)
+	var mirrored_exit: Vector2 = visual.get_winch_chain_exit(3)
 	assert(is_equal_approx(surface_y, 271.0))
-	assert(is_equal_approx(left_bottom.y, 276.0))
+	assert(is_equal_approx(left_bottom.y, surface_y + visual.winch_embed_depth))
 	assert(left_bottom.y < physical_attachment.y)
-	assert(is_equal_approx(physical_attachment.y, 326.1))
+	assert(is_equal_approx(physical_attachment.y, expected_attachment_y))
 	assert(left_exit.is_equal_approx(left_bottom + Vector2(7.0, -3.0)))
 	assert(
 		mirrored_exit.is_equal_approx(
-			visual.get_winch_visual_bottom(1) + Vector2(-7.0, -3.0)
+			visual.get_winch_visual_bottom(3) + Vector2(-7.0, -3.0)
 		)
 	)
 	assert(not left_exit.is_equal_approx(physical_attachment))
@@ -53,15 +58,52 @@ func _run() -> void:
 	assert(visual.get_winch_asset_id_for_tests() == &"base")
 
 	var combat_system := CombatAnchorSystem.new()
-	var combat_visual := CombatAnchorVisualController.new()
+	var combat_visual := AnchorVisualControllerPolished.new()
 	combat_visual.configure_combat(
 		AnchorRuntimeStore.new(),
 		geometry,
 		anchor_balance,
-		Callable(self, "_always_true"),
-		Callable(self, "_always_true"),
+		Callable(self, "_is_operator_available"),
+		Callable(self, "_is_simulation_active"),
 		null,
 		combat_system
+	)
+	root.add_child(combat_visual)
+	assert(is_equal_approx(
+		combat_visual.get_winch_scale_multiplier_for_tests(),
+		0.70
+	))
+	assert(is_equal_approx(
+		combat_visual.get_anchor_chain_attach_depth_for_tests(),
+		8.0
+	))
+	assert(combat_visual.clamp_ground_offset == Vector2(0.0, 2.0))
+	assert(
+		combat_visual.get_winch_chain_exit(0).is_equal_approx(
+			combat_visual.get_winch_visual_bottom(0) + Vector2(7.0, -3.0)
+		)
+	)
+	var clamp_ground := Vector2(25.0, 420.0)
+	assert(
+		combat_visual.get_clamp_connection_point_for_tests(
+			clamp_ground
+		).is_equal_approx(
+			clamp_ground
+			+ combat_visual.clamp_ground_offset
+			+ combat_visual.clamp_chain_connection_offset
+		)
+	)
+	assert(
+		combat_visual.get_base_anchor_source_rect_for_tests()
+		== Rect2(Vector2(157.0, 162.0), Vector2(198.0, 252.0))
+	)
+	assert(
+		combat_visual.get_base_clamp_source_rect_for_tests()
+		== Rect2(Vector2(169.0, 188.0), Vector2(173.0, 174.0))
+	)
+	assert(
+		combat_visual.get_trap_winch_source_rect_for_tests()
+		== Rect2(Vector2(36.0, 108.0), Vector2(463.0, 296.0))
 	)
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"base")
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.STRONG))
@@ -71,7 +113,8 @@ func _run() -> void:
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
 	combat_system.upgrades.reset()
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
-	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"trap")
+	assert(combat_visual.is_winch_drawable_for_tests(0))
 
 	var original_exit := visual.get_winch_chain_exit(2)
 	platform.position.x += 120.0
@@ -101,5 +144,9 @@ func _run() -> void:
 	quit()
 
 
-func _always_true() -> bool:
+func _is_operator_available(_side: int) -> bool:
+	return true
+
+
+func _is_simulation_active() -> bool:
 	return true
