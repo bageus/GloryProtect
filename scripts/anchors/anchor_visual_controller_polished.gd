@@ -46,6 +46,8 @@ func _ready() -> void:
 	_clamp_source_rect = _calculate_alpha_bounds(BASE_CLAMP_TEXTURE)
 	_anchor_source_rect = _calculate_alpha_bounds(BASE_ANCHOR_TEXTURE)
 	var cropped_textures: Array[Texture2D] = [
+		BASE_ANCHOR_TEXTURE,
+		BASE_CLAMP_TEXTURE,
 		BASE_WINCH_TEXTURE,
 		STRONG_WINCH_TEXTURE_POLISHED,
 		ELECTRIC_WINCH_TEXTURE_POLISHED,
