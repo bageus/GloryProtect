@@ -7,24 +7,27 @@ signal anchor_detaching(anchor_id: int)
 func _unhandled_input(event: InputEvent) -> void:
 	if not _game_flow.is_world_simulation_active():
 		return
-	if not event is InputEventKey:
-		return
-	var key_event := event as InputEventKey
-	if not key_event.pressed or key_event.echo:
-		return
-	if key_event.is_action_pressed(&"gp_anchor_1"):
-		toggle_anchor(0)
-	elif key_event.is_action_pressed(&"gp_anchor_2"):
-		toggle_anchor(1)
-	elif key_event.is_action_pressed(&"gp_anchor_3"):
-		toggle_anchor(2)
-	elif key_event.is_action_pressed(&"gp_anchor_4"):
-		toggle_anchor(3)
-	elif key_event.is_action_pressed(&"gp_anchor_remove_all"):
+	var anchor_id: int = _get_pressed_anchor_id(event)
+	if anchor_id >= 0:
+		toggle_anchor(anchor_id)
+	elif event.is_action_pressed(&"gp_anchor_remove_all"):
 		request_remove_all()
 	else:
 		return
 	get_viewport().set_input_as_handled()
+
+
+func _get_pressed_anchor_id(event: InputEvent) -> int:
+	var actions: Array[StringName] = [
+		&"gp_anchor_1",
+		&"gp_anchor_2",
+		&"gp_anchor_3",
+		&"gp_anchor_4",
+	]
+	for anchor_id: int in range(actions.size()):
+		if event.is_action_pressed(actions[anchor_id]):
+			return anchor_id
+	return -1
 
 
 func _connect_component_signals() -> void:
