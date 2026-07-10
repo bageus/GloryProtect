@@ -1,10 +1,6 @@
 class_name CombatAnchorHostSystem
 extends AnchorSystem
 
-const POLISHED_ANCHOR_VISUAL_SCRIPT := preload(
-	"res://scripts/anchors/anchor_visual_controller_polished.gd"
-)
-
 signal anchor_detaching(anchor_id: int)
 
 
@@ -37,9 +33,7 @@ func _connect_component_signals() -> void:
 
 
 func _create_visual_controller() -> void:
-	var combat_visual := (
-		POLISHED_ANCHOR_VISUAL_SCRIPT.new() as AnchorVisualControllerPolished
-	)
+	var combat_visual := AnchorVisualControllerPolished.new()
 	combat_visual.name = "AnchorVisualController"
 	_visual = combat_visual
 	add_child(_visual)
