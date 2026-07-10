@@ -23,14 +23,10 @@ func _run() -> void:
 	var anchor_visual: AnchorVisualControllerPolished = anchors.get_node(
 		"AnchorVisualController"
 	) as AnchorVisualControllerPolished
-	var platform_visual: PlatformVisualController = game.get_node(
-		"World/Platform/PlatformVisualController"
-	) as PlatformVisualController
 	var audio: GameAudioController = game.get_node("GameAudioController")
 	assert(catalog != null)
 	assert(combat != null)
 	assert(anchor_visual != null)
-	assert(platform_visual != null)
 	assert(audio != null)
 
 	assert(is_equal_approx(combat.get_endpoint_pulse_radius_for_tests(), 240.0))
@@ -38,8 +34,8 @@ func _run() -> void:
 	assert(is_equal_approx(combat.get_trap_explosion_radius_for_tests(), 240.0))
 	assert(is_equal_approx(combat.get_trap_knockback_distance_for_tests(), 300.0))
 	assert(audio.get_loaded_sound_ids().has(GameAudioController.SOUND_BOOM_WINCH))
-	assert(platform_visual.get_anchor_winch_count_for_tests() == 4)
-	assert(platform_visual.is_anchor_winch_drawable_for_tests())
+	for anchor_id: int in range(4):
+		assert(anchor_visual.is_winch_drawable_for_tests(anchor_id))
 	assert(is_equal_approx(
 		anchor_visual.get_winch_scale_multiplier_for_tests(),
 		0.70
