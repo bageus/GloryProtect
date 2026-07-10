@@ -29,16 +29,16 @@ const TRAP_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_04.png"
 )
 
-const WINCH_SCALE_MULTIPLIER := 0.483
-const WINCH_CHAIN_EXIT_HEIGHT_RATIO := 0.5
-const ANCHOR_CHAIN_ATTACH_DEPTH := 20.0
-const CLAMP_CHAIN_ATTACH_DEPTH := 6.0
-const GROUND_CLAMP_OFFSET := Vector2(0.0, 40.0)
+# The widest trap winch remains inside one 40 px platform cell at this scale.
+const WINCH_SCALE_MULTIPLIER := 0.42
+const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
+const GROUND_CLAMP_OFFSET := Vector2(0.0, 8.0)
+const WINCH_CHAIN_EXIT_OFFSET := Vector2(0.0, -2.0)
 
 
 func _init() -> void:
 	clamp_ground_offset = GROUND_CLAMP_OFFSET
-	winch_chain_exit_offset = Vector2.ZERO
+	winch_chain_exit_offset = WINCH_CHAIN_EXIT_OFFSET
 
 
 func _ready() -> void:
@@ -46,8 +46,6 @@ func _ready() -> void:
 	_clamp_source_rect = _calculate_alpha_bounds(BASE_CLAMP_TEXTURE)
 	_anchor_source_rect = _calculate_alpha_bounds(BASE_ANCHOR_TEXTURE)
 	var cropped_textures: Array[Texture2D] = [
-		BASE_ANCHOR_TEXTURE,
-		BASE_CLAMP_TEXTURE,
 		BASE_WINCH_TEXTURE,
 		STRONG_WINCH_TEXTURE_POLISHED,
 		ELECTRIC_WINCH_TEXTURE_POLISHED,
@@ -76,22 +74,6 @@ func get_ground_clamp_bottom_for_tests(ground: Vector2) -> Vector2:
 	return ground + clamp_ground_offset
 
 
-func get_clamp_top_for_tests(ground: Vector2) -> Vector2:
-	return _get_clamp_top(ground, _get_combat_clamp_texture())
-
-
-func get_turbo_anchor_bottom_for_tests(ground: Vector2) -> Vector2:
-	var connection: Vector2 = _get_clamp_connection_point(ground)
-	var anchor_size: Vector2 = _get_asset_draw_size(
-		MAGNET_ANCHOR_TEXTURE_POLISHED,
-		object_asset_scale
-	)
-	return Vector2(
-		connection.x,
-		connection.y - ANCHOR_CHAIN_ATTACH_DEPTH + anchor_size.y
-	)
-
-
 func get_winch_visual_size_for_tests(anchor_id: int) -> Vector2:
 	return _get_winch_draw_size(anchor_id)
 
@@ -106,14 +88,6 @@ func get_base_anchor_source_rect_for_tests() -> Rect2:
 
 func get_base_clamp_source_rect_for_tests() -> Rect2:
 	return _clamp_source_rect
-
-
-func get_winch_chain_exit(anchor_id: int) -> Vector2:
-	var size: Vector2 = _get_winch_draw_size(anchor_id)
-	return _get_winch_bottom(anchor_id) + Vector2(
-		0.0,
-		-size.y * WINCH_CHAIN_EXIT_HEIGHT_RATIO
-	)
 
 
 func _draw_winch(
@@ -191,42 +165,17 @@ func _draw_clamp_texture(
 	source_rect: Rect2,
 	tint: Color
 ) -> void:
-	var size: Vector2 = _get_asset_draw_size(texture, get_clamp_visual_scale())
-	if size.x <= 0.0 or size.y <= 0.0:
-		size = Vector2(42.0, 34.0) * get_clamp_visual_scale()
+	var source_size: Vector2 = source_rect.size
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		source_size = Vector2(42.0, 34.0)
+	var size := source_size * get_clamp_visual_scale()
 	var bottom := ground + clamp_ground_offset
 	var rect := Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
 	draw_texture_rect_region(texture, rect, source_rect, tint)
 
 
 func _get_clamp_connection_point(ground: Vector2) -> Vector2:
-	var clamp_texture: Texture2D = _get_combat_clamp_texture()
-	var clamp_top: Vector2 = _get_clamp_top(ground, clamp_texture)
-	if not _uses_turbo_fastening_assets():
-		return clamp_top + Vector2(0.0, CLAMP_CHAIN_ATTACH_DEPTH)
-	var anchor_size: Vector2 = _get_asset_draw_size(
-		MAGNET_ANCHOR_TEXTURE_POLISHED,
-		object_asset_scale
-	)
-	return Vector2(
-		clamp_top.x,
-		clamp_top.y + ANCHOR_CHAIN_ATTACH_DEPTH - anchor_size.y
-	)
-
-
-func _get_clamp_top(ground: Vector2, texture: Texture2D) -> Vector2:
-	var size: Vector2 = _get_asset_draw_size(texture, get_clamp_visual_scale())
-	if size.x <= 0.0 or size.y <= 0.0:
-		size = Vector2(42.0, 34.0) * get_clamp_visual_scale()
-	var bottom: Vector2 = ground + clamp_ground_offset
-	return bottom - Vector2(0.0, size.y)
-
-
-func _get_asset_draw_size(texture: Texture2D, scale_value: float) -> Vector2:
-	var source_rect: Rect2 = _get_texture_source_rect(texture)
-	if not _is_rect_drawable(source_rect):
-		return Vector2.ZERO
-	return source_rect.size * scale_value
+	return ground + clamp_ground_offset + clamp_chain_connection_offset
 
 
 func _register_alpha_cropped_texture(texture: Texture2D) -> void:
