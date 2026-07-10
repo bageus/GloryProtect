@@ -257,8 +257,7 @@ func _create_visual_controller() -> void:
 		_geometry,
 		balance,
 		Callable(self, "is_operator_assigned"),
-		Callable(_game_flow, "is_world_simulation_active"),
-		Callable(_commands, "is_second_winch_pair_enabled")
+		Callable(_game_flow, "is_world_simulation_active")
 	)
 
 
