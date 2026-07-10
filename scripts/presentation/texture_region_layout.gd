@@ -38,9 +38,40 @@ static func get_alpha_bounds(
 ) -> Rect2:
 	if texture == null:
 		return Rect2()
-	var ignored_threshold: float = threshold
-	ignored_threshold = ignored_threshold
-	return Rect2(Vector2.ZERO, texture.get_size())
+	var fallback := Rect2(Vector2.ZERO, texture.get_size())
+	var image: Image = texture.get_image()
+	if image == null or image.is_empty():
+		return fallback
+	var used_rect: Rect2i = image.get_used_rect()
+	if used_rect.size.x <= 0 or used_rect.size.y <= 0:
+		return fallback
+
+	var minimum := Vector2i(
+		used_rect.position.x + used_rect.size.x,
+		used_rect.position.y + used_rect.size.y
+	)
+	var maximum := Vector2i(-1, -1)
+	var safe_threshold: float = clampf(threshold, 0.0, 1.0)
+	var end_x: int = used_rect.position.x + used_rect.size.x
+	var end_y: int = used_rect.position.y + used_rect.size.y
+	for y: int in range(used_rect.position.y, end_y):
+		for x: int in range(used_rect.position.x, end_x):
+			if image.get_pixel(x, y).a <= safe_threshold:
+				continue
+			minimum.x = mini(minimum.x, x)
+			minimum.y = mini(minimum.y, y)
+			maximum.x = maxi(maximum.x, x)
+			maximum.y = maxi(maximum.y, y)
+
+	if maximum.x < minimum.x or maximum.y < minimum.y:
+		return fallback
+	return Rect2(
+		Vector2(float(minimum.x), float(minimum.y)),
+		Vector2(
+			float(maximum.x - minimum.x + 1),
+			float(maximum.y - minimum.y + 1)
+		)
+	)
 
 
 static func get_auto_atlas_frame_regions(
