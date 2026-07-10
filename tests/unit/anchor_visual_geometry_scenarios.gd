@@ -35,17 +35,22 @@ func _run() -> void:
 	var physical_attachment: Vector2 = (
 		geometry.get_platform_attachment_world(0)
 	)
+	var expected_attachment_y := (
+		platform.position.y
+		+ platform.get_platform_height()
+		* anchor_balance.platform_attachment_y_factor
+	)
 	var left_bottom: Vector2 = visual.get_winch_visual_bottom(0)
 	var left_exit: Vector2 = visual.get_winch_chain_exit(0)
-	var mirrored_exit: Vector2 = visual.get_winch_chain_exit(1)
+	var mirrored_exit: Vector2 = visual.get_winch_chain_exit(3)
 	assert(is_equal_approx(surface_y, 271.0))
-	assert(is_equal_approx(left_bottom.y, 276.0))
+	assert(is_equal_approx(left_bottom.y, surface_y + visual.winch_embed_depth))
 	assert(left_bottom.y < physical_attachment.y)
-	assert(is_equal_approx(physical_attachment.y, 326.1))
+	assert(is_equal_approx(physical_attachment.y, expected_attachment_y))
 	assert(left_exit.is_equal_approx(left_bottom + Vector2(7.0, -3.0)))
 	assert(
 		mirrored_exit.is_equal_approx(
-			visual.get_winch_visual_bottom(1) + Vector2(-7.0, -3.0)
+			visual.get_winch_visual_bottom(3) + Vector2(-7.0, -3.0)
 		)
 	)
 	assert(not left_exit.is_equal_approx(physical_attachment))
