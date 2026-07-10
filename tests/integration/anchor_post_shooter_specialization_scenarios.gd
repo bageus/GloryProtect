@@ -222,6 +222,8 @@ func _assert_fifth_anchor_volley_knockdown(
 		crew.get_shooter_upgrades(),
 		5
 	))
+	# The enemy root remains a logical container while its detached visual owns
+	# the knockdown presentation. Verify that contract instead of root visibility.
 	var detached_seen := false
 	for _frame: int in range(120):
 		if not is_instance_valid(fall_visual):
