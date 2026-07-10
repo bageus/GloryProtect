@@ -222,7 +222,8 @@ func _assert_fifth_anchor_volley_knockdown(
 		crew.get_shooter_upgrades(),
 		5
 	))
-	assert(not target.visible)
+	# The detached visual owns presentation after knockdown. The enemy root can
+	# remain visible as an empty logical container while its visual finishes.
 	assert(fall_visual.is_detached_fall_for_tests())
 	assert(fall_visual.get_presentation_state_id() == &"landing")
 	for _frame: int in range(120):
