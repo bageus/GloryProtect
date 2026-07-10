@@ -63,6 +63,7 @@ func _run() -> void:
 		null,
 		combat_system
 	)
+	root.add_child(combat_visual)
 	assert(is_equal_approx(
 		combat_visual.get_winch_scale_multiplier_for_tests(),
 		0.70
@@ -71,7 +72,7 @@ func _run() -> void:
 		combat_visual.get_anchor_chain_attach_depth_for_tests(),
 		8.0
 	))
-	assert(combat_visual.clamp_ground_offset == Vector2(0.0, 10.0))
+	assert(combat_visual.clamp_ground_offset == Vector2(0.0, 2.0))
 	assert(
 		combat_visual.get_winch_chain_exit(0).is_equal_approx(
 			combat_visual.get_winch_visual_bottom(0) + Vector2(7.0, -3.0)
@@ -86,6 +87,18 @@ func _run() -> void:
 			+ combat_visual.clamp_ground_offset
 			+ combat_visual.clamp_chain_connection_offset
 		)
+	)
+	assert(
+		combat_visual.get_base_anchor_source_rect_for_tests()
+		== Rect2(Vector2(157.0, 162.0), Vector2(198.0, 252.0))
+	)
+	assert(
+		combat_visual.get_base_clamp_source_rect_for_tests()
+		== Rect2(Vector2(169.0, 188.0), Vector2(173.0, 174.0))
+	)
+	assert(
+		combat_visual.get_trap_winch_source_rect_for_tests()
+		== Rect2(Vector2(36.0, 108.0), Vector2(463.0, 296.0))
 	)
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"base")
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.STRONG))
