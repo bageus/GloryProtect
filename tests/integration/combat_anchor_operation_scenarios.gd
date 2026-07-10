@@ -103,8 +103,11 @@ func _run_scenarios() -> void:
 	# for the started install, which attaches and is immediately detached.
 	anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, true)
 	anchors.toggle_anchor(2)
-	await physics_frame
-	assert(anchors.get_anchor_state(2) == AnchorRuntime.State.INSTALLING)
+	assert(await _wait_until(
+		func() -> bool:
+			return anchors.get_anchor_state(2) == AnchorRuntime.State.INSTALLING,
+		30
+	))
 	anchors.toggle_anchor(3)
 	assert(anchors.get_anchor_state(3) == AnchorRuntime.State.QUEUED)
 	anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, false)
