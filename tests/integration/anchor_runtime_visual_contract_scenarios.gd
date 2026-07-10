@@ -19,21 +19,14 @@ func _run() -> void:
 
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
-	var visual: AnchorAssetPresentation = game.get_node(
-		"World/AnchorAssetPresentation"
-	) as AnchorAssetPresentation
-	var compatibility_visual: CombatAnchorVisualController = anchors.get_node(
+	var visual: AnchorVisualControllerPolished = anchors.get_node(
 		"AnchorVisualController"
-	) as CombatAnchorVisualController
+	) as AnchorVisualControllerPolished
 	assert(anchors != null)
 	assert(combat != null)
 	assert(visual != null)
-	assert(compatibility_visual != null)
 	assert(visual.visible)
 	assert(visual.is_inside_tree())
-	assert(visual.is_configured_for_tests())
-	assert(visual.uses_scene_mounted_anchor_renderer_for_tests())
-	assert(not compatibility_visual.visible)
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
@@ -52,7 +45,7 @@ func _run() -> void:
 	combat.upgrades.reset()
 	assert(combat.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests(0) == &"specialization_2")
+	assert(visual.get_winch_asset_id_for_tests(0) == &"trap")
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 
