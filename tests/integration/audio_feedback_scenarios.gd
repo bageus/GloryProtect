@@ -44,7 +44,12 @@ func _run() -> void:
 	await process_frame
 
 	assert(audio != null)
-	assert(audio.get_loaded_sound_ids().size() == 13)
+	assert(audio.get_loaded_sound_ids().size() == 14)
+	assert(
+		audio.get_loaded_sound_ids().has(
+			GameAudioController.SOUND_BOOM_WINCH
+		)
+	)
 	assert(alert_presenter.get_node_or_null("AudioStreamPlayer") == null)
 
 	var defender: Defender = crew.get_defender(0)
