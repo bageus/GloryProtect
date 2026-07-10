@@ -37,7 +37,6 @@ if (( ${#scenario_files[@]} == 0 )); then
   exit 1
 fi
 
-failed_scenarios=()
 for scenario_file in "${scenario_files[@]}"; do
   log_name="${scenario_file//\//__}"
   log_path="${RESULT_DIR}/${log_name%.gd}.log"
@@ -70,19 +69,12 @@ for scenario_file in "${scenario_files[@]}"; do
       "${log_path}" | head -n 160 || true
     echo "--- final output ---"
     tail -n 120 "${log_path}"
-    failed_scenarios+=("${scenario_file}")
     echo "::endgroup::"
-    continue
+    exit 1
   fi
 
   grep -E -i 'scenarios? passed|warning|error' "${log_path}" | tail -n 40 || true
   echo "::endgroup::"
 done
-
-if (( ${#failed_scenarios[@]} > 0 )); then
-  echo "Failed Godot scenarios (${#failed_scenarios[@]}):" >&2
-  printf ' - %s\n' "${failed_scenarios[@]}" >&2
-  exit 1
-fi
 
 echo "All ${#scenario_files[@]} Godot scenarios passed."
