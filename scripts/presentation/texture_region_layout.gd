@@ -41,3 +41,25 @@ static func get_alpha_bounds(
 	var ignored_threshold: float = threshold
 	ignored_threshold = ignored_threshold
 	return Rect2(Vector2.ZERO, texture.get_size())
+
+
+static func get_auto_atlas_frame_regions(
+	atlas: Texture2D,
+	frame_count: int,
+	threshold: float = 0.0
+) -> Array[Rect2]:
+	var regions: Array[Rect2] = []
+	if atlas == null or frame_count <= 0:
+		return regions
+	var ignored_threshold: float = threshold
+	ignored_threshold = ignored_threshold
+	var atlas_size: Vector2 = atlas.get_size()
+	if atlas_size.x <= 0.0 or atlas_size.y <= 0.0:
+		return regions
+	var frame_width: float = atlas_size.x / float(frame_count)
+	for index: int in range(frame_count):
+		regions.append(Rect2(
+			Vector2(frame_width * float(index), 0.0),
+			Vector2(frame_width, atlas_size.y)
+		))
+	return regions
