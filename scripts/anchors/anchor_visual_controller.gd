@@ -18,16 +18,18 @@ const CHAIN_BRIGHTEN_AMOUNT := 0.18
 
 @export_group("Anchor Assets")
 @export_range(0.05, 0.5, 0.01) var object_asset_scale := 0.20
+@export_range(0.2, 1.2, 0.01) var winch_asset_scale_multiplier := 0.70
 @export_range(0.5, 2.0, 0.005) var clamp_scale_multiplier := 1.085
 @export_range(8.0, 128.0, 1.0) var chain_tile_height := 28.0
 @export_range(0.0, 0.9, 0.01) var chain_tile_overlap_ratio := 0.5
 @export_range(0.0, 1.0, 0.01) var alpha_crop_threshold := 0.08
 @export_range(1, 128, 1) var minimum_z_index := 80
-@export var clamp_ground_offset := Vector2(0.0, 2.0)
-@export var clamp_chain_connection_offset := Vector2(0.0, -17.0)
-@export var stowed_chain_length := 20.0
+@export var clamp_ground_offset := Vector2(0.0, 8.0)
+@export var clamp_chain_connection_offset := Vector2(0.0, -6.0)
+@export var anchor_chain_connection_offset := Vector2(0.0, 6.0)
+@export var stowed_chain_length := 22.0
 @export_range(0.0, 30.0, 1.0) var winch_embed_depth := 0.0
-@export var winch_chain_exit_offset := Vector2.ZERO
+@export var winch_chain_exit_offset := Vector2(0.0, 4.0)
 @export var draw_winch_posts := true
 
 var _store: AnchorRuntimeStore
@@ -154,17 +156,17 @@ func _draw_winch(
 		texture = WINCH_BASE_TEXTURE
 		source_rect = _get_texture_source_rect(WINCH_BASE_TEXTURE)
 	var tint := Color.WHITE if operator_available else Color(0.52, 0.55, 0.58, 1.0)
-	var size := Vector2(58.0, 54.0)
+	var size := Vector2(58.0, 54.0) * winch_asset_scale_multiplier
 	if _is_rect_drawable(source_rect):
-		size = source_rect.size * object_asset_scale
-	var pedestal_size := Vector2(maxf(34.0, size.x * 0.74), 12.0)
+		size = source_rect.size * object_asset_scale * winch_asset_scale_multiplier
+	var pedestal_size := Vector2(maxf(24.0, size.x * 0.74), 9.0)
 	var pedestal_rect := Rect2(bottom - Vector2(pedestal_size.x * 0.5, pedestal_size.y * 0.86), pedestal_size)
 	draw_rect(pedestal_rect.grow(2.0), Color(0.02, 0.035, 0.055, 0.82), true)
 	draw_rect(pedestal_rect, Color(0.16, 0.23, 0.32, 0.92), true)
 	draw_rect(pedestal_rect, Color(0.72, 0.86, 1.0, 0.5), false, 1.2)
 	var backing_center := bottom + Vector2(0.0, -size.y * 0.45)
-	draw_circle(backing_center, maxf(14.0, size.x * 0.3), Color(0.02, 0.04, 0.07, 0.68))
-	draw_arc(backing_center, maxf(15.0, size.x * 0.33), 0.0, TAU, 32, Color(0.72, 0.88, 1.0, 0.45), 1.8, true)
+	draw_circle(backing_center, maxf(10.0, size.x * 0.3), Color(0.02, 0.04, 0.07, 0.68))
+	draw_arc(backing_center, maxf(11.0, size.x * 0.33), 0.0, TAU, 32, Color(0.72, 0.88, 1.0, 0.45), 1.8, true)
 	if not _is_rect_drawable(source_rect):
 		_draw_fallback_winch(backing_center, tint)
 		return
@@ -193,10 +195,11 @@ func _draw_anchor(anchor: AnchorRuntime) -> void:
 
 
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
-	var top := start + Vector2(0.0, stowed_chain_length)
+	var anchor_top := start + Vector2(0.0, stowed_chain_length)
+	var chain_finish := _get_anchor_chain_connection(anchor_top)
 	var tint := Color.WHITE if bool(_is_operator_available.call(anchor.side)) else Color(0.68, 0.7, 0.72, 1.0)
-	_draw_chain_links(start, top, tint)
-	_draw_anchor_asset(top, tint)
+	_draw_chain_links(start, chain_finish, tint)
+	_draw_anchor_asset(anchor_top, tint)
 
 
 func _draw_available_clamp(anchor: AnchorRuntime) -> void:
@@ -209,11 +212,11 @@ func _draw_installing_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
 	var ground := anchor.target_ground_point
 	var target := _get_clamp_connection_point(ground)
 	var ratio := clampf(anchor.operation_progress / maxf(_balance.install_duration, 0.01), 0.0, 1.0)
-	var top := start.lerp(target, ratio)
+	var anchor_top := start.lerp(target - anchor_chain_connection_offset, ratio)
 	var tint := Color(0.92, 0.82, 0.55, 1.0)
 	_draw_clamp(ground, _get_clamp_tint(anchor))
-	_draw_chain_links(start, top, tint)
-	_draw_anchor_asset(top, tint)
+	_draw_chain_links(start, _get_anchor_chain_connection(anchor_top), tint)
+	_draw_anchor_asset(anchor_top, tint)
 
 
 func _draw_attached_anchor(anchor: AnchorRuntime, start: Vector2, ground: Vector2) -> void:
@@ -236,11 +239,11 @@ func _draw_attached_anchor(anchor: AnchorRuntime, start: Vector2, ground: Vector
 func _draw_returning_anchor(anchor: AnchorRuntime, start: Vector2, ground: Vector2) -> void:
 	var ratio := clampf(anchor.operation_progress / maxf(_balance.return_duration, 0.01), 0.0, 1.0)
 	var source := _get_clamp_connection_point(ground)
-	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
+	var anchor_top := (source - anchor_chain_connection_offset).lerp(start + Vector2(0.0, stowed_chain_length), ratio)
 	var color := Color(0.85, 0.76, 0.46)
 	_draw_clamp(ground, Color.WHITE)
-	_draw_chain_links(start, top, color)
-	_draw_anchor_asset(top, color.lightened(0.12))
+	_draw_chain_links(start, _get_anchor_chain_connection(anchor_top), color)
+	_draw_anchor_asset(anchor_top, color.lightened(0.12))
 
 
 static func calculate_chain_link_positions(start: Vector2, finish: Vector2, spacing: float) -> PackedVector2Array:
@@ -312,9 +315,9 @@ func _draw_clamp(ground: Vector2, tint: Color) -> void:
 
 
 func _draw_fallback_winch(center: Vector2, tint: Color) -> void:
-	draw_circle(center, 15.0, tint.darkened(0.25))
-	draw_arc(center, 15.0, 0.0, TAU, 32, tint.lightened(0.15), 3.0, true)
-	draw_circle(center, 5.0, tint.darkened(0.4))
+	draw_circle(center, 15.0 * winch_asset_scale_multiplier, tint.darkened(0.25))
+	draw_arc(center, 15.0 * winch_asset_scale_multiplier, 0.0, TAU, 32, tint.lightened(0.15), 3.0, true)
+	draw_circle(center, 5.0 * winch_asset_scale_multiplier, tint.darkened(0.4))
 
 
 func _draw_fallback_chain(start: Vector2, finish: Vector2, tint: Color) -> void:
@@ -363,6 +366,10 @@ func _is_second_pair_enabled() -> bool:
 		_is_second_winch_pair_enabled.is_valid()
 		and bool(_is_second_winch_pair_enabled.call())
 	)
+
+
+func _get_anchor_chain_connection(anchor_top: Vector2) -> Vector2:
+	return anchor_top + anchor_chain_connection_offset
 
 
 func _get_clamp_connection_point(ground: Vector2) -> Vector2:
