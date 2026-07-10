@@ -112,8 +112,6 @@ func _request_remove(anchor: AnchorRuntime) -> void:
 
 
 func _can_install_anchor_on_side(anchor: AnchorRuntime) -> bool:
-	if not _second_winch_pair_enabled and not _is_primary_winch_anchor(anchor.anchor_id):
-		return false
 	if _second_winch_pair_enabled:
 		return true
 	for other: AnchorRuntime in _store.get_all():
@@ -122,10 +120,6 @@ func _can_install_anchor_on_side(anchor: AnchorRuntime) -> bool:
 		if other.state != AnchorRuntime.State.STOWED:
 			return false
 	return true
-
-
-func _is_primary_winch_anchor(anchor_id: int) -> bool:
-	return anchor_id == 0 or anchor_id == 3
 
 
 func _operator_available(side: int) -> bool:
