@@ -53,7 +53,7 @@ func _run() -> void:
 	assert(visual.get_winch_asset_id_for_tests() == &"base")
 
 	var combat_system := CombatAnchorSystem.new()
-	var combat_visual := CombatAnchorVisualController.new()
+	var combat_visual := AnchorVisualControllerPolished.new()
 	combat_visual.configure_combat(
 		AnchorRuntimeStore.new(),
 		geometry,
@@ -63,6 +63,30 @@ func _run() -> void:
 		null,
 		combat_system
 	)
+	assert(is_equal_approx(
+		combat_visual.get_winch_scale_multiplier_for_tests(),
+		0.70
+	))
+	assert(is_equal_approx(
+		combat_visual.get_anchor_chain_attach_depth_for_tests(),
+		8.0
+	))
+	assert(combat_visual.clamp_ground_offset == Vector2(0.0, 10.0))
+	assert(
+		combat_visual.get_winch_chain_exit(0).is_equal_approx(
+			combat_visual.get_winch_visual_bottom(0) + Vector2(7.0, -3.0)
+		)
+	)
+	var clamp_ground := Vector2(25.0, 420.0)
+	assert(
+		combat_visual.get_clamp_connection_point_for_tests(
+			clamp_ground
+		).is_equal_approx(
+			clamp_ground
+			+ combat_visual.clamp_ground_offset
+			+ combat_visual.clamp_chain_connection_offset
+		)
+	)
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"base")
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.STRONG))
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"strong")
@@ -71,7 +95,8 @@ func _run() -> void:
 	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
 	combat_system.upgrades.reset()
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
-	assert(combat_visual.get_winch_asset_id_for_tests() == &"specialization_2")
+	assert(combat_visual.get_winch_asset_id_for_tests() == &"trap")
+	assert(combat_visual.is_winch_drawable_for_tests(0))
 
 	var original_exit := visual.get_winch_chain_exit(2)
 	platform.position.x += 120.0
