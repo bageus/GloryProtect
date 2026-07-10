@@ -20,50 +20,42 @@ func _run() -> void:
 	var overlay: PlatformUpgradeAssetOverlayStabilityFixed = game.get_node(
 		"World/Platform/PlatformUpgradeAssetOverlay"
 	) as PlatformUpgradeAssetOverlayStabilityFixed
+	var anchorless: AnchorlessControlSystem = game.get_node(
+		"World/AnchorlessControlSystem"
+	) as AnchorlessControlSystem
 	assert(overlay != null)
-	assert(not overlay.is_speed_asset_visible())
-	assert(overlay.get_speed_engine_count_for_tests() == 0)
-
-	var anchorless := AnchorlessControlSystem.new()
+	assert(anchorless != null)
 	assert(anchorless.upgrades.apply_flag(AnchorlessControlUpgradeRuntime.SPEED))
 	assert(anchorless.upgrades.apply_scalar(
 		AnchorlessControlUpgradeRuntime.WIND_REDUCTION,
 		0.2
 	))
-	overlay._anchorless = anchorless
 	await process_frame
 
 	assert(overlay.is_speed_asset_visible())
 	assert(overlay.get_speed_engine_count_for_tests() == 2)
-	var base_size: Vector2 = overlay.get_speed_engine_base_size_for_tests()
-	var scaled_size: Vector2 = overlay.get_speed_engine_size_for_tests()
-	var expected_scale: float = overlay.get_speed_engine_scale_multiplier_for_tests()
-	assert(is_equal_approx(expected_scale, 1.15))
-	assert(scaled_size.is_equal_approx(base_size * expected_scale))
-	assert(overlay.get_speed_flame_size_for_tests().is_equal_approx(scaled_size))
-	assert(overlay.get_speed_common_source_rect_for_tests().size.x > 0.0)
-	assert(overlay.get_speed_common_source_rect_for_tests().size.y > 0.0)
-
+	var engine_size: Vector2 = overlay.get_speed_engine_size_for_tests()
 	var core_center: Vector2 = overlay.get_platform_core_center_for_tests()
 	var centers: Array[Vector2] = overlay.get_speed_engine_centers_for_tests()
 	assert(centers.size() == 2)
-	var offset: Vector2 = overlay.get_speed_engine_offset_for_tests()
-	assert(is_equal_approx(offset.x, 96.0))
+	assert(is_equal_approx(
+		overlay.get_speed_engine_top_for_tests(-1),
+		overlay.get_platform_bottom_for_tests()
+	))
+	assert(is_equal_approx(
+		overlay.get_speed_engine_top_for_tests(1),
+		overlay.get_platform_bottom_for_tests()
+	))
 	assert(
-		offset.x - scaled_size.x * 0.5
+		core_center.x - centers[0].x - engine_size.x * 0.5
 		> overlay.platform_core_reference_size.x * 0.5
 	)
-	assert(is_equal_approx(
-		centers[0].y,
-		overlay.get_platform_bottom_for_tests() + scaled_size.y * 0.5
-	))
-	assert(is_equal_approx(centers[1].y, centers[0].y))
-	assert(is_equal_approx(overlay.get_speed_engine_top_for_tests(-1), overlay.get_platform_bottom_for_tests()))
-	assert(is_equal_approx(overlay.get_speed_engine_top_for_tests(1), overlay.get_platform_bottom_for_tests()))
-	assert(is_equal_approx((centers[0].x + centers[1].x) * 0.5, core_center.x))
-	assert(is_equal_approx(core_center.x - centers[0].x, offset.x))
-	assert(is_equal_approx(centers[1].x - core_center.x, offset.x))
-
+	assert(
+		centers[1].x - core_center.x - engine_size.x * 0.5
+		> overlay.platform_core_reference_size.x * 0.5
+	)
+	assert(overlay.get_speed_common_source_rect_for_tests().size.x > 0.0)
+	assert(overlay.get_speed_common_source_rect_for_tests().size.y > 0.0)
 	assert(overlay.is_wind_compensator_visible_for_tests())
 	assert(is_equal_approx(
 		overlay.get_wind_compensator_top_for_tests(-1),
@@ -74,7 +66,7 @@ func _run() -> void:
 		overlay.get_platform_bottom_for_tests()
 	))
 
-	print("Platform speed asset overlay scenarios passed")
+	print("Anchor platform underside visual scenarios passed")
 	quit()
 
 

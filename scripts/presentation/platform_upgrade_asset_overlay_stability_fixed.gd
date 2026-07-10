@@ -14,6 +14,9 @@ const FIXED_STABILITY_FLAME_3: Texture2D = preload(
 	"res://visual/objects/platform/core/stability/overlay_stability_03.png"
 )
 
+const SPEED_ENGINE_HORIZONTAL_OFFSET := 96.0
+const SPEED_ENGINE_MOUNT_GAP := 0.0
+
 @export_node_path("PlatformVisualController") var platform_visual_path: NodePath = NodePath(
 	"../PlatformVisualController"
 )
@@ -31,10 +34,20 @@ var _fixed_stability_flames: Array[Texture2D] = [
 	FIXED_STABILITY_FLAME_2,
 	FIXED_STABILITY_FLAME_3,
 ]
+var _speed_common_source_rect: Rect2
 
 @onready var _platform_visual: PlatformVisualController = get_node_or_null(
 	platform_visual_path
 ) as PlatformVisualController
+
+
+func _init() -> void:
+	speed_engine_offset = Vector2(SPEED_ENGINE_HORIZONTAL_OFFSET, SPEED_ENGINE_MOUNT_GAP)
+
+
+func _ready() -> void:
+	super._ready()
+	_speed_common_source_rect = _get_common_speed_source_rect()
 
 
 func _draw() -> void:
@@ -90,6 +103,124 @@ func get_control_active_lift_y_for_tests() -> float:
 
 func is_stability_side_mirrored_for_tests(side: int) -> bool:
 	return side < 0
+
+
+func get_speed_common_source_rect_for_tests() -> Rect2:
+	return _speed_common_source_rect
+
+
+func get_speed_engine_top_for_tests(side: int) -> float:
+	return _get_speed_asset_center(side).y - speed_engine_size.y * 0.5
+
+
+func get_platform_bottom_for_tests() -> float:
+	return _get_platform_bottom_y()
+
+
+func get_wind_compensator_top_for_tests(side: int) -> float:
+	if wind_compensator_asset == null:
+		return INF
+	var texture: Texture2D = wind_compensator_asset.get_texture_for_side(
+		side,
+		_anchorless,
+		_wind
+	)
+	var draw_size: Vector2 = _get_draw_size(texture, wind_compensator_asset.size)
+	var centers: Array[Vector2] = wind_compensator_asset.get_centers(_platform, draw_size)
+	var index: int = 0 if side < 0 else 1
+	return centers[index].y - wind_compensator_asset.vertical_offset - draw_size.y * 0.5
+
+
+func _draw_speed_assets() -> void:
+	if not is_speed_asset_visible():
+		return
+	var flame_side: int = get_active_speed_flame_side_for_tests()
+	for side: int in [-1, 1]:
+		var center: Vector2 = _get_speed_asset_center(side)
+		_draw_speed_texture_aligned(SPEED_ENGINE, center, side < 0)
+		if flame_side == side:
+			_draw_speed_texture_aligned(
+				_get_frame(_speed_flames),
+				center,
+				side < 0
+			)
+
+
+func _draw_speed_texture_aligned(
+	texture: Texture2D,
+	center: Vector2,
+	mirrored: bool
+) -> void:
+	if texture == null or _speed_common_source_rect.size.x <= 0.0:
+		return
+	var rect := Rect2(-speed_engine_size * 0.5, speed_engine_size)
+	var scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
+	draw_set_transform(center, 0.0, scale)
+	draw_texture_rect_region(texture, rect, _speed_common_source_rect)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_wind_compensators() -> void:
+	if not is_wind_compensator_visible_for_tests():
+		return
+	for side: int in [-1, 1]:
+		var texture: Texture2D = wind_compensator_asset.get_texture_for_side(
+			side,
+			_anchorless,
+			_wind
+		)
+		var draw_size: Vector2 = _get_draw_size(texture, wind_compensator_asset.size)
+		var centers: Array[Vector2] = wind_compensator_asset.get_centers(
+			_platform,
+			draw_size
+		)
+		var index: int = 0 if side < 0 else 1
+		var center: Vector2 = centers[index] - Vector2(
+			0.0,
+			wind_compensator_asset.vertical_offset
+		)
+		_draw_texture_centered(
+			texture,
+			center,
+			wind_compensator_asset.size,
+			side < 0
+		)
+
+
+func _get_speed_asset_center(side: int) -> Vector2:
+	return Vector2(
+		_get_platform_core_center().x + speed_engine_offset.x * float(side),
+		_get_platform_bottom_y() + speed_engine_offset.y + speed_engine_size.y * 0.5
+	)
+
+
+func _get_platform_bottom_y() -> float:
+	if _platform == null or _platform.balance == null:
+		return 29.0
+	return _platform.balance.platform_height * 0.5
+
+
+func _get_common_speed_source_rect() -> Rect2:
+	var textures: Array[Texture2D] = [
+		SPEED_ENGINE,
+		SPEED_FLAME_1,
+		SPEED_FLAME_2,
+		SPEED_FLAME_3,
+	]
+	var common := Rect2()
+	var initialized := false
+	for texture: Texture2D in textures:
+		var source: Rect2 = _source_rects.get(texture, Rect2())
+		if source.size.x <= 0.0 or source.size.y <= 0.0:
+			continue
+		if not initialized:
+			common = source
+			initialized = true
+		else:
+			common = common.merge(source)
+	if initialized:
+		return common
+	return Rect2(Vector2.ZERO, SPEED_ENGINE.get_size())
 
 
 func _draw_stability_assets() -> void:
