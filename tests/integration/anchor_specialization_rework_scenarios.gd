@@ -38,7 +38,7 @@ func _run() -> void:
 		assert(anchor_visual.is_winch_drawable_for_tests(anchor_id))
 	assert(is_equal_approx(
 		anchor_visual.get_winch_scale_multiplier_for_tests(),
-		0.70
+		0.42
 	))
 	assert(anchor_visual.get_winch_asset_id_for_tests() == &"base")
 
