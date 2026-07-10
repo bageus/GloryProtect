@@ -43,7 +43,7 @@ static func get_alpha_bounds(
 	var safe_threshold: float = clampf(threshold, 0.0, 1.0)
 	var cache_key: String = _get_alpha_cache_key(texture, safe_threshold)
 	if _alpha_bounds_cache.has(cache_key):
-		return _alpha_bounds_cache[cache_key] as Rect2
+		return _alpha_bounds_cache[cache_key]
 
 	var fallback := Rect2(Vector2.ZERO, texture.get_size())
 	var image: Image = texture.get_image()
