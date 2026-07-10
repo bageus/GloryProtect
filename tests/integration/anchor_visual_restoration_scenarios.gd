@@ -20,19 +20,17 @@ func _run() -> void:
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
-	var visual: AnchorAssetPresentation = game.get_node(
-		"World/AnchorAssetPresentation"
-	) as AnchorAssetPresentation
+	var visual: AnchorVisualControllerPolished = anchors.get_node(
+		"AnchorVisualController"
+	) as AnchorVisualControllerPolished
 	assert(anchors != null)
 	assert(combat != null)
 	assert(catalog != null)
 	assert(visual != null)
-	assert(visual.is_configured_for_tests())
 	assert(visual.are_anchor_asset_regions_valid_for_tests())
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
-	assert(visual.object_asset_scale <= 0.12)
-	assert(visual.get_clamp_visual_scale() <= 0.13)
-	assert(visual.chain_tile_height <= 20.0)
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.70))
+	assert(visual.get_anchor_chain_attach_depth_for_tests() > 0.0)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
@@ -51,7 +49,11 @@ func _run() -> void:
 		catalog.get_definition(CombatAnchorUpgradeRuntime.TRAP).effect
 	))
 	await process_frame
-	assert(visual.get_winch_asset_id_for_tests(0) == &"specialization_2")
+	assert(visual.get_winch_asset_id_for_tests(0) == &"trap")
+	assert(
+		visual._get_winch_texture(0).resource_path
+		== "res://visual/objects/asset_winch_04.png"
+	)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 
