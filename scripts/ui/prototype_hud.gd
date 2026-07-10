@@ -2,6 +2,7 @@ class_name PrototypeHUD
 extends Control
 
 const ANCHOR_REMOVE_ALL_ACTION_ID := &"gp_anchor_remove_all"
+const APP_SETTINGS_RUNTIME_PATH := "/root/AppSettingsRuntime"
 
 @export_node_path("GameFlowController") var game_flow_path: NodePath
 @export_node_path("RunDifficulty") var run_difficulty_path: NodePath
@@ -80,6 +81,7 @@ const ANCHOR_REMOVE_ALL_ACTION_ID := &"gp_anchor_remove_all"
 
 var _placement: BuildablePlacementController
 var _instant_anchor_remove_prompt: Label
+var _app_settings: AppSettingsService
 
 
 func _ready() -> void:
@@ -92,10 +94,11 @@ func _ready() -> void:
 		) as BuildablePlacementController
 	_create_crew_command_panel()
 	_create_instant_anchor_remove_prompt()
-	if not AppSettingsRuntime.input_bindings_changed.is_connected(
+	_app_settings = get_node_or_null(APP_SETTINGS_RUNTIME_PATH) as AppSettingsService
+	if _app_settings != null and not _app_settings.input_bindings_changed.is_connected(
 		_update_instant_anchor_remove_prompt
 	):
-		AppSettingsRuntime.input_bindings_changed.connect(
+		_app_settings.input_bindings_changed.connect(
 			_update_instant_anchor_remove_prompt
 		)
 	_update_instant_anchor_remove_prompt()
@@ -185,8 +188,14 @@ func _update_instant_anchor_remove_prompt() -> void:
 	if not should_show:
 		return
 	_instant_anchor_remove_prompt.text = "[%s] быстро снять все тросы" % (
-		AppSettingsRuntime.get_binding_text(ANCHOR_REMOVE_ALL_ACTION_ID)
+		_get_anchor_remove_binding_text()
 	)
+
+
+func _get_anchor_remove_binding_text() -> String:
+	if _app_settings != null:
+		return _app_settings.get_binding_text(ANCHOR_REMOVE_ALL_ACTION_ID)
+	return OS.get_keycode_string(KEY_R)
 
 
 func _should_show_instant_anchor_remove_prompt() -> bool:
