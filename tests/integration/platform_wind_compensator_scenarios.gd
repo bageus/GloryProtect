@@ -131,7 +131,7 @@ func _assert_compensator_layout(
 	var centers: Array[Vector2] = asset.get_centers(platform, draw_size)
 	var left_center: Vector2 = centers[0]
 	var right_center: Vector2 = centers[1]
-	var platform_top: float = -platform.get_platform_height() * 0.5
+	var platform_bottom: float = platform.get_platform_height() * 0.5
 
 	assert(asset.base_texture != null)
 	assert(asset.active_texture != null)
@@ -141,14 +141,14 @@ func _assert_compensator_layout(
 	assert(right_center.x > 0.0)
 	assert(is_equal_approx(
 		left_center.y - draw_size.y * 0.5,
-		platform_top + asset.vertical_offset
+		platform_bottom + asset.vertical_offset
 	))
 	assert(is_equal_approx(
 		right_center.y - draw_size.y * 0.5,
-		platform_top + asset.vertical_offset
+		platform_bottom + asset.vertical_offset
 	))
-	assert(left_center.y < platform.get_platform_height() * 0.5)
-	assert(right_center.y < platform.get_platform_height() * 0.5)
+	assert(left_center.y > platform_bottom)
+	assert(right_center.y > platform_bottom)
 
 
 func _disable_spawners(game: Node) -> void:
