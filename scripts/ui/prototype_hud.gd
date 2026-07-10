@@ -92,10 +92,10 @@ func _ready() -> void:
 		) as BuildablePlacementController
 	_create_crew_command_panel()
 	_create_instant_anchor_remove_prompt()
-	if not AppSettings.input_bindings_changed.is_connected(
+	if not AppSettingsRuntime.input_bindings_changed.is_connected(
 		_update_instant_anchor_remove_prompt
 	):
-		AppSettings.input_bindings_changed.connect(
+		AppSettingsRuntime.input_bindings_changed.connect(
 			_update_instant_anchor_remove_prompt
 		)
 	_update_instant_anchor_remove_prompt()
@@ -185,7 +185,7 @@ func _update_instant_anchor_remove_prompt() -> void:
 	if not should_show:
 		return
 	_instant_anchor_remove_prompt.text = "[%s] быстро снять все тросы" % (
-		AppSettings.get_binding_text(ANCHOR_REMOVE_ALL_ACTION_ID)
+		AppSettingsRuntime.get_binding_text(ANCHOR_REMOVE_ALL_ACTION_ID)
 	)
 
 
