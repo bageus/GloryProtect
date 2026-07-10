@@ -5,7 +5,7 @@ extends Resource
 @export var active_texture: Texture2D
 @export var size: Vector2 = Vector2(72.0, 54.0)
 @export_range(0.0, 48.0, 0.25) var gap: float = 8.0
-@export_range(-64.0, 64.0, 0.25) var vertical_offset: float = -8.0
+@export_range(-64.0, 64.0, 0.25) var vertical_offset: float = 8.0
 
 
 func is_visible(anchorless: AnchorlessControlSystem) -> bool:
@@ -71,7 +71,7 @@ func _get_center(
 	)
 	return Vector2(
 		inner_edge_x - float(normalized_side) * (gap + draw_size.x * 0.5),
-		_get_platform_surface_y(platform) + draw_size.y * 0.5 + vertical_offset
+		_get_platform_bottom_y(platform) + draw_size.y * 0.5 + vertical_offset
 	)
 
 
@@ -95,7 +95,7 @@ func _get_anchor_post_inner_edge_x(
 	)
 
 
-func _get_platform_surface_y(platform: PlatformController) -> float:
+func _get_platform_bottom_y(platform: PlatformController) -> float:
 	if platform == null or platform.balance == null:
-		return -29.0
-	return -platform.balance.platform_height * 0.5
+		return 29.0
+	return platform.balance.platform_height * 0.5
