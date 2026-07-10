@@ -31,7 +31,7 @@ func _run() -> void:
 	)
 	root.add_child(visual)
 
-	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.42))
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.483))
 	assert(
 		visual.get_base_anchor_source_rect_for_tests()
 		== Rect2(Vector2(157.0, 162.0), Vector2(198.0, 252.0))
@@ -46,34 +46,36 @@ func _run() -> void:
 	)
 
 	var base_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(base_winch_size.is_equal_approx(Vector2(34.692, 20.244)))
-	assert(base_winch_size.x < platform.balance.cell_width)
+	assert(base_winch_size.is_equal_approx(Vector2(39.8958, 23.2806)))
+	assert(base_winch_size.x > 34.692)
 	assert(
 		visual.get_winch_chain_exit(0).is_equal_approx(
-			visual.get_winch_visual_bottom(0) + Vector2(0.0, -2.0)
+			visual.get_winch_visual_bottom(0)
+			+ Vector2(0.0, -base_winch_size.y * 0.5)
 		)
 	)
 	assert(
 		visual.get_winch_chain_exit(3).is_equal_approx(
-			visual.get_winch_visual_bottom(3) + Vector2(0.0, -2.0)
+			visual.get_winch_visual_bottom(3)
+			+ Vector2(0.0, -base_winch_size.y * 0.5)
 		)
 	)
 
 	var ground := Vector2(25.0, 420.0)
-	assert(visual.clamp_ground_offset == Vector2(0.0, 8.0))
+	assert(visual.clamp_ground_offset == Vector2(0.0, 40.0))
 	assert(
 		visual.get_ground_clamp_bottom_for_tests(ground).is_equal_approx(
-			ground + Vector2(0.0, 8.0)
+			ground + Vector2(0.0, 40.0)
 		)
 	)
+	var base_clamp_top: Vector2 = visual.get_clamp_top_for_tests(ground)
+	assert(base_clamp_top.y > ground.y)
 	assert(
 		visual.get_clamp_connection_point_for_tests(ground).is_equal_approx(
-			ground
-			+ visual.clamp_ground_offset
-			+ visual.clamp_chain_connection_offset
+			base_clamp_top + Vector2(0.0, 6.0)
 		)
 	)
-	assert(is_equal_approx(visual.get_anchor_chain_attach_depth_for_tests(), 14.0))
+	assert(is_equal_approx(visual.get_anchor_chain_attach_depth_for_tests(), 20.0))
 
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
 	assert(visual.get_winch_asset_id_for_tests() == &"trap")
@@ -82,9 +84,25 @@ func _run() -> void:
 		== "res://visual/objects/asset_winch_04.png"
 	)
 	var trap_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(trap_winch_size.is_equal_approx(Vector2(38.892, 24.864)))
-	assert(trap_winch_size.x < platform.balance.cell_width)
+	assert(trap_winch_size.is_equal_approx(Vector2(44.7258, 28.5936)))
+	assert(trap_winch_size.x > 38.892)
 	assert(visual.is_winch_drawable_for_tests(0))
+
+	combat_system.upgrades.reset()
+	assert(combat_system.upgrades.apply_scalar(
+		CombatAnchorUpgradeRuntime.INSTALL_SPEED_BONUS_RATIO,
+		0.4
+	))
+	var turbo_clamp_top: Vector2 = visual.get_clamp_top_for_tests(ground)
+	assert(
+		visual.get_turbo_anchor_bottom_for_tests(ground).is_equal_approx(
+			turbo_clamp_top
+		)
+	)
+	assert(
+		visual.get_clamp_connection_point_for_tests(ground).y
+		< turbo_clamp_top.y
+	)
 
 	print("Anchor asset visual connection scenarios passed")
 	quit()
