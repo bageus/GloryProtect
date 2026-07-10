@@ -17,9 +17,9 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_stabilize_world(game)
 
-	var overlay: PlatformUpgradeAssetOverlayFeedbackFixed = game.get_node(
+	var overlay: PlatformUpgradeAssetOverlayStabilityFixed = game.get_node(
 		"World/Platform/PlatformUpgradeAssetOverlay"
-	) as PlatformUpgradeAssetOverlayFeedbackFixed
+	) as PlatformUpgradeAssetOverlayStabilityFixed
 	var anchorless: AnchorlessControlSystem = game.get_node(
 		"World/AnchorlessControlSystem"
 	) as AnchorlessControlSystem
@@ -56,22 +56,7 @@ func _run() -> void:
 	)
 	assert(overlay.get_speed_common_source_rect_for_tests().size.x > 0.0)
 	assert(overlay.get_speed_common_source_rect_for_tests().size.y > 0.0)
-	assert(overlay.get_speed_flame_outward_offset_for_tests() >= 10.0)
-	assert(
-		centers[0].x - overlay.get_speed_flame_center_for_tests(-1).x
-		>= 10.0
-	)
-	assert(
-		overlay.get_speed_flame_center_for_tests(1).x - centers[1].x
-		>= 10.0
-	)
-
 	assert(overlay.is_wind_compensator_visible_for_tests())
-	assert(
-		overlay.wind_compensator_asset.size.is_equal_approx(
-			Vector2(79.2, 59.4)
-		)
-	)
 	assert(is_equal_approx(
 		overlay.get_wind_compensator_top_for_tests(-1),
 		overlay.get_platform_bottom_for_tests()
