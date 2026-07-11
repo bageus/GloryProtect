@@ -31,7 +31,7 @@ func _run() -> void:
 	)
 	root.add_child(visual)
 
-	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.483))
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.55545))
 	assert(is_equal_approx(visual.stowed_chain_length, 38.0))
 	var expected_anchor_rect := Rect2(
 		Vector2(157.0, 162.0),
@@ -57,22 +57,12 @@ func _run() -> void:
 	)
 
 	var base_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(base_winch_size.is_equal_approx(Vector2(39.8958, 23.2806)))
+	assert(base_winch_size.is_equal_approx(Vector2(45.88017, 26.77269)))
+	assert(base_winch_size.x > platform.balance.cell_width)
 	var left_winch_bottom: Vector2 = visual.get_winch_visual_bottom(0)
 	var right_winch_bottom: Vector2 = visual.get_winch_visual_bottom(3)
-	assert(
-		visual.get_winch_chain_exit(0).is_equal_approx(
-			left_winch_bottom + Vector2(0.0, -base_winch_size.y * 0.5)
-		)
-	)
-	assert(
-		visual.get_winch_chain_exit(3).is_equal_approx(
-			right_winch_bottom + Vector2(0.0, -base_winch_size.y * 0.5)
-		)
-	)
-	var left_exit: Vector2 = visual.get_winch_chain_exit(0)
-	assert(left_exit.y > left_winch_bottom.y - base_winch_size.y)
-	assert(left_exit.y < left_winch_bottom.y)
+	assert(visual.get_winch_chain_exit(0).is_equal_approx(left_winch_bottom))
+	assert(visual.get_winch_chain_exit(3).is_equal_approx(right_winch_bottom))
 
 	var overlap_ratio: float = visual.get_chain_socket_overlap_ratio_for_tests()
 	var overlap_depth: float = visual.get_chain_socket_overlap_depth_for_tests()
@@ -97,9 +87,23 @@ func _run() -> void:
 	var platform_bottom_y: float = (
 		platform.position.y + platform.balance.platform_height * 0.5
 	)
+	var stowed_anchor_top: Vector2 = visual.get_stowed_anchor_draw_top_for_tests(0)
 	var stowed_anchor_rect: Rect2 = visual.get_stowed_anchor_rect_for_tests(0)
-	assert(stowed_anchor_rect.end.y > platform_bottom_y)
-	assert(stowed_anchor_rect.end.y - platform_bottom_y < 8.0)
+	var anchor_socket: Vector2 = visual.get_anchor_chain_socket_for_tests(
+		stowed_anchor_top
+	)
+	assert(anchor_socket.is_equal_approx(Vector2(
+		stowed_anchor_rect.position.x + stowed_anchor_rect.size.x * 0.5,
+		stowed_anchor_rect.position.y
+	)))
+	assert(is_equal_approx(
+		anchor_socket.y - left_winch_bottom.y,
+		visual.chain_tile_height / 3.0
+	))
+	var anchor_protrusion := stowed_anchor_rect.end.y - platform_bottom_y
+	assert(anchor_protrusion > 0.0)
+	assert(anchor_protrusion < 3.0)
+	assert(anchor_socket.y < stowed_anchor_top.y)
 
 	var ground := Vector2(25.0, 420.0)
 	assert(visual.clamp_ground_offset == Vector2(0.0, 2.0))
@@ -109,16 +113,15 @@ func _run() -> void:
 		)
 	)
 	var ground_clamp_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	var clamp_socket: Vector2 = visual.get_clamp_chain_socket_for_tests(ground)
 	assert(ground_clamp_rect.position.y < ground.y)
 	assert(ground_clamp_rect.end.y > ground.y)
 	assert(is_equal_approx(ground_clamp_rect.end.y - ground.y, 2.0))
-	assert(
-		visual.get_clamp_connection_point_for_tests(ground).is_equal_approx(
-			ground
-			+ visual.clamp_ground_offset
-			+ visual.clamp_chain_connection_offset
-		)
-	)
+	assert(clamp_socket.is_equal_approx(Vector2(
+		ground_clamp_rect.position.x + ground_clamp_rect.size.x * 0.5,
+		ground_clamp_rect.position.y
+	)))
+	assert(visual.get_clamp_connection_point_for_tests(ground).y > clamp_socket.y)
 	assert(is_equal_approx(visual.get_anchor_chain_attach_depth_for_tests(), 14.0))
 
 	assert(combat_system.upgrades.apply_flag(CombatAnchorUpgradeRuntime.TRAP))
@@ -128,8 +131,7 @@ func _run() -> void:
 		== "res://visual/objects/asset_winch_04.png"
 	)
 	var trap_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(trap_winch_size.is_equal_approx(Vector2(44.7258, 28.5936)))
-	# The winch is intentionally allowed to exceed the 40 px platform cell.
+	assert(trap_winch_size.is_equal_approx(Vector2(51.43467, 32.88264)))
 	assert(trap_winch_size.x > platform.balance.cell_width)
 	assert(visual.is_winch_drawable_for_tests(0))
 
