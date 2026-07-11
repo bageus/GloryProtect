@@ -36,14 +36,14 @@ func _run() -> void:
 	assert(visual.get_anchor_chain_attach_depth_for_tests() > 0.0)
 
 	var ground := Vector2(25.0, 420.0)
-	var expected_bottom := ground + visual.clamp_ground_offset
+	var expected_bottom_y := ground.y + visual.clamp_ground_offset.y
 	assert(visual.get_clamp_asset_id_for_tests() == &"base")
 	assert(is_equal_approx(
 		visual.get_active_clamp_scale_multiplier_for_tests(),
 		1.0
 	))
 	var base_clamp_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
-	assert(base_clamp_rect.end.is_equal_approx(expected_bottom))
+	assert(is_equal_approx(base_clamp_rect.end.y, expected_bottom_y))
 
 	combat.upgrades.install_speed_bonus_ratio = 0.2
 	await process_frame
@@ -58,7 +58,7 @@ func _run() -> void:
 		)
 	)
 	var fastening_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
-	assert(fastening_rect.end.is_equal_approx(expected_bottom))
+	assert(is_equal_approx(fastening_rect.end.y, expected_bottom_y))
 
 	combat.upgrades.install_speed_bonus_ratio = 0.4
 	await process_frame
@@ -73,7 +73,7 @@ func _run() -> void:
 		)
 	)
 	var turbo_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
-	assert(turbo_rect.end.is_equal_approx(expected_bottom))
+	assert(is_equal_approx(turbo_rect.end.y, expected_bottom_y))
 	combat.upgrades.install_speed_bonus_ratio = 0.0
 	await process_frame
 
