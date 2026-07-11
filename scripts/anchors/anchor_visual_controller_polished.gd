@@ -29,15 +29,14 @@ const TRAP_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_04.png"
 )
 
-# Requested follow-up scale: 15% larger than the previous 0.42 value.
+# Winch scale is independent of platform-cell width; wide assets may cross cell bounds.
 const WINCH_SCALE_MULTIPLIER := 0.483
 const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
 const GROUND_CLAMP_OFFSET := Vector2(0.0, 2.0)
 const WINCH_CHAIN_EXIT_OFFSET := Vector2(0.0, -2.0)
 const WINCH_CHAIN_EXIT_HEIGHT_RATIO := 0.5
 const STOWED_CHAIN_LENGTH := 38.0
-const CHAIN_ENDPOINT_OVERLAY_LENGTH := 20.0
-const CHAIN_ENDPOINT_OVERDRAW := 5.0
+const CHAIN_SOCKET_OVERLAP_RATIO := 1.0 / 3.0
 
 
 func _init() -> void:
@@ -68,7 +67,7 @@ func _ready() -> void:
 func _draw() -> void:
 	if _store == null:
 		return
-	# Winches are drawn first so the chain can visually overlap their drum/body.
+	# Winches stay below the chain, while socket fitting limits the overlap to 1/3 tile.
 	if draw_winch_posts:
 		_draw_winch_posts()
 	for anchor: AnchorRuntime in _store.get_all():
@@ -84,6 +83,21 @@ func get_winch_scale_multiplier_for_tests() -> float:
 
 func get_anchor_chain_attach_depth_for_tests() -> float:
 	return ANCHOR_CHAIN_ATTACH_DEPTH
+
+
+func get_chain_socket_overlap_ratio_for_tests() -> float:
+	return CHAIN_SOCKET_OVERLAP_RATIO
+
+
+func get_chain_socket_overlap_depth_for_tests() -> float:
+	return _get_chain_tile_draw_height() * CHAIN_SOCKET_OVERLAP_RATIO
+
+
+func get_chain_socket_segment_for_tests(
+	start: Vector2,
+	finish: Vector2
+) -> PackedVector2Array:
+	return _get_socket_fitted_chain_endpoints(start, finish)
 
 
 func get_clamp_connection_point_for_tests(ground: Vector2) -> Vector2:
@@ -198,22 +212,72 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 
 
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
-	super._draw_stowed_anchor(anchor, start)
 	var top := start + Vector2(0.0, stowed_chain_length)
 	var tint := Color.WHITE if bool(_is_operator_available.call(anchor.side)) else Color(0.68, 0.7, 0.72, 1.0)
-	_draw_chain_endpoint_overlay(start, top, tint)
+	_draw_anchor_asset(top, tint)
+	_draw_socket_fitted_chain(
+		start,
+		top,
+		tint,
+		Color(1.0, 0.95, 0.72, 1.0)
+	)
 
 
 func _draw_installing_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
-	super._draw_installing_anchor(anchor, start)
-	var target := _get_clamp_connection_point(anchor.target_ground_point)
+	var ground := anchor.target_ground_point
+	var target := _get_clamp_connection_point(ground)
 	var ratio := clampf(
 		anchor.operation_progress / maxf(_balance.install_duration, 0.01),
 		0.0,
 		1.0
 	)
 	var top := start.lerp(target, ratio)
-	_draw_chain_endpoint_overlay(start, top, Color(0.92, 0.82, 0.55, 1.0))
+	var tint := Color(0.92, 0.82, 0.55, 1.0)
+	_draw_clamp(ground, _get_clamp_tint(anchor))
+	_draw_anchor_asset(top, tint)
+	_draw_socket_fitted_chain(
+		start,
+		top,
+		tint,
+		Color(1.0, 0.93, 0.62, 1.0)
+	)
+
+
+func _draw_attached_anchor(
+	anchor: AnchorRuntime,
+	start: Vector2,
+	ground: Vector2
+) -> void:
+	var ratio := _get_durability_ratio(anchor)
+	var color := Color(0.92, 0.75, 0.36)
+	if ratio <= _balance.rope_critical_ratio:
+		var pulse := 0.5 + 0.5 * sin(
+			_warning_elapsed * _balance.rope_warning_pulse_speed
+		)
+		color = Color(1.0, 0.08, 0.04).lerp(Color(1.0, 0.65, 0.12), pulse)
+	elif ratio <= _balance.rope_damaged_ratio:
+		color = Color(1.0, 0.42, 0.08)
+	if anchor.state == AnchorRuntime.State.OVERLOADED:
+		var overload_pulse := 0.5 + 0.5 * sin(
+			_warning_elapsed * _balance.rope_warning_pulse_speed * 1.4
+		)
+		color = Color(1.0, 0.05, 0.03).lerp(
+			Color(1.0, 0.35, 0.08),
+			overload_pulse
+		)
+	var target := _get_clamp_connection_point(ground)
+	_draw_clamp(ground, Color.WHITE)
+	if _uses_turbo_fastening_assets():
+		_draw_anchor_asset(target, Color.WHITE)
+	_draw_socket_fitted_chain(
+		start,
+		target,
+		color,
+		Color(1.0, 0.88, 0.48, 1.0)
+	)
+	_draw_durability_meter(start.lerp(target, 0.5), ratio, color)
+	if is_electric_visual_active(anchor.anchor_id):
+		_draw_electric_arcs(start, target, anchor.anchor_id)
 
 
 func _draw_returning_anchor(
@@ -221,7 +285,6 @@ func _draw_returning_anchor(
 	start: Vector2,
 	ground: Vector2
 ) -> void:
-	super._draw_returning_anchor(anchor, start, ground)
 	var ratio := clampf(
 		anchor.operation_progress / maxf(_balance.return_duration, 0.01),
 		0.0,
@@ -229,20 +292,64 @@ func _draw_returning_anchor(
 	)
 	var source := _get_clamp_connection_point(ground)
 	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
-	_draw_chain_endpoint_overlay(start, top, Color(0.85, 0.76, 0.46))
+	var color := Color(0.85, 0.76, 0.46)
+	_draw_clamp(ground, Color.WHITE)
+	_draw_anchor_asset(top, color.lightened(0.12))
+	_draw_socket_fitted_chain(
+		start,
+		top,
+		color,
+		Color(0.98, 0.86, 0.52, 1.0)
+	)
 
 
-func _draw_chain_endpoint_overlay(start: Vector2, finish: Vector2, tint: Color) -> void:
+func _draw_socket_fitted_chain(
+	start: Vector2,
+	finish: Vector2,
+	tint: Color,
+	reinforced_tint: Color
+) -> void:
+	var endpoints: PackedVector2Array = _get_socket_fitted_chain_endpoints(
+		start,
+		finish
+	)
+	if endpoints.size() != 2:
+		return
+	_draw_chain_links(endpoints[0], endpoints[1], tint)
+	if is_reinforced_chain_visual_active():
+		_draw_reinforced_chain_overlay(
+			endpoints[0],
+			endpoints[1],
+			reinforced_tint
+		)
+
+
+func _get_socket_fitted_chain_endpoints(
+	start: Vector2,
+	finish: Vector2
+) -> PackedVector2Array:
 	var segment := finish - start
 	var length := segment.length()
 	if length <= 0.01:
-		return
+		return PackedVector2Array()
 	var direction := segment / length
-	var overlay_start := finish - direction * minf(CHAIN_ENDPOINT_OVERLAY_LENGTH, length)
-	var overlay_finish := finish + direction * CHAIN_ENDPOINT_OVERDRAW
-	_draw_chain_links(overlay_start, overlay_finish, tint)
-	if is_reinforced_chain_visual_active():
-		_draw_reinforced_chain_overlay(overlay_start, overlay_finish, tint)
+	var tile_height: float = _get_chain_tile_draw_height()
+	var overlap_depth := tile_height * CHAIN_SOCKET_OVERLAP_RATIO
+	var center_inset := maxf(tile_height * 0.5 - overlap_depth, 0.0)
+	var safe_inset := minf(center_inset, length * 0.45)
+	return PackedVector2Array([
+		start + direction * safe_inset,
+		finish - direction * safe_inset,
+	])
+
+
+func _get_chain_tile_draw_height() -> float:
+	if not _is_rect_drawable(_chain_source_rect):
+		return chain_tile_height
+	return TextureRegionLayout.fit_height(
+		_chain_source_rect.size,
+		chain_tile_height
+	).y
 
 
 func _draw_anchor_texture_at_top(
