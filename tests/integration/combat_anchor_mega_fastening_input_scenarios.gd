@@ -44,6 +44,8 @@ func _run() -> void:
 	platform.position.x = orb_x + zone_half_width
 	assert(anchors.is_in_installation_zone())
 	_install_with_action(anchors, &"gp_anchor_3", 2)
+	_send_anchor_action(anchors, &"gp_anchor_3")
+	assert(anchors.get_anchor_state(2) == AnchorRuntime.State.STOWED)
 
 	# At the left edge, the new left-inner winch must attach as well.
 	platform.position.x = orb_x - zone_half_width
