@@ -20,9 +20,9 @@ func _run() -> void:
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
-	var visual: AnchorVisualControllerPolished = anchors.get_node(
+	var visual: AnchorVisualControllerFasteningScaled = anchors.get_node(
 		"AnchorVisualController"
-	) as AnchorVisualControllerPolished
+	) as AnchorVisualControllerFasteningScaled
 	assert(anchors != null)
 	assert(combat != null)
 	assert(catalog != null)
@@ -34,6 +34,55 @@ func _run() -> void:
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
 	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.55545))
 	assert(visual.get_anchor_chain_attach_depth_for_tests() > 0.0)
+
+	var ground := Vector2(25.0, 420.0)
+	var expected_bottom := ground + visual.clamp_ground_offset
+	assert(visual.get_clamp_asset_id_for_tests() == &"base")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		1.0
+	))
+	assert(
+		visual.get_ground_clamp_rect_for_tests(ground).end
+		.is_equal_approx(expected_bottom)
+	)
+
+	combat.upgrades.install_speed_bonus_ratio = 0.2
+	await process_frame
+	assert(visual.get_clamp_asset_id_for_tests() == &"fastening")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		0.9
+	))
+	assert(
+		visual.get_active_clamp_visual_size_for_tests().is_equal_approx(
+			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
+		)
+	)
+	assert(
+		visual.get_ground_clamp_rect_for_tests(ground).end
+		.is_equal_approx(expected_bottom)
+	)
+
+	combat.upgrades.install_speed_bonus_ratio = 0.4
+	await process_frame
+	assert(visual.get_clamp_asset_id_for_tests() == &"turbo_fastening")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		0.9
+	))
+	assert(
+		visual.get_active_clamp_visual_size_for_tests().is_equal_approx(
+			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
+		)
+	)
+	assert(
+		visual.get_ground_clamp_rect_for_tests(ground).end
+		.is_equal_approx(expected_bottom)
+	)
+	combat.upgrades.install_speed_bonus_ratio = 0.0
+	await process_frame
+
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
