@@ -16,6 +16,13 @@ func get_speed_flame_center_for_tests(side: int) -> Vector2:
 	return _get_speed_flame_center(side)
 
 
+func get_speed_engine_visible_outer_edge_for_tests(side: int) -> float:
+	var normalized_side: int = -1 if side < 0 else 1
+	return _get_speed_asset_center(normalized_side).x + (
+		_get_speed_engine_visible_outer_offset() * float(normalized_side)
+	)
+
+
 func _draw_speed_assets() -> void:
 	if not is_speed_asset_visible():
 		return
@@ -40,4 +47,20 @@ func _get_speed_flame_center(side: int) -> Vector2:
 
 
 func _get_speed_flame_outward_offset() -> float:
-	return maxf(0.0, speed_engine_size.x * 0.5 - SPEED_FLAME_EDGE_INSET)
+	return maxf(
+		0.0,
+		_get_speed_engine_visible_outer_offset() - SPEED_FLAME_EDGE_INSET
+	)
+
+
+func _get_speed_engine_visible_outer_offset() -> float:
+	var common_rect: Rect2 = _speed_common_source_rect
+	var engine_rect: Rect2 = _source_rects.get(SPEED_ENGINE, Rect2())
+	if common_rect.size.x <= 0.0 or engine_rect.size.x <= 0.0:
+		return speed_engine_size.x * 0.5
+	var draw_scale: float = speed_engine_size.x / common_rect.size.x
+	var visible_right_edge: float = (
+		(engine_rect.end.x - common_rect.position.x) * draw_scale
+		- speed_engine_size.x * 0.5
+	)
+	return clampf(visible_right_edge, 0.0, speed_engine_size.x * 0.5)
