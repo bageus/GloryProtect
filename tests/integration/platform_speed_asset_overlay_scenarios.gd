@@ -68,18 +68,16 @@ func _run() -> void:
 	var outward_offset: float = overlay.get_speed_flame_outward_offset_for_tests()
 	var left_flame_center: Vector2 = overlay.get_speed_flame_center_for_tests(-1)
 	var right_flame_center: Vector2 = overlay.get_speed_flame_center_for_tests(1)
+	var left_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(-1)
+	var right_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(1)
 	assert(is_equal_approx(edge_inset, 16.0))
 	assert(outward_offset > 0.0)
 	assert(is_equal_approx(left_flame_center.x, centers[0].x - outward_offset))
 	assert(is_equal_approx(right_flame_center.x, centers[1].x + outward_offset))
-	assert(is_equal_approx(
-		left_flame_center.x,
-		centers[0].x - scaled_size.x * 0.5 + edge_inset
-	))
-	assert(is_equal_approx(
-		right_flame_center.x,
-		centers[1].x + scaled_size.x * 0.5 - edge_inset
-	))
+	assert(is_equal_approx(left_flame_center.x, left_visible_edge + edge_inset))
+	assert(is_equal_approx(right_flame_center.x, right_visible_edge - edge_inset))
+	assert(left_flame_center.x < centers[0].x)
+	assert(right_flame_center.x > centers[1].x)
 	assert(is_equal_approx(left_flame_center.y, centers[0].y))
 	assert(is_equal_approx(right_flame_center.y, centers[1].y))
 
