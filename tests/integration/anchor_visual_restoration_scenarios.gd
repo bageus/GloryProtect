@@ -17,12 +17,14 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_disable_spawners(game)
 
+	var platform: PlatformController = game.get_node("World/Platform")
 	var anchors: CombatAnchorHostSystem = game.get_node("World/AnchorSystem")
 	var combat: CombatAnchorSystem = game.get_node("World/CombatAnchorSystem")
 	var catalog: UpgradeCatalog = game.get_node("UpgradeSystem").catalog
-	var visual: AnchorVisualControllerPolished = anchors.get_node(
+	var visual: AnchorVisualControllerFasteningScaled = anchors.get_node(
 		"AnchorVisualController"
-	) as AnchorVisualControllerPolished
+	) as AnchorVisualControllerFasteningScaled
+	assert(platform != null)
 	assert(anchors != null)
 	assert(combat != null)
 	assert(catalog != null)
@@ -32,11 +34,88 @@ func _run() -> void:
 	assert(visual.get_base_clamp_source_rect_for_tests().size.x > 0.0)
 	assert(visual.get_base_clamp_source_rect_for_tests().size.y > 0.0)
 	assert(visual.get_anchor_visual_z_index_for_tests() >= visual.minimum_z_index)
-	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.55545))
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.610995))
 	assert(visual.get_anchor_chain_attach_depth_for_tests() > 0.0)
+
+	var ground := Vector2(25.0, 420.0)
+	var expected_bottom_y := ground.y + visual.clamp_ground_offset.y
+	assert(visual.get_clamp_asset_id_for_tests() == &"base")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		1.0
+	))
+	var base_clamp_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(is_equal_approx(base_clamp_rect.end.y, expected_bottom_y))
+
+	combat.upgrades.install_speed_bonus_ratio = 0.2
+	await process_frame
+	assert(visual.get_clamp_asset_id_for_tests() == &"fastening")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		0.9
+	))
+	assert(
+		visual.get_active_clamp_visual_size_for_tests().is_equal_approx(
+			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
+		)
+	)
+	var fastening_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(is_equal_approx(fastening_rect.end.y, expected_bottom_y))
+
+	combat.upgrades.install_speed_bonus_ratio = 0.4
+	await process_frame
+	assert(visual.get_clamp_asset_id_for_tests() == &"turbo_fastening")
+	assert(is_equal_approx(
+		visual.get_active_clamp_scale_multiplier_for_tests(),
+		0.9
+	))
+	assert(
+		visual.get_active_clamp_visual_size_for_tests().is_equal_approx(
+			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
+		)
+	)
+	var turbo_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(is_equal_approx(turbo_rect.end.y, expected_bottom_y))
+	combat.upgrades.install_speed_bonus_ratio = 0.0
+	await process_frame
+
+	assert(
+		visual.get_visible_anchor_ids_for_tests()
+		== PackedInt32Array([0, 3])
+	)
+	assert(combat.apply_upgrade_effect(
+		_flag_effect(CombatAnchorUpgradeRuntime.REINFORCED_WIND_THRESHOLD)
+	))
+	assert(combat.apply_upgrade_effect(
+		_flag_effect(CombatAnchorUpgradeRuntime.SECOND_WINCH_PAIR)
+	))
+	await process_frame
+	assert(anchors.is_second_winch_pair_enabled())
+	assert(
+		visual.get_visible_anchor_ids_for_tests()
+		== PackedInt32Array([0, 1, 2, 3])
+	)
 	for anchor_id: int in range(4):
 		assert(visual.is_winch_drawable_for_tests(anchor_id))
 		assert(visual.get_winch_asset_id_for_tests(anchor_id) == &"base")
+	var left_outer := visual.get_winch_visual_bottom(0)
+	var left_inner := visual.get_winch_visual_bottom(1)
+	var right_inner := visual.get_winch_visual_bottom(2)
+	var right_outer := visual.get_winch_visual_bottom(3)
+	assert(is_equal_approx(
+		left_inner.x - left_outer.x,
+		platform.balance.cell_width
+	))
+	assert(is_equal_approx(
+		right_outer.x - right_inner.x,
+		platform.balance.cell_width
+	))
+	combat.reset_upgrade_runtime()
+	await process_frame
+	assert(
+		visual.get_visible_anchor_ids_for_tests()
+		== PackedInt32Array([0, 3])
+	)
 
 	assert(combat.apply_upgrade_effect(
 		catalog.get_definition(CombatAnchorUpgradeRuntime.STRONG).effect
@@ -62,6 +141,13 @@ func _run() -> void:
 
 	print("Anchor visual restoration scenarios passed")
 	quit()
+
+
+func _flag_effect(target_id: StringName) -> UpgradeEffectDefinition:
+	var effect := UpgradeEffectDefinition.new()
+	effect.effect_type = UpgradeEffectDefinition.EffectType.DOMAIN_FLAG
+	effect.target_id = target_id
+	return effect
 
 
 func _disable_spawners(game: Node) -> void:
