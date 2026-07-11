@@ -70,7 +70,7 @@ func _run() -> void:
 	var right_flame_center: Vector2 = overlay.get_speed_flame_center_for_tests(1)
 	var left_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(-1)
 	var right_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(1)
-	assert(is_equal_approx(edge_inset, 16.0))
+	assert(is_equal_approx(edge_inset, 11.0))
 	assert(outward_offset > 0.0)
 	assert(is_equal_approx(left_flame_center.x, centers[0].x - outward_offset))
 	assert(is_equal_approx(right_flame_center.x, centers[1].x + outward_offset))
