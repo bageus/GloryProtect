@@ -42,10 +42,8 @@ func _run() -> void:
 		visual.get_active_clamp_scale_multiplier_for_tests(),
 		1.0
 	))
-	assert(
-		visual.get_ground_clamp_rect_for_tests(ground).end
-		.is_equal_approx(expected_bottom)
-	)
+	var base_clamp_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(base_clamp_rect.end.is_equal_approx(expected_bottom))
 
 	combat.upgrades.install_speed_bonus_ratio = 0.2
 	await process_frame
@@ -59,10 +57,8 @@ func _run() -> void:
 			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
 		)
 	)
-	assert(
-		visual.get_ground_clamp_rect_for_tests(ground).end
-		.is_equal_approx(expected_bottom)
-	)
+	var fastening_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(fastening_rect.end.is_equal_approx(expected_bottom))
 
 	combat.upgrades.install_speed_bonus_ratio = 0.4
 	await process_frame
@@ -76,10 +72,8 @@ func _run() -> void:
 			visual.get_active_clamp_unscaled_visual_size_for_tests() * 0.9
 		)
 	)
-	assert(
-		visual.get_ground_clamp_rect_for_tests(ground).end
-		.is_equal_approx(expected_bottom)
-	)
+	var turbo_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(turbo_rect.end.is_equal_approx(expected_bottom))
 	combat.upgrades.install_speed_bonus_ratio = 0.0
 	await process_frame
 
