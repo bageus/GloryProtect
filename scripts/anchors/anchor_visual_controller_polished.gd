@@ -29,19 +29,18 @@ const TRAP_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_04.png"
 )
 
-# Winch scale is independent of platform-cell width; wide assets may cross cell bounds.
-const WINCH_SCALE_MULTIPLIER := 0.483
+# Another visible 15% increase from the previously rendered 0.483 scale.
+# No platform-cell width is used by the runtime draw path.
+const WINCH_SCALE_MULTIPLIER := 0.55545
 const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
 const GROUND_CLAMP_OFFSET := Vector2(0.0, 2.0)
-const WINCH_CHAIN_EXIT_OFFSET := Vector2(0.0, -2.0)
-const WINCH_CHAIN_EXIT_HEIGHT_RATIO := 0.5
 const STOWED_CHAIN_LENGTH := 38.0
+const STOWED_ANCHOR_PROTRUSION := 5.0
 const CHAIN_SOCKET_OVERLAP_RATIO := 1.0 / 3.0
 
 
 func _init() -> void:
 	clamp_ground_offset = GROUND_CLAMP_OFFSET
-	winch_chain_exit_offset = WINCH_CHAIN_EXIT_OFFSET
 
 
 func _ready() -> void:
@@ -67,7 +66,6 @@ func _ready() -> void:
 func _draw() -> void:
 	if _store == null:
 		return
-	# Winches stay below the chain, while socket fitting limits the overlap to 1/3 tile.
 	if draw_winch_posts:
 		_draw_winch_posts()
 	for anchor: AnchorRuntime in _store.get_all():
@@ -104,6 +102,14 @@ func get_clamp_connection_point_for_tests(ground: Vector2) -> Vector2:
 	return _get_clamp_connection_point(ground)
 
 
+func get_clamp_chain_socket_for_tests(ground: Vector2) -> Vector2:
+	return _get_clamp_chain_socket(ground)
+
+
+func get_anchor_chain_socket_for_tests(draw_top: Vector2) -> Vector2:
+	return _get_anchor_chain_socket(draw_top)
+
+
 func get_ground_clamp_bottom_for_tests(ground: Vector2) -> Vector2:
 	return ground + clamp_ground_offset
 
@@ -133,29 +139,20 @@ func get_registered_base_clamp_source_rect_for_tests() -> Rect2:
 
 
 func get_ground_clamp_rect_for_tests(ground: Vector2) -> Rect2:
-	var source_rect: Rect2 = get_registered_base_clamp_source_rect_for_tests()
-	var size: Vector2 = source_rect.size * get_clamp_visual_scale()
-	var bottom: Vector2 = get_ground_clamp_bottom_for_tests(ground)
-	return Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
+	return _get_clamp_visual_rect(ground)
+
+
+func get_stowed_anchor_draw_top_for_tests(anchor_id: int) -> Vector2:
+	return _get_stowed_anchor_draw_top(anchor_id)
 
 
 func get_stowed_anchor_rect_for_tests(anchor_id: int) -> Rect2:
-	var size: Vector2 = _anchor_source_rect.size * object_asset_scale
-	var top: Vector2 = get_winch_chain_exit(anchor_id) + Vector2(0.0, stowed_chain_length)
-	return Rect2(
-		top + Vector2(-size.x * 0.5, -ANCHOR_CHAIN_ATTACH_DEPTH),
-		size
-	)
+	return _get_anchor_visual_rect(_get_stowed_anchor_draw_top(anchor_id))
 
 
 func get_winch_chain_exit(anchor_id: int) -> Vector2:
-	var size: Vector2 = _get_winch_draw_size(anchor_id)
-	if size.y <= 0.0:
-		return super.get_winch_chain_exit(anchor_id)
-	return _get_winch_bottom(anchor_id) + Vector2(
-		0.0,
-		-size.y * WINCH_CHAIN_EXIT_HEIGHT_RATIO
-	)
+	# The chain is horizontally centered and enters through the visible bottom edge.
+	return _get_winch_bottom(anchor_id)
 
 
 func _draw_winch(
@@ -212,12 +209,13 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 
 
 func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
-	var top := start + Vector2(0.0, stowed_chain_length)
+	var draw_top := _get_stowed_anchor_draw_top(anchor.anchor_id)
+	var socket := _get_anchor_chain_socket(draw_top)
 	var tint := Color.WHITE if bool(_is_operator_available.call(anchor.side)) else Color(0.68, 0.7, 0.72, 1.0)
-	_draw_anchor_asset(top, tint)
+	_draw_anchor_asset(draw_top, tint)
 	_draw_socket_fitted_chain(
 		start,
-		top,
+		socket,
 		tint,
 		Color(1.0, 0.95, 0.72, 1.0)
 	)
@@ -225,19 +223,21 @@ func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
 
 func _draw_installing_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
 	var ground := anchor.target_ground_point
-	var target := _get_clamp_connection_point(ground)
 	var ratio := clampf(
 		anchor.operation_progress / maxf(_balance.install_duration, 0.01),
 		0.0,
 		1.0
 	)
-	var top := start.lerp(target, ratio)
+	var stowed_top := _get_stowed_anchor_draw_top(anchor.anchor_id)
+	var installed_top := _get_anchor_draw_top_above_clamp(ground)
+	var draw_top := stowed_top.lerp(installed_top, ratio)
+	var socket := _get_anchor_chain_socket(draw_top)
 	var tint := Color(0.92, 0.82, 0.55, 1.0)
 	_draw_clamp(ground, _get_clamp_tint(anchor))
-	_draw_anchor_asset(top, tint)
+	_draw_anchor_asset(draw_top, tint)
 	_draw_socket_fitted_chain(
 		start,
-		top,
+		socket,
 		tint,
 		Color(1.0, 0.93, 0.62, 1.0)
 	)
@@ -265,19 +265,21 @@ func _draw_attached_anchor(
 			Color(1.0, 0.35, 0.08),
 			overload_pulse
 		)
-	var target := _get_clamp_connection_point(ground)
 	_draw_clamp(ground, Color.WHITE)
+	var socket := _get_clamp_chain_socket(ground)
 	if _uses_turbo_fastening_assets():
-		_draw_anchor_asset(target, Color.WHITE)
+		var anchor_top := _get_anchor_draw_top_above_clamp(ground)
+		_draw_anchor_asset(anchor_top, Color.WHITE)
+		socket = _get_anchor_chain_socket(anchor_top)
 	_draw_socket_fitted_chain(
 		start,
-		target,
+		socket,
 		color,
 		Color(1.0, 0.88, 0.48, 1.0)
 	)
-	_draw_durability_meter(start.lerp(target, 0.5), ratio, color)
+	_draw_durability_meter(start.lerp(socket, 0.5), ratio, color)
 	if is_electric_visual_active(anchor.anchor_id):
-		_draw_electric_arcs(start, target, anchor.anchor_id)
+		_draw_electric_arcs(start, socket, anchor.anchor_id)
 
 
 func _draw_returning_anchor(
@@ -290,14 +292,16 @@ func _draw_returning_anchor(
 		0.0,
 		1.0
 	)
-	var source := _get_clamp_connection_point(ground)
-	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
+	var installed_top := _get_anchor_draw_top_above_clamp(ground)
+	var stowed_top := _get_stowed_anchor_draw_top(anchor.anchor_id)
+	var draw_top := installed_top.lerp(stowed_top, ratio)
+	var socket := _get_anchor_chain_socket(draw_top)
 	var color := Color(0.85, 0.76, 0.46)
 	_draw_clamp(ground, Color.WHITE)
-	_draw_anchor_asset(top, color.lightened(0.12))
+	_draw_anchor_asset(draw_top, color.lightened(0.12))
 	_draw_socket_fitted_chain(
 		start,
-		top,
+		socket,
 		color,
 		Color(0.98, 0.86, 0.52, 1.0)
 	)
@@ -350,6 +354,89 @@ func _get_chain_tile_draw_height() -> float:
 		_chain_source_rect.size,
 		chain_tile_height
 	).y
+
+
+func _get_stowed_anchor_draw_top(anchor_id: int) -> Vector2:
+	var anchor_size := _get_active_anchor_visual_size()
+	var desired_bottom_y := (
+		_get_platform_bottom_y(anchor_id) + STOWED_ANCHOR_PROTRUSION
+	)
+	return Vector2(
+		_get_winch_bottom(anchor_id).x,
+		desired_bottom_y - anchor_size.y + ANCHOR_CHAIN_ATTACH_DEPTH
+	)
+
+
+func _get_platform_bottom_y(anchor_id: int) -> float:
+	var surface_y := _get_winch_bottom(anchor_id).y
+	if _geometry == null or _balance == null:
+		return surface_y + 58.0
+	var attachment_y := _geometry.get_platform_attachment_world(anchor_id).y
+	var denominator := _balance.platform_attachment_y_factor + 0.5
+	if absf(denominator) <= 0.001:
+		return surface_y + 58.0
+	var platform_height := (attachment_y - surface_y) / denominator
+	return surface_y + maxf(platform_height, 0.0)
+
+
+func _get_anchor_draw_top_above_clamp(ground: Vector2) -> Vector2:
+	var clamp_rect := _get_clamp_visual_rect(ground)
+	var anchor_size := _get_active_anchor_visual_size()
+	return Vector2(
+		clamp_rect.position.x + clamp_rect.size.x * 0.5,
+		clamp_rect.position.y - anchor_size.y + ANCHOR_CHAIN_ATTACH_DEPTH
+	)
+
+
+func _get_anchor_chain_socket(draw_top: Vector2) -> Vector2:
+	var rect := _get_anchor_visual_rect(draw_top)
+	return Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y)
+
+
+func _get_clamp_chain_socket(ground: Vector2) -> Vector2:
+	var rect := _get_clamp_visual_rect(ground)
+	return Vector2(rect.position.x + rect.size.x * 0.5, rect.position.y)
+
+
+func _get_anchor_visual_rect(draw_top: Vector2) -> Rect2:
+	var size := _get_active_anchor_visual_size()
+	return Rect2(
+		draw_top + Vector2(-size.x * 0.5, -ANCHOR_CHAIN_ATTACH_DEPTH),
+		size
+	)
+
+
+func _get_clamp_visual_rect(ground: Vector2) -> Rect2:
+	var source_rect := _get_active_clamp_source_rect()
+	var source_size: Vector2 = source_rect.size
+	if source_size.x <= 0.0 or source_size.y <= 0.0:
+		source_size = Vector2(42.0, 34.0)
+	var size := source_size * get_clamp_visual_scale()
+	var bottom := ground + clamp_ground_offset
+	return Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
+
+
+func _get_active_anchor_visual_size() -> Vector2:
+	var source_rect := _get_active_anchor_source_rect()
+	if not _is_rect_drawable(source_rect):
+		return Vector2(42.0, 50.0)
+	return source_rect.size * object_asset_scale
+
+
+func _get_active_anchor_source_rect() -> Rect2:
+	var texture: Texture2D = _get_combat_anchor_texture()
+	var source_rect := _get_texture_source_rect(texture)
+	if _is_rect_drawable(source_rect):
+		return source_rect
+	return _anchor_source_rect
+
+
+func _get_active_clamp_source_rect() -> Rect2:
+	var texture: Texture2D = _get_combat_clamp_texture()
+	var source_rect := _get_texture_source_rect(texture)
+	if _is_rect_drawable(source_rect):
+		return source_rect
+	return _clamp_source_rect
 
 
 func _draw_anchor_texture_at_top(
