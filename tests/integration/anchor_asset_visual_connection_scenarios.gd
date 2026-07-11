@@ -31,7 +31,8 @@ func _run() -> void:
 	)
 	root.add_child(visual)
 
-	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.42))
+	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.483))
+	assert(is_equal_approx(visual.stowed_chain_length, 38.0))
 	var expected_anchor_rect := Rect2(
 		Vector2(157.0, 162.0),
 		Vector2(198.0, 252.0)
@@ -56,18 +57,30 @@ func _run() -> void:
 	)
 
 	var base_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(base_winch_size.is_equal_approx(Vector2(34.692, 20.244)))
-	assert(base_winch_size.x < platform.balance.cell_width)
+	assert(base_winch_size.is_equal_approx(Vector2(39.8958, 23.2806)))
+	assert(base_winch_size.x <= platform.balance.cell_width)
+	var left_winch_bottom: Vector2 = visual.get_winch_visual_bottom(0)
+	var right_winch_bottom: Vector2 = visual.get_winch_visual_bottom(3)
 	assert(
 		visual.get_winch_chain_exit(0).is_equal_approx(
-			visual.get_winch_visual_bottom(0) + Vector2(0.0, -2.0)
+			left_winch_bottom + Vector2(0.0, -base_winch_size.y * 0.5)
 		)
 	)
 	assert(
 		visual.get_winch_chain_exit(3).is_equal_approx(
-			visual.get_winch_visual_bottom(3) + Vector2(0.0, -2.0)
+			right_winch_bottom + Vector2(0.0, -base_winch_size.y * 0.5)
 		)
 	)
+	var left_exit: Vector2 = visual.get_winch_chain_exit(0)
+	assert(left_exit.y > left_winch_bottom.y - base_winch_size.y)
+	assert(left_exit.y < left_winch_bottom.y)
+
+	var platform_bottom_y: float = (
+		platform.position.y + platform.balance.platform_height * 0.5
+	)
+	var stowed_anchor_rect: Rect2 = visual.get_stowed_anchor_rect_for_tests(0)
+	assert(stowed_anchor_rect.end.y > platform_bottom_y)
+	assert(stowed_anchor_rect.end.y - platform_bottom_y < 8.0)
 
 	var ground := Vector2(25.0, 420.0)
 	assert(visual.clamp_ground_offset == Vector2(0.0, 2.0))
@@ -96,8 +109,8 @@ func _run() -> void:
 		== "res://visual/objects/asset_winch_04.png"
 	)
 	var trap_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
-	assert(trap_winch_size.is_equal_approx(Vector2(38.892, 24.864)))
-	assert(trap_winch_size.x < platform.balance.cell_width)
+	assert(trap_winch_size.is_equal_approx(Vector2(44.7258, 28.5936)))
+	assert(trap_winch_size.x > platform.balance.cell_width)
 	assert(visual.is_winch_drawable_for_tests(0))
 
 	print("Anchor asset visual connection scenarios passed")
