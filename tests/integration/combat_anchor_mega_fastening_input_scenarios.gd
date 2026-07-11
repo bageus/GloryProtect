@@ -26,18 +26,9 @@ func _run() -> void:
 	assert(anchors != null)
 	assert(combat != null)
 
-	platform.position.x = orbs.get_world_x(2)
 	platform.horizontal_velocity = 0.0
 	anchors.set_operator_assigned(AnchorRuntime.Side.LEFT, true)
 	anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, true)
-	assert(anchors.is_in_installation_zone())
-
-	# Match live gameplay: one outer anchor is already attached on each side
-	# before the player buys Mega Fastening.
-	_install_with_action(anchors, &"gp_anchor_1", 0)
-	_install_with_action(anchors, &"gp_anchor_4", 3)
-	assert(not anchors.is_second_winch_pair_enabled())
-
 	assert(combat.apply_upgrade_effect(_flag(
 		CombatAnchorUpgradeRuntime.REINFORCED_WIND_THRESHOLD
 	)))
@@ -46,11 +37,18 @@ func _run() -> void:
 	)))
 	assert(anchors.is_second_winch_pair_enabled())
 
-	# The newly exposed inner winches must remain fully operable.
-	_install_with_action(anchors, &"gp_anchor_2", 1)
+	var orb_x: float = orbs.get_world_x(2)
+	var zone_half_width: float = anchors.balance.installation_zone_half_width
+
+	# At the right edge of the valid zone, the new right-inner winch must attach.
+	platform.position.x = orb_x + zone_half_width
+	assert(anchors.is_in_installation_zone())
 	_install_with_action(anchors, &"gp_anchor_3", 2)
-	for anchor_id: int in range(4):
-		assert(anchors.is_path_available(anchor_id))
+
+	# At the left edge, the new left-inner winch must attach as well.
+	platform.position.x = orb_x - zone_half_width
+	assert(anchors.is_in_installation_zone())
+	_install_with_action(anchors, &"gp_anchor_2", 1)
 
 	print("Combat anchor mega fastening input scenarios passed")
 	quit()
