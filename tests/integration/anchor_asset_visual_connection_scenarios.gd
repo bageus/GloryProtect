@@ -92,11 +92,17 @@ func _run() -> void:
 	var anchor_socket: Vector2 = visual.get_anchor_chain_socket_for_tests(
 		stowed_anchor_top
 	)
-	assert(is_equal_approx(stowed_anchor_rect.end.y - platform_bottom_y, 5.0))
 	assert(anchor_socket.is_equal_approx(Vector2(
 		stowed_anchor_rect.position.x + stowed_anchor_rect.size.x * 0.5,
 		stowed_anchor_rect.position.y
 	)))
+	assert(is_equal_approx(
+		anchor_socket.y - left_winch_bottom.y,
+		visual.chain_tile_height / 3.0
+	))
+	var anchor_protrusion := stowed_anchor_rect.end.y - platform_bottom_y
+	assert(anchor_protrusion > 0.0)
+	assert(anchor_protrusion < 3.0)
 	assert(anchor_socket.y < stowed_anchor_top.y)
 
 	var ground := Vector2(25.0, 420.0)
