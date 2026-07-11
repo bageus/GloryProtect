@@ -29,11 +29,15 @@ const TRAP_WINCH_TEXTURE: Texture2D = preload(
 	"res://visual/objects/asset_winch_04.png"
 )
 
-# The widest trap winch remains inside one 40 px platform cell at this scale.
-const WINCH_SCALE_MULTIPLIER := 0.42
+# Requested follow-up scale: 15% larger than the previous 0.42 value.
+const WINCH_SCALE_MULTIPLIER := 0.483
 const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
 const GROUND_CLAMP_OFFSET := Vector2(0.0, 2.0)
 const WINCH_CHAIN_EXIT_OFFSET := Vector2(0.0, -2.0)
+const WINCH_CHAIN_EXIT_HEIGHT_RATIO := 0.5
+const STOWED_CHAIN_LENGTH := 38.0
+const CHAIN_ENDPOINT_OVERLAY_LENGTH := 20.0
+const CHAIN_ENDPOINT_OVERDRAW := 5.0
 
 
 func _init() -> void:
@@ -42,6 +46,7 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	stowed_chain_length = STOWED_CHAIN_LENGTH
 	super._ready()
 	_clamp_source_rect = _calculate_alpha_bounds(BASE_CLAMP_TEXTURE)
 	_anchor_source_rect = _calculate_alpha_bounds(BASE_ANCHOR_TEXTURE)
@@ -58,6 +63,19 @@ func _ready() -> void:
 	]
 	for texture: Texture2D in cropped_textures:
 		_register_alpha_cropped_texture(texture)
+
+
+func _draw() -> void:
+	if _store == null:
+		return
+	# Winches are drawn first so the chain can visually overlap their drum/body.
+	if draw_winch_posts:
+		_draw_winch_posts()
+	for anchor: AnchorRuntime in _store.get_all():
+		if not _is_anchor_slot_visible(anchor.anchor_id):
+			continue
+		_draw_anchor(anchor)
+	_draw_trap_bursts()
 
 
 func get_winch_scale_multiplier_for_tests() -> float:
@@ -105,6 +123,25 @@ func get_ground_clamp_rect_for_tests(ground: Vector2) -> Rect2:
 	var size: Vector2 = source_rect.size * get_clamp_visual_scale()
 	var bottom: Vector2 = get_ground_clamp_bottom_for_tests(ground)
 	return Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
+
+
+func get_stowed_anchor_rect_for_tests(anchor_id: int) -> Rect2:
+	var size: Vector2 = _anchor_source_rect.size * object_asset_scale
+	var top: Vector2 = get_winch_chain_exit(anchor_id) + Vector2(0.0, stowed_chain_length)
+	return Rect2(
+		top + Vector2(-size.x * 0.5, -ANCHOR_CHAIN_ATTACH_DEPTH),
+		size
+	)
+
+
+func get_winch_chain_exit(anchor_id: int) -> Vector2:
+	var size: Vector2 = _get_winch_draw_size(anchor_id)
+	if size.y <= 0.0:
+		return super.get_winch_chain_exit(anchor_id)
+	return _get_winch_bottom(anchor_id) + Vector2(
+		0.0,
+		-size.y * WINCH_CHAIN_EXIT_HEIGHT_RATIO
+	)
 
 
 func _draw_winch(
@@ -158,6 +195,54 @@ func _get_combat_winch_asset_id(anchor_id: int) -> StringName:
 	):
 		return &"trap"
 	return super._get_combat_winch_asset_id(anchor_id)
+
+
+func _draw_stowed_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
+	super._draw_stowed_anchor(anchor, start)
+	var top := start + Vector2(0.0, stowed_chain_length)
+	var tint := Color.WHITE if bool(_is_operator_available.call(anchor.side)) else Color(0.68, 0.7, 0.72, 1.0)
+	_draw_chain_endpoint_overlay(start, top, tint)
+
+
+func _draw_installing_anchor(anchor: AnchorRuntime, start: Vector2) -> void:
+	super._draw_installing_anchor(anchor, start)
+	var target := _get_clamp_connection_point(anchor.target_ground_point)
+	var ratio := clampf(
+		anchor.operation_progress / maxf(_balance.install_duration, 0.01),
+		0.0,
+		1.0
+	)
+	var top := start.lerp(target, ratio)
+	_draw_chain_endpoint_overlay(start, top, Color(0.92, 0.82, 0.55, 1.0))
+
+
+func _draw_returning_anchor(
+	anchor: AnchorRuntime,
+	start: Vector2,
+	ground: Vector2
+) -> void:
+	super._draw_returning_anchor(anchor, start, ground)
+	var ratio := clampf(
+		anchor.operation_progress / maxf(_balance.return_duration, 0.01),
+		0.0,
+		1.0
+	)
+	var source := _get_clamp_connection_point(ground)
+	var top := source.lerp(start + Vector2(0.0, stowed_chain_length), ratio)
+	_draw_chain_endpoint_overlay(start, top, Color(0.85, 0.76, 0.46))
+
+
+func _draw_chain_endpoint_overlay(start: Vector2, finish: Vector2, tint: Color) -> void:
+	var segment := finish - start
+	var length := segment.length()
+	if length <= 0.01:
+		return
+	var direction := segment / length
+	var overlay_start := finish - direction * minf(CHAIN_ENDPOINT_OVERLAY_LENGTH, length)
+	var overlay_finish := finish + direction * CHAIN_ENDPOINT_OVERDRAW
+	_draw_chain_links(overlay_start, overlay_finish, tint)
+	if is_reinforced_chain_visual_active():
+		_draw_reinforced_chain_overlay(overlay_start, overlay_finish, tint)
 
 
 func _draw_anchor_texture_at_top(
