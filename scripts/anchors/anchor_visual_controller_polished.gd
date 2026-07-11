@@ -35,7 +35,6 @@ const WINCH_SCALE_MULTIPLIER := 0.55545
 const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
 const GROUND_CLAMP_OFFSET := Vector2(0.0, 2.0)
 const STOWED_CHAIN_LENGTH := 38.0
-const STOWED_ANCHOR_PROTRUSION := 5.0
 const CHAIN_SOCKET_OVERLAP_RATIO := 1.0 / 3.0
 
 
@@ -319,6 +318,15 @@ func _draw_socket_fitted_chain(
 	)
 	if endpoints.size() != 2:
 		return
+	var direction := (finish - start).normalized()
+	if endpoints[0].distance_to(endpoints[1]) <= 1.0:
+		_draw_single_socket_chain_tile(
+			(endpoints[0] + endpoints[1]) * 0.5,
+			direction,
+			tint,
+			reinforced_tint
+		)
+		return
 	_draw_chain_links(endpoints[0], endpoints[1], tint)
 	if is_reinforced_chain_visual_active():
 		_draw_reinforced_chain_overlay(
@@ -326,6 +334,55 @@ func _draw_socket_fitted_chain(
 			endpoints[1],
 			reinforced_tint
 		)
+
+
+func _draw_single_socket_chain_tile(
+	center: Vector2,
+	direction: Vector2,
+	tint: Color,
+	reinforced_tint: Color
+) -> void:
+	var tile_size: Vector2 = TextureRegionLayout.fit_height(
+		_chain_source_rect.size,
+		chain_tile_height
+	)
+	var visible_tint := tint.lightened(CHAIN_BRIGHTEN_AMOUNT)
+	visible_tint.a = 1.0
+	var backing := visible_tint
+	backing.a = 0.4
+	draw_line(
+		center - direction * tile_size.y * 0.5,
+		center + direction * tile_size.y * 0.5,
+		backing,
+		CHAIN_BACKING_WIDTH,
+		true
+	)
+	if not _is_rect_drawable(_chain_source_rect):
+		_draw_fallback_chain(
+			center - direction * chain_tile_height * 0.5,
+			center + direction * chain_tile_height * 0.5,
+			visible_tint
+		)
+		return
+	var rotation := direction.angle() - PI * 0.5
+	var rect := Rect2(-tile_size * 0.5, tile_size)
+	draw_set_transform(center, rotation, Vector2.ONE)
+	draw_texture_rect_region(CHAIN_TEXTURE, rect, _chain_source_rect, visible_tint)
+	if (
+		is_reinforced_chain_visual_active()
+		and _is_rect_drawable(_reinforced_chain_source_rect)
+	):
+		var reinforced_size: Vector2 = TextureRegionLayout.fit_height(
+			_reinforced_chain_source_rect.size,
+			chain_tile_height
+		)
+		draw_texture_rect_region(
+			REINFORCED_CHAIN_TEXTURE,
+			Rect2(-reinforced_size * 0.5, reinforced_size),
+			_reinforced_chain_source_rect,
+			reinforced_tint
+		)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _get_socket_fitted_chain_endpoints(
@@ -357,26 +414,14 @@ func _get_chain_tile_draw_height() -> float:
 
 
 func _get_stowed_anchor_draw_top(anchor_id: int) -> Vector2:
-	var anchor_size := _get_active_anchor_visual_size()
-	var desired_bottom_y := (
-		_get_platform_bottom_y(anchor_id) + STOWED_ANCHOR_PROTRUSION
+	var winch_socket := _get_winch_bottom(anchor_id)
+	var socket_gap := _get_chain_tile_draw_height() * (
+		1.0 - CHAIN_SOCKET_OVERLAP_RATIO * 2.0
 	)
-	return Vector2(
-		_get_winch_bottom(anchor_id).x,
-		desired_bottom_y - anchor_size.y + ANCHOR_CHAIN_ATTACH_DEPTH
+	return winch_socket + Vector2(
+		0.0,
+		socket_gap + ANCHOR_CHAIN_ATTACH_DEPTH
 	)
-
-
-func _get_platform_bottom_y(anchor_id: int) -> float:
-	var surface_y := _get_winch_bottom(anchor_id).y
-	if _geometry == null or _balance == null:
-		return surface_y + 58.0
-	var attachment_y := _geometry.get_platform_attachment_world(anchor_id).y
-	var denominator := _balance.platform_attachment_y_factor + 0.5
-	if absf(denominator) <= 0.001:
-		return surface_y + 58.0
-	var platform_height := (attachment_y - surface_y) / denominator
-	return surface_y + maxf(platform_height, 0.0)
 
 
 func _get_anchor_draw_top_above_clamp(ground: Vector2) -> Vector2:
