@@ -32,7 +32,7 @@ const TRAP_WINCH_TEXTURE: Texture2D = preload(
 # The widest trap winch remains inside one 40 px platform cell at this scale.
 const WINCH_SCALE_MULTIPLIER := 0.42
 const ANCHOR_CHAIN_ATTACH_DEPTH := 14.0
-const GROUND_CLAMP_OFFSET := Vector2(0.0, 8.0)
+const GROUND_CLAMP_OFFSET := Vector2(0.0, 2.0)
 const WINCH_CHAIN_EXIT_OFFSET := Vector2(0.0, -2.0)
 
 
@@ -46,6 +46,8 @@ func _ready() -> void:
 	_clamp_source_rect = _calculate_alpha_bounds(BASE_CLAMP_TEXTURE)
 	_anchor_source_rect = _calculate_alpha_bounds(BASE_ANCHOR_TEXTURE)
 	var cropped_textures: Array[Texture2D] = [
+		BASE_ANCHOR_TEXTURE,
+		BASE_CLAMP_TEXTURE,
 		BASE_WINCH_TEXTURE,
 		STRONG_WINCH_TEXTURE_POLISHED,
 		ELECTRIC_WINCH_TEXTURE_POLISHED,
@@ -88,6 +90,21 @@ func get_base_anchor_source_rect_for_tests() -> Rect2:
 
 func get_base_clamp_source_rect_for_tests() -> Rect2:
 	return _clamp_source_rect
+
+
+func get_registered_base_anchor_source_rect_for_tests() -> Rect2:
+	return _get_texture_source_rect(BASE_ANCHOR_TEXTURE)
+
+
+func get_registered_base_clamp_source_rect_for_tests() -> Rect2:
+	return _get_texture_source_rect(BASE_CLAMP_TEXTURE)
+
+
+func get_ground_clamp_rect_for_tests(ground: Vector2) -> Rect2:
+	var source_rect: Rect2 = get_registered_base_clamp_source_rect_for_tests()
+	var size: Vector2 = source_rect.size * get_clamp_visual_scale()
+	var bottom: Vector2 = get_ground_clamp_bottom_for_tests(ground)
+	return Rect2(bottom + Vector2(-size.x * 0.5, -size.y), size)
 
 
 func _draw_winch(
