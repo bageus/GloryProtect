@@ -32,13 +32,23 @@ func _run() -> void:
 	root.add_child(visual)
 
 	assert(is_equal_approx(visual.get_winch_scale_multiplier_for_tests(), 0.42))
+	var expected_anchor_rect := Rect2(
+		Vector2(157.0, 162.0),
+		Vector2(198.0, 252.0)
+	)
+	var expected_clamp_rect := Rect2(
+		Vector2(169.0, 188.0),
+		Vector2(173.0, 174.0)
+	)
+	assert(visual.get_base_anchor_source_rect_for_tests() == expected_anchor_rect)
+	assert(visual.get_base_clamp_source_rect_for_tests() == expected_clamp_rect)
 	assert(
-		visual.get_base_anchor_source_rect_for_tests()
-		== Rect2(Vector2(157.0, 162.0), Vector2(198.0, 252.0))
+		visual.get_registered_base_anchor_source_rect_for_tests()
+		== expected_anchor_rect
 	)
 	assert(
-		visual.get_base_clamp_source_rect_for_tests()
-		== Rect2(Vector2(169.0, 188.0), Vector2(173.0, 174.0))
+		visual.get_registered_base_clamp_source_rect_for_tests()
+		== expected_clamp_rect
 	)
 	assert(
 		visual.get_trap_winch_source_rect_for_tests()
@@ -60,12 +70,16 @@ func _run() -> void:
 	)
 
 	var ground := Vector2(25.0, 420.0)
-	assert(visual.clamp_ground_offset == Vector2(0.0, 8.0))
+	assert(visual.clamp_ground_offset == Vector2(0.0, 2.0))
 	assert(
 		visual.get_ground_clamp_bottom_for_tests(ground).is_equal_approx(
-			ground + Vector2(0.0, 8.0)
+			ground + Vector2(0.0, 2.0)
 		)
 	)
+	var ground_clamp_rect: Rect2 = visual.get_ground_clamp_rect_for_tests(ground)
+	assert(ground_clamp_rect.position.y < ground.y)
+	assert(ground_clamp_rect.end.y > ground.y)
+	assert(is_equal_approx(ground_clamp_rect.end.y - ground.y, 2.0))
 	assert(
 		visual.get_clamp_connection_point_for_tests(ground).is_equal_approx(
 			ground
