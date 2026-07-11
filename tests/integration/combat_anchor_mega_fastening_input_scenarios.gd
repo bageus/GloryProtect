@@ -32,6 +32,12 @@ func _run() -> void:
 	anchors.set_operator_assigned(AnchorRuntime.Side.RIGHT, true)
 	assert(anchors.is_in_installation_zone())
 
+	# Match live gameplay: one outer anchor is already attached on each side
+	# before the player buys Mega Fastening.
+	_install_with_action(anchors, &"gp_anchor_1", 0)
+	_install_with_action(anchors, &"gp_anchor_4", 3)
+	assert(not anchors.is_second_winch_pair_enabled())
+
 	assert(combat.apply_upgrade_effect(_flag(
 		CombatAnchorUpgradeRuntime.REINFORCED_WIND_THRESHOLD
 	)))
@@ -40,28 +46,25 @@ func _run() -> void:
 	)))
 	assert(anchors.is_second_winch_pair_enabled())
 
-	_send_anchor_action(anchors, &"gp_anchor_1")
-	assert(anchors.get_anchor_state(0) == AnchorRuntime.State.INSTALLING)
-	anchors._physics_process(anchors.get_effective_install_duration(0) + 0.1)
-	assert(anchors.is_path_available(0))
-
-	_send_anchor_action(anchors, &"gp_anchor_2")
-	assert(anchors.get_anchor_state(1) == AnchorRuntime.State.INSTALLING)
-	anchors._physics_process(anchors.get_effective_install_duration(1) + 0.1)
-	assert(anchors.is_path_available(1))
-
-	_send_anchor_action(anchors, &"gp_anchor_4")
-	assert(anchors.get_anchor_state(3) == AnchorRuntime.State.INSTALLING)
-	anchors._physics_process(anchors.get_effective_install_duration(3) + 0.1)
-	assert(anchors.is_path_available(3))
-
-	_send_anchor_action(anchors, &"gp_anchor_3")
-	assert(anchors.get_anchor_state(2) == AnchorRuntime.State.INSTALLING)
-	anchors._physics_process(anchors.get_effective_install_duration(2) + 0.1)
-	assert(anchors.is_path_available(2))
+	# The newly exposed inner winches must remain fully operable.
+	_install_with_action(anchors, &"gp_anchor_2", 1)
+	_install_with_action(anchors, &"gp_anchor_3", 2)
+	for anchor_id: int in range(4):
+		assert(anchors.is_path_available(anchor_id))
 
 	print("Combat anchor mega fastening input scenarios passed")
 	quit()
+
+
+func _install_with_action(
+	anchors: CombatAnchorHostSystem,
+	action: StringName,
+	anchor_id: int
+) -> void:
+	_send_anchor_action(anchors, action)
+	assert(anchors.get_anchor_state(anchor_id) == AnchorRuntime.State.INSTALLING)
+	anchors._physics_process(anchors.get_effective_install_duration(anchor_id) + 0.1)
+	assert(anchors.is_path_available(anchor_id))
 
 
 func _send_anchor_action(anchors: CombatAnchorHostSystem, action: StringName) -> void:
