@@ -17,9 +17,9 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_stabilize_world(game)
 
-	var overlay: PlatformUpgradeAssetOverlayStabilityFixed = game.get_node(
+	var overlay: PlatformUpgradeAssetOverlayFeedbackFixed = game.get_node(
 		"World/Platform/PlatformUpgradeAssetOverlay"
-	) as PlatformUpgradeAssetOverlayStabilityFixed
+	) as PlatformUpgradeAssetOverlayFeedbackFixed
 	assert(overlay != null)
 	assert(not overlay.is_speed_asset_visible())
 	assert(overlay.get_speed_engine_count_for_tests() == 0)
@@ -64,7 +64,26 @@ func _run() -> void:
 	assert(is_equal_approx(core_center.x - centers[0].x, offset.x))
 	assert(is_equal_approx(centers[1].x - core_center.x, offset.x))
 
+	var edge_inset: float = overlay.get_speed_flame_edge_inset_for_tests()
+	var outward_offset: float = overlay.get_speed_flame_outward_offset_for_tests()
+	var left_flame_center: Vector2 = overlay.get_speed_flame_center_for_tests(-1)
+	var right_flame_center: Vector2 = overlay.get_speed_flame_center_for_tests(1)
+	var left_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(-1)
+	var right_visible_edge: float = overlay.get_speed_engine_visible_outer_edge_for_tests(1)
+	assert(is_equal_approx(edge_inset, 16.0))
+	assert(outward_offset > 0.0)
+	assert(is_equal_approx(left_flame_center.x, centers[0].x - outward_offset))
+	assert(is_equal_approx(right_flame_center.x, centers[1].x + outward_offset))
+	assert(is_equal_approx(left_flame_center.x, left_visible_edge + edge_inset))
+	assert(is_equal_approx(right_flame_center.x, right_visible_edge - edge_inset))
+	assert(left_flame_center.x < centers[0].x)
+	assert(right_flame_center.x > centers[1].x)
+	assert(is_equal_approx(left_flame_center.y, centers[0].y))
+	assert(is_equal_approx(right_flame_center.y, centers[1].y))
+
 	assert(overlay.is_wind_compensator_visible_for_tests())
+	assert(overlay.wind_compensator_asset != null)
+	assert(overlay.wind_compensator_asset.size.is_equal_approx(Vector2(79.2, 59.4)))
 	assert(is_equal_approx(
 		overlay.get_wind_compensator_top_for_tests(-1),
 		overlay.get_platform_bottom_for_tests()
