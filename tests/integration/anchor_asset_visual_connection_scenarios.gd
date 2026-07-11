@@ -58,7 +58,6 @@ func _run() -> void:
 
 	var base_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
 	assert(base_winch_size.is_equal_approx(Vector2(39.8958, 23.2806)))
-	assert(base_winch_size.x <= platform.balance.cell_width)
 	var left_winch_bottom: Vector2 = visual.get_winch_visual_bottom(0)
 	var right_winch_bottom: Vector2 = visual.get_winch_visual_bottom(3)
 	assert(
@@ -74,6 +73,26 @@ func _run() -> void:
 	var left_exit: Vector2 = visual.get_winch_chain_exit(0)
 	assert(left_exit.y > left_winch_bottom.y - base_winch_size.y)
 	assert(left_exit.y < left_winch_bottom.y)
+
+	var overlap_ratio: float = visual.get_chain_socket_overlap_ratio_for_tests()
+	var overlap_depth: float = visual.get_chain_socket_overlap_depth_for_tests()
+	assert(is_equal_approx(overlap_ratio, 1.0 / 3.0))
+	assert(is_equal_approx(overlap_depth, visual.chain_tile_height / 3.0))
+	var socket_start := Vector2(0.0, 0.0)
+	var socket_finish := Vector2(0.0, 100.0)
+	var socket_segment: PackedVector2Array = (
+		visual.get_chain_socket_segment_for_tests(socket_start, socket_finish)
+	)
+	assert(socket_segment.size() == 2)
+	var tile_half_height: float = visual.chain_tile_height * 0.5
+	assert(is_equal_approx(
+		socket_start.y - (socket_segment[0].y - tile_half_height),
+		overlap_depth
+	))
+	assert(is_equal_approx(
+		(socket_segment[1].y + tile_half_height) - socket_finish.y,
+		overlap_depth
+	))
 
 	var platform_bottom_y: float = (
 		platform.position.y + platform.balance.platform_height * 0.5
@@ -110,6 +129,7 @@ func _run() -> void:
 	)
 	var trap_winch_size: Vector2 = visual.get_winch_visual_size_for_tests(0)
 	assert(trap_winch_size.is_equal_approx(Vector2(44.7258, 28.5936)))
+	# The winch is intentionally allowed to exceed the 40 px platform cell.
 	assert(trap_winch_size.x > platform.balance.cell_width)
 	assert(visual.is_winch_drawable_for_tests(0))
 
