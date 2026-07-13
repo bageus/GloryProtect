@@ -204,6 +204,7 @@ medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
 script = ExtResource("2_director")
+game_flow_path = NodePath("../../GameFlowController")
 wave_director_path = NodePath("../StrategicWaveDirector")
 platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
