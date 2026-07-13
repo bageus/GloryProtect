@@ -31,6 +31,7 @@ var _respawn_time_multiplier: float = 1.0
 func _ready() -> void:
 	assert(balance != null, "CrewReplacementController requires CrewBalance")
 	_crew.defender_died.connect(_on_defender_died)
+	_crew.defender_removed.connect(_on_defender_removed)
 	if _portal != null:
 		_portal.spawn_sequence_finished.connect(_on_portal_spawn_finished)
 
@@ -134,6 +135,11 @@ func _on_defender_died(defender_id: int) -> void:
 	replacement_started.emit(defender_id, runtime.remaining_seconds)
 	if runtime.remaining_seconds <= 0.0:
 		call_deferred("_begin_portal_spawn", defender_id)
+
+
+func _on_defender_removed(defender_id: int) -> void:
+	_pending.erase(defender_id)
+	_portal_animating.erase(defender_id)
 
 
 func _begin_portal_spawn(defender_id: int) -> void:
