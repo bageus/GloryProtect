@@ -1,4 +1,4 @@
-[gd_scene load_steps=40 format=3]
+[gd_scene load_steps=42 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/game/game_root.tscn" id="1_base"]
 [ext_resource type="Script" path="res://scripts/boarding/flying_enemy_spawn_director.gd" id="2_director"]
@@ -6,7 +6,7 @@
 [ext_resource type="Resource" path="res://resources/balance/boarding_balance.tres" id="4_boarding"]
 [ext_resource type="Resource" path="res://resources/enemies/flying_enemy_profile.tres" id="5_profile"]
 [ext_resource type="Resource" path="res://resources/upgrades/active_game_upgrade_catalog.tres" id="6_upgrades"]
-[ext_resource type="Script" path="res://scripts/upgrades/shield_core_upgrade_coordinator.gd" id="7_upgrade_coordinator"]
+[ext_resource type="Script" path="res://scripts/upgrades/anchorless_auto_prerequisite_coordinator.gd" id="7_upgrade_coordinator"]
 [ext_resource type="Script" path="res://scripts/turrets/turret_upgrade_system.gd" id="8_turret_system"]
 [ext_resource type="Resource" path="res://resources/balance/turret_specialization_balance.tres" id="9_turret_balance"]
 [ext_resource type="Script" path="res://scripts/medical/medic_role_modifier_controller.gd" id="10_medic_roles"]
@@ -25,7 +25,7 @@
 [ext_resource type="Script" path="res://scripts/buildables/buildable_placement_controller_scene.gd" id="23_placement"]
 [ext_resource type="Script" path="res://scripts/buildables/buildable_placement_debug_bridge.gd" id="24_placement_bridge"]
 [ext_resource type="Script" path="res://scripts/ui/buildable_placement_panel_scene.gd" id="25_placement_panel"]
-[ext_resource type="Script" path="res://scripts/platform/platform_visual_controller_polished.gd" id="26_platform_visual"]
+[ext_resource type="Script" path="res://scripts/platform/platform_visual_controller_core_normal_fixed.gd" id="26_platform_visual"]
 [ext_resource type="Script" path="res://scripts/buildables/buildable_grid_visual_polished.gd" id="27_buildable_visual"]
 [ext_resource type="Script" path="res://scripts/boarding/boarding_movement_resolver_polished.gd" id="28_movement"]
 [ext_resource type="Script" path="res://scripts/ui/prototype_hud_polished.gd" id="29_hud"]
@@ -33,11 +33,13 @@
 [ext_resource type="Script" path="res://scripts/presentation/world_shake_controller.gd" id="31_shake"]
 [ext_resource type="PackedScene" path="res://scenes/presentation/parallax_scene_background.tscn" id="32_background"]
 [ext_resource type="Script" path="res://scripts/audio/game_music_controller.gd" id="33_music"]
-[ext_resource type="Script" path="res://scripts/presentation/shield_core_pulse_visual_atlas_fixed.gd" id="34_core_pulse"]
+[ext_resource type="Script" path="res://scripts/presentation/shield_core_pulse_visual_radius_fixed.gd" id="34_core_pulse"]
 [ext_resource type="Resource" path="res://resources/presentation/shield_core_pulse_visual_style.tres" id="35_core_pulse_style"]
 [ext_resource type="Script" path="res://scripts/presentation/platform_wind_indicator.gd" id="36_wind_indicator"]
 [ext_resource type="Script" path="res://scripts/ui/shield_core_critical_indicator.gd" id="37_core_indicator"]
-[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_feedback_fixed.gd" id="38_upgrade_overlay"]
+[ext_resource type="Script" path="res://scripts/presentation/platform_upgrade_asset_overlay_final_tuning.gd" id="38_upgrade_overlay"]
+[ext_resource type="Script" path="res://scripts/orbs/ground_orb_visual_controller_recharge_normal.gd" id="39_ground_visual"]
+[ext_resource type="Script" path="res://scripts/platform/anchorless_control_system_auto_gate.gd" id="40_anchorless"]
 
 [node name="GameRoot" instance=ExtResource("1_base")]
 
@@ -105,6 +107,7 @@ anchor_system_path = NodePath("../World/AnchorSystem")
 script = ExtResource("19_orb_registry")
 
 [node name="GroundOrbVisualController" parent="World"]
+script = ExtResource("39_ground_visual")
 ground_core_frame_rate = 4.0
 
 [node name="ShieldRechargeController" parent="World"]
@@ -115,6 +118,9 @@ script = ExtResource("20_strategic")
 
 [node name="AnchorSystem" parent="World"]
 script = ExtResource("15_anchor_host")
+
+[node name="AnchorlessControlSystem" parent="World"]
+script = ExtResource("40_anchorless")
 
 [node name="PlatformVisualController" parent="World/Platform"]
 script = ExtResource("26_platform_visual")
@@ -198,7 +204,6 @@ medical_system_path = NodePath("../MedicalStationSystem")
 
 [node name="FlyingEnemySpawnDirector" type="Node" parent="World"]
 script = ExtResource("2_director")
-game_flow_path = NodePath("../../GameFlowController")
 wave_director_path = NodePath("../StrategicWaveDirector")
 platform_path = NodePath("../Platform")
 path_registry_path = NodePath("../AnchorPathRegistry")
