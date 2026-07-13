@@ -42,9 +42,7 @@ func _build_shooter_toggle() -> void:
 	if panel == null:
 		return
 	panel.offset_bottom = 330.0
-	var box: VBoxContainer = panel.get_node_or_null(
-		"MarginContainer/VBoxContainer"
-	) as VBoxContainer
+	var box: VBoxContainer = _find_run_control_box(panel)
 	if box == null:
 		return
 	_shooter_toggle = CheckButton.new()
@@ -55,6 +53,16 @@ func _build_shooter_toggle() -> void:
 	if _run_feedback != null and _run_feedback.get_parent() == box:
 		box.move_child(_shooter_toggle, _run_feedback.get_index())
 	_sync_shooter_toggle()
+
+
+func _find_run_control_box(node: Node) -> VBoxContainer:
+	if node is VBoxContainer:
+		return node as VBoxContainer
+	for child: Node in node.get_children():
+		var result: VBoxContainer = _find_run_control_box(child)
+		if result != null:
+			return result
+	return null
 
 
 func _refresh_run_control_state() -> void:
