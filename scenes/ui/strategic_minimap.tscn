@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/ui/strategic_minimap_polished.gd" id="1_minimap"]
+[ext_resource type="Script" path="res://scripts/ui/strategic_minimap_recharge_core_scaled.gd" id="1_minimap"]
 
 [node name="StrategicMinimap" type="Control"]
 custom_minimum_size = Vector2(640, 96)
