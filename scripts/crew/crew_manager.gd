@@ -4,6 +4,7 @@ extends Node2D
 signal crew_initialized
 signal defender_spawned(defender_id: int, defender: Defender)
 signal defender_died(defender_id: int)
+signal defender_removed(defender_id: int)
 signal defender_replaced(defender_id: int, defender: Defender)
 signal crew_size_changed(previous_size: int, current_size: int)
 signal movement_speed_multiplier_changed(multiplier: float)
@@ -64,6 +65,36 @@ func add_defender(spawn_local_x: float = NAN) -> Defender:
 	var defender: Defender = _spawn_defender(defender_id, resolved_x)
 	crew_size_changed.emit(previous_size, get_total_count())
 	return defender
+
+
+func can_remove_defender(minimum_count: int = -1) -> bool:
+	var resolved_minimum: int = (
+		balance.starting_defender_count
+		if minimum_count < 0
+		else minimum_count
+	)
+	return get_total_count() > resolved_minimum
+
+
+func remove_last_defender(minimum_count: int = -1) -> bool:
+	if not can_remove_defender(minimum_count):
+		return false
+	var ids: Array[int] = _defenders.keys()
+	ids.sort()
+	if ids.is_empty():
+		return false
+	var defender_id: int = ids[ids.size() - 1]
+	var defender: Defender = _defenders.get(defender_id)
+	var previous_size: int = get_total_count()
+	_defenders.erase(defender_id)
+	if defender != null and is_instance_valid(defender):
+		defender.name = "RetiredDefender%d" % (defender_id + 1)
+		if defender.get_parent() == self:
+			remove_child(defender)
+		defender.queue_free()
+	defender_removed.emit(defender_id)
+	crew_size_changed.emit(previous_size, get_total_count())
+	return true
 
 
 func apply_melee_scalar(target_id: StringName, value: float) -> bool:
