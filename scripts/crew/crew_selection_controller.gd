@@ -19,6 +19,7 @@ var _defender_context_handler: Callable
 func _ready() -> void:
 	_crew.defender_spawned.connect(_on_defender_spawned)
 	_crew.defender_replaced.connect(_on_defender_replaced)
+	_crew.defender_removed.connect(_on_defender_removed)
 	call_deferred("_apply_selection_visuals")
 
 
@@ -138,4 +139,12 @@ func _on_defender_spawned(_defender_id: int, _defender: Defender) -> void:
 
 
 func _on_defender_replaced(_defender_id: int, _defender: Defender) -> void:
+	call_deferred("_apply_selection_visuals")
+
+
+func _on_defender_removed(defender_id: int) -> void:
+	if selected_defender_id == defender_id:
+		var defenders: Array[Defender] = _crew.get_all_defenders()
+		selected_defender_id = -1 if defenders.is_empty() else defenders[0].defender_id
+		selected_defender_changed.emit(selected_defender_id)
 	call_deferred("_apply_selection_visuals")
