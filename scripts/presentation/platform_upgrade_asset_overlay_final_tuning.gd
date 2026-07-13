@@ -27,6 +27,10 @@ func get_stability_overlay_offset_y_for_tests() -> float:
 	return STABILITY_OVERLAY_OFFSET_Y
 
 
+func get_speed_flame_edge_inset_for_tests() -> float:
+	return SPEED_FLAME_EDGE_INSET - SPEED_FLAME_EXTRA_OUTWARD_OFFSET
+
+
 func get_speed_flame_extra_outward_offset_for_tests() -> float:
 	return SPEED_FLAME_EXTRA_OUTWARD_OFFSET
 
