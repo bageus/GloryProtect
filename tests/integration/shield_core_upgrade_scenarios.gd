@@ -96,17 +96,17 @@ func _run_scenario() -> void:
 	assert(minimap.get_section_health_text_for_tests(0) == "1  83/120%")
 	_apply(upgrade_system, &"shield_recharge_basic")
 	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
-		"atlas_ground_core_red.png"
+		"atlas_ground_core_normal.png"
 	))
 	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
 		"atlas_platform_core_normal.png"
 	))
 	_apply(upgrade_system, &"shield_recharge_advanced")
 	assert(visual.get_ground_core_atlas_path_for_tests().ends_with(
-		"atlas_ground_core_red.png"
+		"atlas_ground_core_normal.png"
 	))
 	assert(platform_visual.get_platform_core_atlas_path_for_tests().ends_with(
-		"atlas_platform_core_red.png"
+		"atlas_platform_core_normal.png"
 	))
 	_apply(upgrade_system, &"shield_contact_basic")
 	var improved_beam_widths: Vector2 = visual.get_contact_beam_widths_for_tests()
