@@ -42,7 +42,7 @@ func _run() -> void:
 	assert(overlay.get_stability_overlay_draw_size_for_tests().x > 0.0)
 	assert(overlay.get_stability_overlay_draw_size_for_tests().y > 0.0)
 
-	assert(is_equal_approx(overlay.get_speed_flame_edge_inset_for_tests(), 11.0))
+	assert(is_equal_approx(overlay.get_speed_flame_edge_inset_for_tests(), 8.0))
 
 	assert(pulse_visual.get_ground_pulse_atlas_path_for_tests() == (
 		"res://visual/tiles/atlas_ground_core_red.png"
