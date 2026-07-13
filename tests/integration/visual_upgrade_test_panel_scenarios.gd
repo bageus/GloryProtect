@@ -17,13 +17,40 @@ func _run() -> void:
 	flow.state = GameFlowController.RunState.RUNNING
 	_disable_spawners(game)
 
-	var panel := VisualUpgradeTestPanel.new()
+	var panel := VisualUpgradeTestPanelRunControls.new()
 	game.add_child(panel)
 	panel.configure(game)
 	await process_frame
 	assert(panel.is_test_panel_ready_for_tests())
 	assert(panel.get_toggle_count_for_tests() > 0)
 	assert(panel.is_card_ui_suppressed_for_tests())
+
+	assert(panel.get_defender_count_for_tests() == 3)
+	assert(not panel.remove_defender_for_tests())
+	for _index: int in range(5):
+		assert(panel.add_defender_for_tests())
+	assert(panel.get_defender_count_for_tests() == 8)
+	assert(not panel.add_defender_for_tests())
+	for _index: int in range(5):
+		assert(panel.remove_defender_for_tests())
+	assert(panel.get_defender_count_for_tests() == 3)
+	assert(not panel.remove_defender_for_tests())
+
+	assert(not panel.is_medical_post_installed_for_tests())
+	assert(panel.install_medical_post_for_tests())
+	assert(panel.is_medical_post_installed_for_tests())
+	assert(not panel.install_medical_post_for_tests())
+
+	assert(panel.get_turret_count_for_tests() == 0)
+	for _index: int in range(4):
+		assert(panel.add_turret_for_tests())
+	assert(panel.get_turret_count_for_tests() == 4)
+	assert(not panel.add_turret_for_tests())
+	for _index: int in range(4):
+		assert(panel.remove_turret_for_tests())
+	assert(panel.get_turret_count_for_tests() == 0)
+	assert(not panel.remove_turret_for_tests())
+
 	flow.begin_card_selection()
 	await process_frame
 	assert(panel.is_card_ui_suppressed_for_tests())
