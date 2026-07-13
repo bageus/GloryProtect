@@ -29,7 +29,7 @@ func _attach_visual_test_panel() -> void:
 	var existing: Node = _active_game.get_node_or_null("VisualUpgradeTestPanel")
 	if existing != null:
 		return
-	var panel := VisualUpgradeTestPanelRunControls.new()
+	var panel := VisualUpgradeTestPanelShooterControls.new()
 	panel.name = "VisualUpgradeTestPanel"
 	_active_game.add_child(panel)
 	panel.configure(_active_game)
