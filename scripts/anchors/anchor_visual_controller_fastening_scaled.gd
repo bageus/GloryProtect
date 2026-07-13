@@ -3,6 +3,7 @@ extends AnchorVisualControllerPolished
 
 const FASTENING_CLAMP_SCALE_MULTIPLIER := 0.9
 const WINCH_SIZE_MULTIPLIER := 1.1
+const ELECTRIC_WINCH_SIZE_MULTIPLIER := 0.9
 
 
 func configure_combat(
@@ -43,6 +44,14 @@ func get_winch_scale_multiplier_for_tests() -> float:
 	return _get_runtime_winch_scale()
 
 
+func get_winch_scale_multiplier_for_anchor_tests(anchor_id: int) -> float:
+	return _get_runtime_winch_scale_for_anchor(anchor_id)
+
+
+func get_electric_winch_size_multiplier_for_tests() -> float:
+	return ELECTRIC_WINCH_SIZE_MULTIPLIER
+
+
 func get_active_clamp_scale_multiplier_for_tests() -> float:
 	return _get_active_clamp_scale_multiplier()
 
@@ -70,13 +79,14 @@ func _draw_winch(
 		texture = BASE_WINCH_TEXTURE
 		source_rect = _get_texture_source_rect(BASE_WINCH_TEXTURE)
 	var tint := Color.WHITE if operator_available else Color(0.52, 0.55, 0.58, 1.0)
+	var scale_value: float = _get_runtime_winch_scale_for_anchor(anchor_id)
 	if not _is_rect_drawable(source_rect):
-		_draw_scaled_fallback_winch(bottom, tint)
+		_draw_scaled_fallback_winch(bottom, tint, scale_value)
 		return
 	var size: Vector2 = (
 		source_rect.size
 		* object_asset_scale
-		* _get_runtime_winch_scale()
+		* scale_value
 	)
 	var rect := Rect2(Vector2(-size.x * 0.5, -size.y), size)
 	var draw_scale := Vector2(-1.0, 1.0) if mirrored else Vector2.ONE
@@ -89,9 +99,10 @@ func _get_winch_draw_size(anchor_id: int) -> Vector2:
 	var source_rect: Rect2 = _get_winch_source_rect(anchor_id)
 	if not _is_rect_drawable(source_rect):
 		source_rect = _get_texture_source_rect(BASE_WINCH_TEXTURE)
+	var scale_value: float = _get_runtime_winch_scale_for_anchor(anchor_id)
 	if not _is_rect_drawable(source_rect):
-		return Vector2(58.0, 54.0) * _get_runtime_winch_scale()
-	return source_rect.size * object_asset_scale * _get_runtime_winch_scale()
+		return Vector2(58.0, 54.0) * scale_value
+	return source_rect.size * object_asset_scale * scale_value
 
 
 func _get_clamp_visual_rect(ground: Vector2) -> Rect2:
@@ -141,8 +152,20 @@ func _get_runtime_winch_scale() -> float:
 	return WINCH_SCALE_MULTIPLIER * WINCH_SIZE_MULTIPLIER
 
 
-func _draw_scaled_fallback_winch(center: Vector2, tint: Color) -> void:
-	var scale_value := _get_runtime_winch_scale()
+func _get_runtime_winch_scale_for_anchor(anchor_id: int) -> float:
+	var scale_value: float = _get_runtime_winch_scale()
+	if _get_combat_winch_asset_id(anchor_id) == &"specialization_2":
+		scale_value *= ELECTRIC_WINCH_SIZE_MULTIPLIER
+	return scale_value
+
+
+func _draw_scaled_fallback_winch(
+	center: Vector2,
+	tint: Color,
+	scale_value: float = -1.0
+) -> void:
+	if scale_value <= 0.0:
+		scale_value = _get_runtime_winch_scale()
 	draw_circle(center, 15.0 * scale_value, tint.darkened(0.25))
 	draw_arc(
 		center,
